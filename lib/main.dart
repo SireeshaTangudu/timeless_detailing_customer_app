@@ -9,6 +9,7 @@ import 'package:timeless_detailing_customer_app/features/dashboard/views/main_na
 import 'package:timeless_detailing_customer_app/features/services/controllers/services_controller.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/controllers/bookings_controller.dart';
 import 'package:timeless_detailing_customer_app/features/tracking/controllers/tracking_controller.dart';
+import 'package:timeless_detailing_customer_app/core/theme/theme_controller.dart';
 
 void main() {
   // =========================================================================
@@ -33,6 +34,7 @@ void main() {
         ChangeNotifierProvider(
           create: (context) => AuthController(odooService),
         ),
+        ChangeNotifierProvider(create: (context) => ThemeController()),
         ChangeNotifierProvider(create: (context) => DashboardController()),
         ChangeNotifierProvider(
           create: (context) => ServicesController(odooService),
@@ -63,10 +65,14 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final themeController = Provider.of<ThemeController>(context);
+
     return MaterialApp(
       title: 'Timeless Detailing',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.darkTheme,
+      theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: themeController.themeMode,
       home: const AuthenticationWrapper(),
     );
   }

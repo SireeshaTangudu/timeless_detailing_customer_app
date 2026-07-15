@@ -95,7 +95,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ],
                 ),
-                const Divider(color: AppTheme.divider),
+                Divider(color: AppTheme.divider),
                 const SizedBox(height: 12),
                 Text(
                   'Enter the email associated with your portal. We will request Odoo to send a reset link.',

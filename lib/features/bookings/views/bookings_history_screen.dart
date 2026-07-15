@@ -38,7 +38,7 @@ class BookingsHistoryScreen extends StatelessWidget {
                   ),
                 ],
               ),
-              const Divider(color: AppTheme.divider),
+              Divider(color: AppTheme.divider),
               const SizedBox(height: 12),
               
               // Invoice Order details
@@ -74,7 +74,7 @@ class BookingsHistoryScreen extends StatelessWidget {
                 ],
               ),
               
-              const Divider(color: AppTheme.divider, height: 24),
+              Divider(color: AppTheme.divider, height: 24),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -192,7 +192,7 @@ class BookingsHistoryScreen extends StatelessWidget {
                     physics: const AlwaysScrollableScrollPhysics(),
                     children: [
                       SizedBox(height: MediaQuery.of(context).size.height * 0.25),
-                      const Icon(Icons.calendar_today_outlined, size: 64, color: AppTheme.textMuted),
+                      Icon(Icons.calendar_today_outlined, size: 64, color: AppTheme.textMuted),
                       const SizedBox(height: 16),
                       Text(
                         'No Detailing Bookings Found',
@@ -321,7 +321,7 @@ class BookingsHistoryScreen extends StatelessWidget {
                 ),
               ],
             ),
-            const Divider(color: AppTheme.divider, height: 24),
+            Divider(color: AppTheme.divider, height: 24),
             Row(
               children: [
                 const Icon(Icons.calendar_today, size: 14, color: AppTheme.primary),

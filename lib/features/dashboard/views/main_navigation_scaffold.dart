@@ -3,6 +3,7 @@ import 'package:timeless_detailing_customer_app/core/theme/app_theme.dart';
 import 'package:timeless_detailing_customer_app/features/dashboard/views/dashboard_screen.dart';
 import 'package:timeless_detailing_customer_app/features/services/views/services_list_screen.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/views/bookings_history_screen.dart';
+import 'package:timeless_detailing_customer_app/features/about/views/about_us_screen.dart';
 
 class MainNavigationScaffold extends StatefulWidget {
   const MainNavigationScaffold({super.key});
@@ -18,7 +19,7 @@ class _MainNavigationScaffoldState extends State<MainNavigationScaffold>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
   }
 
   @override
@@ -37,10 +38,11 @@ class _MainNavigationScaffoldState extends State<MainNavigationScaffold>
           DashboardScreen(tabController: _tabController),
           const ServicesListScreen(),
           const BookingsHistoryScreen(),
+          const AboutUsScreen(),
         ],
       ),
       bottomNavigationBar: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           border: Border(
             top: BorderSide(color: AppTheme.divider, width: 1),
           ),
@@ -50,11 +52,11 @@ class _MainNavigationScaffoldState extends State<MainNavigationScaffold>
           indicatorColor: AppTheme.primary,
           labelColor: AppTheme.primary,
           unselectedLabelColor: AppTheme.textSecondary,
-          labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+          labelStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
           indicator: UnderlineTabIndicator(
             borderSide: const BorderSide(color: AppTheme.primary, width: 3),
             borderRadius: BorderRadius.circular(3),
-            insets: const EdgeInsets.symmetric(horizontal: 48),
+            insets: const EdgeInsets.symmetric(horizontal: 16),
           ),
           tabs: const [
             Tab(
@@ -68,6 +70,10 @@ class _MainNavigationScaffoldState extends State<MainNavigationScaffold>
             Tab(
               icon: Icon(Icons.calendar_month_outlined),
               text: 'Bookings',
+            ),
+            Tab(
+              icon: Icon(Icons.info_outline),
+              text: 'About Us',
             ),
           ],
         ),

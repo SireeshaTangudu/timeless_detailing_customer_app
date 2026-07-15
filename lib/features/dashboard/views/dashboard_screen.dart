@@ -9,6 +9,7 @@ import 'package:timeless_detailing_customer_app/features/dashboard/controllers/d
 import 'package:timeless_detailing_customer_app/features/bookings/controllers/bookings_controller.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/models/booking_model.dart';
 import 'package:timeless_detailing_customer_app/features/tracking/views/live_tracking_screen.dart';
+import 'package:timeless_detailing_customer_app/core/theme/theme_controller.dart';
 
 class DashboardScreen extends StatefulWidget {
   final TabController tabController;
@@ -65,7 +66,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                 ],
               ),
-              const Divider(color: AppTheme.divider),
+              Divider(color: AppTheme.divider),
               const SizedBox(height: 16),
               CustomTextField(
                 controller: _makeModelController,
@@ -162,19 +163,48 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                     ],
                   ),
-                  IconButton(
-                    onPressed: () {
-                      auth.logout();
-                    },
-                    icon: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: AppTheme.surface,
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: AppTheme.cardBorder),
+                  Row(
+                    children: [
+                      Consumer<ThemeController>(
+                        builder: (context, themeController, _) {
+                          return IconButton(
+                            onPressed: () {
+                              themeController.toggleTheme();
+                            },
+                            icon: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: AppTheme.surface,
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(color: AppTheme.cardBorder),
+                              ),
+                              child: Icon(
+                                themeController.isDark
+                                    ? Icons.light_mode_outlined
+                                    : Icons.dark_mode_outlined,
+                                color: AppTheme.primary,
+                                size: 20,
+                              ),
+                            ),
+                          );
+                        },
                       ),
-                      child: const Icon(Icons.logout, color: AppTheme.primary, size: 20),
-                    ),
+                      const SizedBox(width: 8),
+                      IconButton(
+                        onPressed: () {
+                          auth.logout();
+                        },
+                        icon: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: AppTheme.surface,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: AppTheme.cardBorder),
+                          ),
+                          child: const Icon(Icons.logout, color: AppTheme.primary, size: 20),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -256,7 +286,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       child: LinearProgressIndicator(
                         value: (auth.loyaltyPoints % 500) / 500,
                         backgroundColor: AppTheme.background.withOpacity(0.15),
-                        valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.background),
+                        valueColor: AlwaysStoppedAnimation<Color>(AppTheme.background),
                         minHeight: 6,
                       ),
                     ),
@@ -439,7 +469,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                   child: Column(
                     children: [
-                      const Icon(Icons.directions_car_outlined, size: 48, color: AppTheme.textMuted),
+                      Icon(Icons.directions_car_outlined, size: 48, color: AppTheme.textMuted),
                       const SizedBox(height: 12),
                       Text(
                         'Your Garage is Empty',

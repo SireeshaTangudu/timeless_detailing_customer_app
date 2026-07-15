@@ -116,7 +116,7 @@ class ServiceDetailScreen extends StatelessWidget {
                           ),
                         ],
                       ),
-                      const Divider(color: AppTheme.divider, height: 32),
+                      Divider(color: AppTheme.divider, height: 32),
 
                       // Description
                       Text(
@@ -128,7 +128,7 @@ class ServiceDetailScreen extends StatelessWidget {
                         service.description,
                         style: theme.textTheme.bodyMedium,
                       ),
-                      const Divider(color: AppTheme.divider, height: 32),
+                      Divider(color: AppTheme.divider, height: 32),
 
                       // Checklist Section
                       Text(
@@ -177,7 +177,7 @@ class ServiceDetailScreen extends StatelessWidget {
             alignment: Alignment.bottomCenter,
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 color: AppTheme.background,
                 border: Border(
                   top: BorderSide(color: AppTheme.divider, width: 1),

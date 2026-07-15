@@ -378,7 +378,7 @@ class _BookServiceScreenState extends State<BookServiceScreen> {
                   builder: (context, child) {
                     return Theme(
                       data: Theme.of(context).copyWith(
-                        colorScheme: const ColorScheme.dark(
+                        colorScheme: ColorScheme.dark(
                           primary: AppTheme.primary,
                           onPrimary: AppTheme.background,
                           surface: AppTheme.surface,
@@ -411,7 +411,7 @@ class _BookServiceScreenState extends State<BookServiceScreen> {
                       style: theme.textTheme.bodyLarge?.copyWith(fontSize: 14),
                     ),
                     const Spacer(),
-                    const Icon(Icons.arrow_drop_down, color: AppTheme.textSecondary),
+                    Icon(Icons.arrow_drop_down, color: AppTheme.textSecondary),
                   ],
                 ),
               ),
@@ -483,7 +483,7 @@ class _BookServiceScreenState extends State<BookServiceScreen> {
                     'Order Summary',
                     style: theme.textTheme.titleMedium,
                   ),
-                  const Divider(color: AppTheme.divider, height: 24),
+                  Divider(color: AppTheme.divider, height: 24),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -499,7 +499,7 @@ class _BookServiceScreenState extends State<BookServiceScreen> {
                       const Text('\$0.00', style: TextStyle(color: AppTheme.success, fontWeight: FontWeight.bold)),
                     ],
                   ),
-                  const Divider(color: AppTheme.divider, height: 24),
+                  Divider(color: AppTheme.divider, height: 24),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
