@@ -8,9 +8,9 @@ class AppTheme {
   static Color get background => isDark ? const Color(0xFF0C0C0E) : const Color(0xFFF9F9FB);
   static Color get surface => isDark ? const Color(0xFF16161A) : const Color(0xFFFFFFFF);
   static Color get surfaceLight => isDark ? const Color(0xFF222228) : const Color(0xFFF4F4F6);
-  static const Color primary = Color(0xFFD4AF37); // Classic Gold
-  static const Color primaryLight = Color(0xFFF3E5AB); // Soft Gold
-  static const Color primaryDark = Color(0xFF997A15); // Darker Gold
+  static const Color primary = Color(0xFFC4913F); // Primary Gold
+  static const Color primaryLight = Color(0xFFE5B86B); // Soft Gold
+  static const Color primaryDark = Color(0xFF8F621B); // Dark Gold
   static Color get accent => isDark ? const Color(0xFF2C3E50) : const Color(0xFFE5E5EA);
   static Color get textPrimary => isDark ? const Color(0xFFF5F5F7) : const Color(0xFF1C1C1E);
   static Color get textSecondary => isDark ? const Color(0xFF9E9E9E) : const Color(0xFF6E6E73);

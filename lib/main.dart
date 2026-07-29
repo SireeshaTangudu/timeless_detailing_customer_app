@@ -1,8 +1,10 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:timeless_detailing_customer_app/core/theme/app_theme.dart';
 import 'package:timeless_detailing_customer_app/core/network/odoo_client.dart';
 import 'package:timeless_detailing_customer_app/features/auth/controllers/auth_controller.dart';
+import 'package:timeless_detailing_customer_app/features/auth/views/splash_screen.dart';
 import 'package:timeless_detailing_customer_app/features/auth/views/login_screen.dart';
 import 'package:timeless_detailing_customer_app/features/dashboard/controllers/dashboard_controller.dart';
 import 'package:timeless_detailing_customer_app/features/dashboard/views/main_navigation_scaffold.dart';
@@ -11,17 +13,26 @@ import 'package:timeless_detailing_customer_app/features/bookings/controllers/bo
 import 'package:timeless_detailing_customer_app/features/tracking/controllers/tracking_controller.dart';
 import 'package:timeless_detailing_customer_app/core/theme/theme_controller.dart';
 
+class MyHttpOverrides extends HttpOverrides {
+  @override
+  HttpClient createHttpClient(SecurityContext? context) {
+    return super.createHttpClient(context)
+      ..badCertificateCallback =
+          (X509Certificate cert, String host, int port) => true;
+  }
+}
+
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  HttpOverrides.global = MyHttpOverrides();
+
   // =========================================================================
   // ODOO INTEGRATION CONFIGURATION
   // =========================================================================
-  // To connect to your live Odoo database, comment out MockOdooService
-  // and uncomment the OdooApiService block below:
-  //
   final odooService = OdooApiService(
     baseUrl:
-        'https://demo-lfi-timeless-detailing-staging-33762385.dev.odoo.com',
-    db: 'demo-lfi-timeless-detailing-staging-33762385',
+        'https://keerthan-lfi-lfi-timeless-detailing-staging-35193428.dev.odoo.com',
+    db: 'keerthan-lfi-lfi-timeless-detailing-staging-35193428',
   );
 
   runApp(
@@ -73,23 +84,7 @@ class MyApp extends StatelessWidget {
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: themeController.themeMode,
-      home: const AuthenticationWrapper(),
+      home: const SplashScreen(),
     );
-  }
-}
-
-class AuthenticationWrapper extends StatelessWidget {
-  const AuthenticationWrapper({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    // Listens to Auth state to swap between login screen and main home tabs
-    final authController = Provider.of<AuthController>(context);
-
-    if (authController.isAuthenticated) {
-      return const MainNavigationScaffold();
-    } else {
-      return const LoginScreen();
-    }
   }
 }

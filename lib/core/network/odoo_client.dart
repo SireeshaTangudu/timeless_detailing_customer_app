@@ -1,4 +1,6 @@
+import 'dart:io';
 import 'package:dio/dio.dart';
+import 'package:dio/io.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:dio_cookie_manager/dio_cookie_manager.dart';
 import 'package:cookie_jar/cookie_jar.dart';
@@ -50,6 +52,16 @@ class OdooApiService implements BaseOdooService {
         },
       ),
     );
+
+    // Bypass SSL certificate verification on staging/dev Odoo servers
+    if (_dio!.httpClientAdapter is IOHttpClientAdapter) {
+      (_dio!.httpClientAdapter as IOHttpClientAdapter).createHttpClient = () {
+        final client = HttpClient();
+        client.badCertificateCallback =
+            (X509Certificate cert, String host, int port) => true;
+        return client;
+      };
+    }
 
     final dir = await getApplicationDocumentsDirectory();
     _cookieJar = PersistCookieJar(
