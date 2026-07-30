@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'dart:typed_data';
 import 'package:timeless_detailing_customer_app/core/network/odoo_client.dart';
 import 'package:timeless_detailing_customer_app/features/services/models/service_model.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/models/booking_model.dart';
@@ -8,10 +10,12 @@ class MockOdooService implements BaseOdooService {
     const DetailService(
       id: 'srv_1',
       name: 'Exterior Wash & Wax',
-      description: 'A premium exterior cleaning including iron decontamination, clay bar wash, and long-lasting synthetic spray wax application.',
+      description:
+          'A premium exterior cleaning including iron decontamination, clay bar wash, and long-lasting synthetic spray wax application.',
       price: 99.99,
       durationHours: 1.5,
-      imageUrl: 'https://images.unsplash.com/photo-1607860108855-64acf2078ed9?w=500&auto=format&fit=crop&q=60',
+      imageUrl:
+          'https://images.unsplash.com/photo-1607860108855-64acf2078ed9?w=500&auto=format&fit=crop&q=60',
       category: 'Exterior Details',
       whatsIncluded: [
         'Pre-wash foam bath & rinse',
@@ -26,10 +30,12 @@ class MockOdooService implements BaseOdooService {
     const DetailService(
       id: 'srv_2',
       name: 'Interior Deep Clean',
-      description: 'Complete interior restoration. Includes deep carpet extraction, leather conditioning, steam sanitization, and dashboard UV protection.',
+      description:
+          'Complete interior restoration. Includes deep carpet extraction, leather conditioning, steam sanitization, and dashboard UV protection.',
       price: 149.99,
       durationHours: 2.5,
-      imageUrl: 'https://images.unsplash.com/photo-1563720223185-11003d516935?w=500&auto=format&fit=crop&q=60',
+      imageUrl:
+          'https://images.unsplash.com/photo-1563720223185-11003d516935?w=500&auto=format&fit=crop&q=60',
       category: 'Interior Details',
       whatsIncluded: [
         'Detailed vacuuming of seats, carpet & trunk',
@@ -44,10 +50,12 @@ class MockOdooService implements BaseOdooService {
     const DetailService(
       id: 'srv_3',
       name: 'Signature Paint Correction',
-      description: 'Single-stage machine polishing to eliminate 60-70% of light swirl marks and scratches, restoring a deep high-gloss mirror finish.',
+      description:
+          'Single-stage machine polishing to eliminate 60-70% of light swirl marks and scratches, restoring a deep high-gloss mirror finish.',
       price: 299.99,
       durationHours: 4.0,
-      imageUrl: 'https://images.unsplash.com/photo-1507136566006-cfc505b114fc?w=500&auto=format&fit=crop&q=60',
+      imageUrl:
+          'https://images.unsplash.com/photo-1507136566006-cfc505b114fc?w=500&auto=format&fit=crop&q=60',
       category: 'Signature Packages',
       whatsIncluded: [
         'Multi-stage foam wash & complete paint decontamination',
@@ -62,10 +70,12 @@ class MockOdooService implements BaseOdooService {
     const DetailService(
       id: 'srv_4',
       name: 'Complete Ceramic Coating Gold',
-      description: 'Multi-stage paint correction followed by professional-grade 9H Ceramic Coating. Offers ultimate paint protection, hydrophobicity, and deep gloss.',
+      description:
+          'Multi-stage paint correction followed by professional-grade 9H Ceramic Coating. Offers ultimate paint protection, hydrophobicity, and deep gloss.',
       price: 599.99,
       durationHours: 6.0,
-      imageUrl: 'https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?w=500&auto=format&fit=crop&q=60',
+      imageUrl:
+          'https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?w=500&auto=format&fit=crop&q=60',
       category: 'Ceramic Coatings',
       whatsIncluded: [
         'Decontamination wash & multi-stage paint correction (removing 85%+ defects)',
@@ -95,14 +105,16 @@ class MockOdooService implements BaseOdooService {
         status: BookingStatus.inProgress,
         currentStep: 2, // Cleaning & Paint Prep phase
         totalPrice: 299.99,
-        notes: 'Please pay extra attention to the rear spoiler. Looking forward to the results!',
+        notes:
+            'Please pay extra attention to the rear spoiler. Looking forward to the results!',
         beforeImages: [
           'https://images.unsplash.com/photo-1542282088-72c9c27ed0cd?w=500&auto=format&fit=crop&q=60',
           'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=500&auto=format&fit=crop&q=60',
         ],
         afterImages: [],
         technicianName: 'Marcus Vance (Master Detailer)',
-        technicianAvatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&auto=format&fit=crop&q=60',
+        technicianAvatar:
+            'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&auto=format&fit=crop&q=60',
         odooSaleOrderId: 982,
       ),
     );
@@ -126,7 +138,8 @@ class MockOdooService implements BaseOdooService {
           'https://images.unsplash.com/photo-1617788138017-80ad40651399?w=500&auto=format&fit=crop&q=60',
         ],
         technicianName: 'Marcus Vance',
-        technicianAvatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&auto=format&fit=crop&q=60',
+        technicianAvatar:
+            'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&auto=format&fit=crop&q=60',
         odooSaleOrderId: 712,
       ),
     );
@@ -192,13 +205,15 @@ class MockOdooService implements BaseOdooService {
       status: BookingStatus.confirmed,
       currentStep: 0,
       technicianName: 'Marcus Vance',
-      technicianAvatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&auto=format&fit=crop&q=60',
+      technicianAvatar:
+          'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&auto=format&fit=crop&q=60',
     );
     _mockBookings.insert(0, newBooking);
 
     // Add mock points
     if (_mockProfile != null) {
-      _mockProfile!['loyalty_points'] = (_mockProfile!['loyalty_points'] ?? 0) + 100;
+      _mockProfile!['loyalty_points'] =
+          (_mockProfile!['loyalty_points'] ?? 0) + 100;
     }
     return newBooking;
   }
@@ -220,16 +235,18 @@ class MockOdooService implements BaseOdooService {
   }
 
   @override
-  Future<bool> signup(String name, String email, String phone, String password) async {
+  Future<bool> signup(
+    String name,
+    String email,
+    String phone,
+    String password,
+  ) async {
     await Future.delayed(const Duration(milliseconds: 1200));
     return email.contains('@') && password.length >= 4;
   }
 
   @override
-  Future<bool> forgotPassword({
-    required String email,
-    String? database,
-  }) async {
+  Future<bool> forgotPassword({required String email, String? database}) async {
     await Future.delayed(const Duration(milliseconds: 800));
     return email.contains('@');
   }
@@ -240,7 +257,52 @@ class MockOdooService implements BaseOdooService {
     return _mockProfile != null && _mockProfile!['id'] != null;
   }
 
-  // Helper method for the demo: allows updating the status of an active booking 
+  @override
+  Future<bool> updateCustomerProfile({
+    required String customerId,
+    String? name,
+    String? phone,
+    String? email,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 600));
+    if (_mockProfile != null) {
+      if (name != null) _mockProfile!['name'] = name;
+      if (phone != null) _mockProfile!['phone'] = phone;
+      if (email != null) _mockProfile!['email'] = email;
+    }
+    return true;
+  }
+
+  @override
+  Future<bool> uploadProfileImage(
+    String customerId,
+    Uint8List imageBytes,
+  ) async {
+    await Future.delayed(const Duration(milliseconds: 800));
+    if (_mockProfile != null) {
+      _mockProfile!['image_1920'] = base64Encode(imageBytes);
+    }
+    return true;
+  }
+
+  @override
+  Future<bool> deleteAccount() async {
+    await Future.delayed(const Duration(milliseconds: 800));
+    _mockProfile = null;
+    await logout();
+    return true;
+  }
+
+  @override
+  Future<bool> clearProfilePicture(String customerId) async {
+    await Future.delayed(const Duration(milliseconds: 600));
+    if (_mockProfile != null) {
+      _mockProfile!.remove('image_1920');
+    }
+    return true;
+  }
+
+  // Helper method for the demo: allows updating the status of an active booking
   // so the user can see real-time UI changes in the live-tracking panel.
   void updateMockBookingStatus(String bookingId, BookingStatus newStatus) {
     final index = _mockBookings.indexWhere((b) => b.id == bookingId);
@@ -264,13 +326,14 @@ class MockOdooService implements BaseOdooService {
           step = 4;
           break;
       }
-      
+
       // Simulate adding finished pics when ready
       List<String> after = [];
-      if (newStatus == BookingStatus.ready || newStatus == BookingStatus.completed) {
+      if (newStatus == BookingStatus.ready ||
+          newStatus == BookingStatus.completed) {
         after = [
           'https://images.unsplash.com/photo-1617788138017-80ad40651399?w=500&auto=format&fit=crop&q=60',
-          'https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?w=500&auto=format&fit=crop&q=60'
+          'https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?w=500&auto=format&fit=crop&q=60',
         ];
       }
 

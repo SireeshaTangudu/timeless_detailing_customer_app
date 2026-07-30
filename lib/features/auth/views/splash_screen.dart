@@ -46,27 +46,40 @@ class _SplashScreenState extends State<SplashScreen>
 
     _controller.forward();
 
-    // Automatic navigation after splash duration
-    Future.delayed(const Duration(milliseconds: 2800), () {
-      if (mounted) {
-        if (widget.onSplashComplete != null) {
-          widget.onSplashComplete!();
-        } else {
-          final auth = Provider.of<AuthController>(context, listen: false);
-          if (auth.isAuthenticated) {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const MainNavigationScaffold(),
-              ),
-            );
-          } else {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => const OnboardingScreen()),
-            );
-          }
-        }
+    // Trigger auth check concurrently during splash screen display
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<AuthController>(context, listen: false).checkAuthStatus();
+    });
+
+    // Automatic navigation after splash animation duration
+    Future.delayed(const Duration(milliseconds: 2500), () async {
+      if (!mounted) return;
+
+      if (widget.onSplashComplete != null) {
+        widget.onSplashComplete!();
+        return;
+      }
+
+      final auth = Provider.of<AuthController>(context, listen: false);
+      if (auth.isLoading) {
+        // Give up to 1 second extra if auth check is finishing
+        await Future.delayed(const Duration(milliseconds: 500));
+      }
+
+      if (!mounted) return;
+
+      if (auth.isAuthenticated) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const MainNavigationScaffold(),
+          ),
+        );
+      } else {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const OnboardingScreen()),
+        );
       }
     });
   }

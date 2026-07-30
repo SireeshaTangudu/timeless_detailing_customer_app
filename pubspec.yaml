@@ -43,6 +43,7 @@ dependencies:
   cookie_jar: ^4.0.8
   path_provider: ^2.1.2
   flutter_svg: ^2.0.10
+  image_picker: ^1.2.3
 
 dev_dependencies:
   flutter_test:
@@ -71,6 +72,7 @@ flutter:
   assets:
     - assets/images/
     - assets/svg/
+    - assets/profile/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
