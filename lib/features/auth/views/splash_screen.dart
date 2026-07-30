@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 import 'package:timeless_detailing_customer_app/core/theme/app_theme.dart';
@@ -101,8 +100,8 @@ class _SplashScreenState extends State<SplashScreen>
                           // SVG Logo Image render
                           SvgPicture.asset(
                             'assets/svg/splash.svg',
-                            width: 240,
-                            height: 240,
+                            width: 205,
+                            height: 139,
                             placeholderBuilder: (BuildContext context) =>
                                 const CircularProgressIndicator(
                                   valueColor: AlwaysStoppedAnimation<Color>(

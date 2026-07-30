@@ -5,9 +5,8 @@ import 'package:timeless_detailing_customer_app/core/theme/app_theme.dart';
 import 'package:timeless_detailing_customer_app/core/network/odoo_client.dart';
 import 'package:timeless_detailing_customer_app/features/auth/controllers/auth_controller.dart';
 import 'package:timeless_detailing_customer_app/features/auth/views/splash_screen.dart';
-import 'package:timeless_detailing_customer_app/features/auth/views/login_screen.dart';
+import 'package:timeless_detailing_customer_app/features/auth/views/onboarding_screen.dart';
 import 'package:timeless_detailing_customer_app/features/dashboard/controllers/dashboard_controller.dart';
-import 'package:timeless_detailing_customer_app/features/dashboard/views/main_navigation_scaffold.dart';
 import 'package:timeless_detailing_customer_app/features/services/controllers/services_controller.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/controllers/bookings_controller.dart';
 import 'package:timeless_detailing_customer_app/features/tracking/controllers/tracking_controller.dart';
@@ -71,12 +70,55 @@ void main() {
   );
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  bool _isCheckingAuth = true;
+  bool _isLoggedIn = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkAuthStatus();
+  }
+
+  Future<void> _checkAuthStatus() async {
+    final authController = Provider.of<AuthController>(context, listen: false);
+    final loggedIn = await authController.checkAuthStatus();
+    if (mounted) {
+      setState(() {
+        _isLoggedIn = loggedIn;
+        _isCheckingAuth = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final themeController = Provider.of<ThemeController>(context);
+
+    if (_isCheckingAuth) {
+      return MaterialApp(
+        title: 'Timeless Detailing',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.lightTheme,
+        darkTheme: AppTheme.darkTheme,
+        themeMode: themeController.themeMode,
+        home: const Scaffold(
+          backgroundColor: Colors.white,
+          body: Center(
+            child: CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primary),
+            ),
+          ),
+        ),
+      );
+    }
 
     return MaterialApp(
       title: 'Timeless Detailing',
@@ -84,7 +126,7 @@ class MyApp extends StatelessWidget {
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: themeController.themeMode,
-      home: const SplashScreen(),
+      home: _isLoggedIn ? const SplashScreen() : const OnboardingScreen(),
     );
   }
 }

@@ -226,9 +226,18 @@ class MockOdooService implements BaseOdooService {
   }
 
   @override
-  Future<bool> forgotPassword(String email) async {
+  Future<bool> forgotPassword({
+    required String email,
+    String? database,
+  }) async {
     await Future.delayed(const Duration(milliseconds: 800));
     return email.contains('@');
+  }
+
+  @override
+  Future<bool> checkAuthStatus() async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    return _mockProfile != null && _mockProfile!['id'] != null;
   }
 
   // Helper method for the demo: allows updating the status of an active booking 

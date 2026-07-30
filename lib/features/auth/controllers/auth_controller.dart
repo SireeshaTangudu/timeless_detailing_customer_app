@@ -72,13 +72,13 @@ class AuthController extends ChangeNotifier {
     }
   }
 
-  Future<bool> resetPassword(String email) async {
+  Future<bool> resetPassword({required String email, String? database}) async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      final success = await _odooService.forgotPassword(email);
+      final success = await _odooService.forgotPassword(email: email, database: database);
       _isLoading = false;
       notifyListeners();
       return success;
@@ -98,6 +98,26 @@ class AuthController extends ChangeNotifier {
     _userProfile = null;
     _isLoading = false;
     notifyListeners();
+  }
+
+  Future<bool> checkAuthStatus() async {
+    _isLoading = true;
+    notifyListeners();
+    try {
+      final isLoggedIn = await _odooService.checkAuthStatus();
+      _isAuthenticated = isLoggedIn;
+      if (isLoggedIn) {
+        _userProfile = await _odooService.getCustomerProfile('res_partner_12');
+      }
+      _isLoading = false;
+      notifyListeners();
+      return _isAuthenticated;
+    } catch (e) {
+      _isAuthenticated = false;
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
   }
 
   // Refresh loyalty points or info from backend

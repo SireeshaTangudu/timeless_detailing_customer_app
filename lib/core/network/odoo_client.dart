@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import 'package:dio/io.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -17,7 +18,11 @@ abstract class BaseOdooService {
   Future<Booking?> getLiveTrackingBooking(String bookingId);
   Future<Map<String, dynamic>?> getCustomerProfile(String customerId);
   Future<bool> signup(String name, String email, String phone, String password);
-  Future<bool> forgotPassword(String email);
+  Future<bool> forgotPassword({
+    required String email,
+    String? database,
+  });
+  Future<bool> checkAuthStatus();
 }
 
 class OdooApiService implements BaseOdooService {
@@ -210,47 +215,117 @@ class OdooApiService implements BaseOdooService {
   }
 
   @override
-  Future<bool> forgotPassword(String email) async {
+  Future<bool> forgotPassword({
+    required String email,
+    String? database,
+  }) async {
+    await _ensureInitialized();
+
+    if (_dio == null) {
+      debugPrint("Forgot Password Error: Dio service not initialized.");
+      return false;
+    }
+
+    final targetDb = (database != null && database.isNotEmpty) ? database : db;
+
+    debugPrint("🚀 --- Starting Forgot Password Flow ---");
+
     try {
-      await _ensureInitialized();
-      
-      // 1. Fetch CSRF token via GET request first
-      print('Odoo reset password: fetching CSRF token from page...');
+      debugPrint("Step 1: Fetching '/web/reset_password' to get CSRF token...");
       final getResponse = await _dio!.get(
         '/web/reset_password',
-        queryParameters: {'db': db},
-      );
-      
-      String? csrfToken;
-      final html = getResponse.data.toString();
-      final tokenRegex = RegExp(r'name="csrf_token"\s+value="([^"]+)"|csrf_token:\s*"([^"]+)"');
-      final match = tokenRegex.firstMatch(html);
-      if (match != null) {
-        csrfToken = match.group(1) ?? match.group(2);
-      }
-      
-      print('Odoo reset password CSRF: $csrfToken');
-
-      // 2. Perform POST request with CSRF token
-      final response = await _dio!.post(
-        '/web/reset_password',
-        data: {
-          'csrf_token': csrfToken ?? '',
-          'db': db,
-          'login': email,
-        },
         options: Options(
-          contentType: Headers.formUrlEncodedContentType,
-          validateStatus: (status) => status != null && status < 400,
+          responseType: ResponseType.plain,
+          validateStatus: (status) => status! < 500,
         ),
       );
 
-      print('Odoo reset password response path: ${response.realUri.path}');
-      final success = response.statusCode == 200 && response.realUri.path != '/web/reset_password';
-      print('Odoo reset password result: success=$success');
+      debugPrint(
+          "✅ GET request completed with status code: ${getResponse.statusCode}");
+      final html = getResponse.data.toString();
+
+      // Print a snippet of the HTML to avoid flooding the console
+      final htmlSnippet = html.length > 800 ? html.substring(0, 800) : html;
+      debugPrint("📄 HTML Snippet Received:\n---\n$htmlSnippet\n---");
+
+      // --- STEP 2: PARSE the HTML to find the CSRF token ---
+      debugPrint("🔎 Step 2: Searching for CSRF token in HTML...");
+
+      // Let's try two common patterns for the CSRF token
+      RegExp csrfRegex = RegExp(
+          r'name="csrf_token"\s*value="([^"]+)"'); // Pattern 1: <input> tag
+      Match? match = csrfRegex.firstMatch(html);
+
+      if (match == null) {
+        debugPrint(
+            "CSRF token not found with <input> pattern. Trying JSON pattern...");
+        csrfRegex =
+            RegExp(r'"csrf_token"\s*:\s*"([^"]+)"'); // Pattern 2: JSON script
+        match = csrfRegex.firstMatch(html);
+      }
+
+      if (match == null) {
+        debugPrint(
+            "CRITICAL: CSRF token could not be found in the HTML response. Cannot proceed.");
+        debugPrint(
+            "ACTION: Manually inspect the full HTML in the console to find the token's format.");
+        // To see the full HTML, uncomment the line below
+        // debugPrint("Full HTML: $html");
+        return false;
+      }
+
+      final csrfToken = match.group(1)!;
+
+      // --- STEP 3: POST the form data ---
+      debugPrint("🔎 Step 3: Posting data to '/web/reset_password'...");
+      final postResponse = await _dio!.post(
+        '/web/reset_password',
+        data: {
+          'login': email,
+          'db': targetDb,
+          'csrf_token': csrfToken,
+        },
+        options: Options(
+          contentType: Headers.formUrlEncodedContentType,
+          validateStatus: (status) => status! < 500,
+        ),
+      );
+
+      debugPrint(
+          "POST request completed with status code: ${postResponse.statusCode}");
+      final responseText = postResponse.data.toString();
+      debugPrint("POST Response Body:\n---\n$responseText\n---");
+
+      // --- STEP 4: CHECK for success ---
+      debugPrint("Step 4: Analyzing POST response for success message...");
+      // A successful reset usually shows a confirmation message.
+      // Let's check for common success phrases.
+      bool success = responseText
+          .contains('Password reset instructions sent to your email address.');
+
+      if (success) {
+        debugPrint("SUCCESS: Found a likely success message in the response.");
+      } else {
+        debugPrint("FAILURE: Could not find a known success message.");
+        debugPrint(
+            "ACTION: Check the 'POST Response Body' above to see what Odoo is actually saying.");
+      }
+
+      debugPrint("--- Finished Forgot Password Flow ---");
       return success;
+    } on DioException catch (e) {
+      debugPrint(
+          "CRITICAL DioException: An unrecoverable network error occurred.");
+      debugPrint("   Error Type: ${e.type}");
+      debugPrint("   Error Message: ${e.message}");
+      if (e.response != null) {
+        debugPrint("   Response Data: ${e.response?.data}");
+      }
+      debugPrint(" --- Finished Forgot Password Flow with Error ---");
+      return false;
     } catch (e) {
-      print('Odoo reset password error: $e');
+      debugPrint(" CRITICAL Unhandled Exception: $e");
+      debugPrint(" --- Finished Forgot Password Flow with Error ---");
       return false;
     }
   }
@@ -265,6 +340,21 @@ class OdooApiService implements BaseOdooService {
       _dio = null;
     } catch (e) {
       print('Odoo logout error: $e');
+    }
+  }
+
+  @override
+  Future<bool> checkAuthStatus() async {
+    try {
+      final savedUid = await _storage.read(key: 'uid');
+      if (savedUid != null && savedUid.isNotEmpty) {
+        _uid = int.tryParse(savedUid);
+        _sessionId = await _storage.read(key: 'session_id');
+        return true;
+      }
+      return false;
+    } catch (e) {
+      return false;
     }
   }
 
