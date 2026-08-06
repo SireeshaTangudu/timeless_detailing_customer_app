@@ -29,24 +29,32 @@ const List<CarFocusPoint> _interiorFocusPoints = [
     title: 'Dashboard',
     description:
         'Dashboard, vents, AC controls, door panels, steering, trunk, floor mats, carpet, headlining, and all interior touchpoints. Every detail is carefully addressed to ensure a clean, fresh, and refined cabin environment.',
-    xFraction: 0.65,
-    yFraction: 0.25,
+    xFraction: 0.50,
+    yFraction: 0.36,
   ),
   CarFocusPoint(
-    id: 'driver_seat',
-    title: 'Driver & Front Passenger',
+    id: 'center_console',
+    title: 'Center Console',
     description:
-        'Driver and front passenger seats, headrests, and adjustment controls are shampooed, extracted, and conditioned. Door panels, armrests, and grab handles are steam sanitized and dressed with premium interior protection.',
-    xFraction: 0.29,
-    yFraction: 0.46,
+        'Center console, gear shifter, cup holders, and storage compartments are deep cleaned, steam sanitized, and dressed with non-greasy UV protection.',
+    xFraction: 0.50,
+    yFraction: 0.44,
   ),
   CarFocusPoint(
-    id: 'passenger_seat',
-    title: 'Front Passenger Zone',
+    id: 'front_seats',
+    title: 'Front Seats',
     description:
-        'Passenger seat bolster, seams, floor mat, and footwell are deep-cleaned. Glove box, storage bins, and center console are wiped and sanitized. Cup holders receive dedicated stain-lifting treatment.',
-    xFraction: 0.72,
-    yFraction: 0.46,
+        'Driver and front passenger seats, headrests, and adjustment controls are shampooed, extracted, and conditioned with pH-balanced leather/fabric care.',
+    xFraction: 0.54,
+    yFraction: 0.50,
+  ),
+  CarFocusPoint(
+    id: 'side_door',
+    title: 'Door Panels',
+    description:
+        'Door panels and interior plastics are cleaned and restored, removing grime from every touchpoint.',
+    xFraction: 0.28,
+    yFraction: 0.58,
   ),
   CarFocusPoint(
     id: 'rear_bench',
@@ -54,7 +62,7 @@ const List<CarFocusPoint> _interiorFocusPoints = [
     description:
         'Rear bench seats, headrests, and armrests are shampooed and extracted. Rear vents, window controls, seat-back pockets, and door bins are steam-cleaned; carpet and floor mats are pressure-washed and dried.',
     xFraction: 0.50,
-    yFraction: 0.64,
+    yFraction: 0.62,
   ),
 ];
 
@@ -87,127 +95,141 @@ class _InteriorDetailingScreenState extends State<InteriorDetailingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF9F7F4),
-      body: Column(
-        children: [
-          CustomAppBar(
-            title: 'Interior Detailing',
-            onBackPressed: () => Navigator.pop(context),
-          ),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Intro Description Paragraph 1
-                  Text(
-                    "Your vehicle's interior is where you spend every journey, and it deserves the same level of care as its exterior. Our Interior Detailing is a comprehensive restoration service designed to deep clean, sanitize, and rejuvenate every interior surface while preserving the original materials.",
-                    style: GoogleFonts.inter(
-                      fontSize: 14,
-                      color: const Color(0xFF3A2F1E),
-                      height: 1.5,
-                      fontStyle: FontStyle.normal,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Intro Description Paragraph 2
-                  Text(
-                    "Using professional techniques and premium products, we meticulously clean carpets, upholstery, leather, plastics, trim, vents, cup holders, door panels, headlining, and all interior touchpoints. Every detail is carefully addressed to restore a clean, fresh, and refined cabin environment.",
-                    style: GoogleFonts.inter(
-                      fontSize: 14,
-                      color: const Color(0xFF3A2F1E),
-                      height: 1.5,
-                      fontStyle: FontStyle.normal,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Where We Focus Inside Your Vehicle Heading
-                  Text(
-                    'Where We Focus Inside Your Vehicle',
-                    style: GoogleFonts.lora(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w400,
-                      color: const Color(0xFF3A2F1E),
-                      fontStyle: FontStyle.normal,
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-
-                  // Hotspot interactive Car diagram
-                  _CarViewWithHotspots(
-                    points: _interiorFocusPoints,
-                    selected: _selectedPoint,
-                    onPointSelected: (point) {
-                      setState(() {
-                        if (_selectedPoint?.id == point.id) {
-                          _selectedPoint = null;
-                        } else {
-                          _selectedPoint = point;
-                        }
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  // _SelectedPointCard(point: _selectedPoint),
-                  const SizedBox(height: 28),
-
-                  // Service Benefits Header
-                  Text(
-                    'And on top of all that, this service will...',
-                    style: GoogleFonts.lora(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w400,
-                      fontStyle: FontStyle.normal,
-                      color: const Color(0xFF3A2F1E),
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  ..._buildBulletList(_serviceBenefits),
-
-                  const SizedBox(height: 24),
-                ],
-              ),
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onTap: () {
+        if (_selectedPoint != null) {
+          setState(() {
+            _selectedPoint = null;
+          });
+        }
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF9F7F4),
+        body: Column(
+          children: [
+            CustomAppBar(
+              title: 'Interior Detailing',
+              onBackPressed: () => Navigator.pop(context),
             ),
-          ),
-        ],
-      ),
-      bottomNavigationBar: CustomFooter(
-        title: 'Fares starting from R 2800',
-        subtitle: 'View breakup’s',
-        buttonText: 'BOOK Now',
-        backgroundColor: Color(0XFF121212),
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const BookServiceScreen(
-                initialService: DetailService(
-                  id: '1',
-                  name: 'Interior Detailing',
-                  description:
-                      'Comprehensive interior restoration and deep steam clean service.',
-                  price: 199.0,
-                  durationHours: 3.5,
-                  imageUrl: '',
-                  category: 'Interior',
-                  whatsIncluded: [
-                    'Carpets & Upholstery Deep Steam Cleaning',
-                    'Leather Conditioning & UV Protection',
-                    'Dashboard, Vents & Console Sanitization',
-                    'Door Jambs, Trim & Cup Holder Detailing',
-                    'Odor Elimination & Air Refreshener',
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 8,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Intro Description Paragraph 1
+                    Text(
+                      "Your vehicle's interior is where you spend every journey, and it deserves the same level of care as its exterior. Our Interior Detailing is a comprehensive restoration service designed to deep clean, sanitize, and rejuvenate every interior surface while preserving the original materials.",
+                      style: GoogleFonts.inter(
+                        fontSize: 14,
+                        color: const Color(0xFF3A2F1E),
+                        height: 1.5,
+                        fontStyle: FontStyle.normal,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Intro Description Paragraph 2
+                    Text(
+                      "Using professional techniques and premium products, we meticulously clean carpets, upholstery, leather, plastics, trim, vents, cup holders, door panels, headlining, and all interior touchpoints. Every detail is carefully addressed to restore a clean, fresh, and refined cabin environment.",
+                      style: GoogleFonts.inter(
+                        fontSize: 14,
+                        color: const Color(0xFF3A2F1E),
+                        height: 1.5,
+                        fontStyle: FontStyle.normal,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Where We Focus Inside Your Vehicle Heading
+                    Text(
+                      'Where We Focus Inside Your Vehicle',
+                      style: GoogleFonts.lora(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w400,
+                        color: const Color(0xFF3A2F1E),
+                        fontStyle: FontStyle.normal,
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+
+                    // Hotspot interactive Car diagram
+                    _CarViewWithHotspots(
+                      points: _interiorFocusPoints,
+                      selected: _selectedPoint,
+                      onPointSelected: (point) {
+                        setState(() {
+                          if (_selectedPoint?.id == point?.id) {
+                            _selectedPoint = null;
+                          } else {
+                            _selectedPoint = point;
+                          }
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    if (_selectedPoint != null)
+                      _SelectedPointCard(point: _selectedPoint),
+                    const SizedBox(height: 28),
+
+                    // Service Benefits Header
+                    Text(
+                      'And on top of all that, this service will...',
+                      style: GoogleFonts.lora(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w400,
+                        fontStyle: FontStyle.normal,
+                        color: const Color(0xFF3A2F1E),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    ..._buildBulletList(_serviceBenefits),
+
+                    const SizedBox(height: 24),
                   ],
-                  assetImagePath:
-                      'assets/services/interior/interior_detailing.png',
                 ),
               ),
             ),
-          );
-        },
+          ],
+        ),
+        bottomNavigationBar: CustomFooter(
+          title: 'Fares starting from R 2800',
+          subtitle: 'View breakup’s',
+          buttonText: 'BOOK Now',
+          backgroundColor: const Color(0XFF121212),
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const BookServiceScreen(
+                  initialService: DetailService(
+                    id: '1',
+                    name: 'Interior Detailing',
+                    description:
+                        'Comprehensive interior restoration and deep steam clean service.',
+                    price: 199.0,
+                    durationHours: 3.5,
+                    imageUrl: '',
+                    category: 'Interior',
+                    whatsIncluded: [
+                      'Carpets & Upholstery Deep Steam Cleaning',
+                      'Leather Conditioning & UV Protection',
+                      'Dashboard, Vents & Console Sanitization',
+                      'Door Jambs, Trim & Cup Holder Detailing',
+                      'Odor Elimination & Air Refreshener',
+                    ],
+                    assetImagePath:
+                        'assets/services/interior/interior_detailing.png',
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
       ),
     );
   }
@@ -251,7 +273,7 @@ class _InteriorDetailingScreenState extends State<InteriorDetailingScreen> {
 class _CarViewWithHotspots extends StatelessWidget {
   final List<CarFocusPoint> points;
   final CarFocusPoint? selected;
-  final ValueChanged<CarFocusPoint> onPointSelected;
+  final ValueChanged<CarFocusPoint?> onPointSelected;
 
   const _CarViewWithHotspots({
     required this.points,
@@ -272,27 +294,34 @@ class _CarViewWithHotspots extends StatelessWidget {
             final selectedPoint = selected;
             return Stack(
               children: [
+                // Background Car Image with Tap Outside Listener
                 Positioned.fill(
-                  child: Image.asset(
-                    'assets/images/car_view.png',
-                    fit: BoxFit.contain,
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => onPointSelected(null),
+                    child: Image.asset(
+                      'assets/images/car_view.png',
+                      fit: BoxFit.contain,
+                    ),
                   ),
                 ),
-                if (selectedPoint != null)
-                  _buildFloatingTooltip(
-                    point: selectedPoint,
-                    canvasWidth: w,
-                    canvasHeight: h,
-                    onClose: () => onPointSelected(selectedPoint),
-                  ),
+                // Render ALL hotspot dots (All dots remain visible when a card is selected)
                 ...points.map((point) {
                   final isSelected = selected?.id == point.id;
                   return _buildHotspot(
                     point: point,
                     isSelected: isSelected,
-                    onTap: () => onPointSelected(point),
+                    onTap: () => onPointSelected(isSelected ? null : point),
                   );
                 }),
+                // Floating tooltip card on top of image
+                if (selectedPoint != null)
+                  _buildFloatingTooltip(
+                    point: selectedPoint,
+                    canvasWidth: w,
+                    canvasHeight: h,
+                    onClose: () => onPointSelected(null),
+                  ),
               ],
             );
           },
@@ -332,7 +361,7 @@ class _CarViewWithHotspots extends StatelessWidget {
           width: tooltipWidth,
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
           decoration: BoxDecoration(
-            color: const Color(0xFFC4913F).withOpacity(0.96),
+            color: const Color(0xFFAB8C5A).withOpacity(0.96),
             borderRadius: BorderRadius.circular(10),
             boxShadow: [
               BoxShadow(
@@ -484,6 +513,67 @@ class _HotspotDotState extends State<_HotspotDot>
                   offset: const Offset(0, 2),
                 ),
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SelectedPointCard extends StatelessWidget {
+  final CarFocusPoint? point;
+
+  const _SelectedPointCard({required this.point});
+
+  @override
+  Widget build(BuildContext context) {
+    if (point == null) return const SizedBox.shrink();
+    final p = point!;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: const Color(0xFFC4913F).withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: const Color(0xFFC4913F).withValues(alpha: 0.35),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 8,
+                height: 8,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Color(0xFFC4913F),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  p.title,
+                  style: GoogleFonts.lora(
+                    fontSize: 17,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF3A2F1E),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            p.description,
+            style: GoogleFonts.inter(
+              fontSize: 13,
+              color: const Color(0xFF5A5245),
+              height: 1.5,
             ),
           ),
         ],
