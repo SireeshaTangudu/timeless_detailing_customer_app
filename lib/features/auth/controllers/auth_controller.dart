@@ -144,19 +144,30 @@ class AuthController extends ChangeNotifier {
     notifyListeners();
     try {
       final isLoggedIn = await _odooService.checkAuthStatus().timeout(
-        const Duration(seconds: 3),
+        const Duration(seconds: 10),
         onTimeout: () => false,
       );
       _isAuthenticated = isLoggedIn;
+
       if (isLoggedIn) {
-        _userProfile = await _odooService
+        final profile = await _odooService
             .getCustomerProfile('current')
-            .timeout(const Duration(seconds: 3), onTimeout: () => null);
+            .timeout(const Duration(seconds: 8), onTimeout: () => null);
+        _userProfile = profile ?? _odooService.savedUserInfo;
       }
+
       _isLoading = false;
       notifyListeners();
       return _isAuthenticated;
     } catch (e) {
+      debugPrint('AuthController.checkAuthStatus error: $e');
+      if (_odooService.savedUserInfo != null) {
+        _isAuthenticated = true;
+        _userProfile = _odooService.savedUserInfo;
+        _isLoading = false;
+        notifyListeners();
+        return true;
+      }
       _isAuthenticated = false;
       _isLoading = false;
       notifyListeners();

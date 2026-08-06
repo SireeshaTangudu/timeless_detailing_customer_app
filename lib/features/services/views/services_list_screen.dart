@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:timeless_detailing_customer_app/core/theme/app_theme.dart';
 import 'package:timeless_detailing_customer_app/features/services/controllers/services_controller.dart';
+import 'package:timeless_detailing_customer_app/features/services/views/interior_detailing_screen.dart';
 import 'package:timeless_detailing_customer_app/features/services/views/service_detail_screen.dart';
 
 class ServicesListScreen extends StatelessWidget {
@@ -100,12 +101,23 @@ class ServicesListScreen extends StatelessWidget {
                               final service = controller.filteredServices[index];
                               return GestureDetector(
                                 onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => ServiceDetailScreen(service: service),
-                                    ),
-                                  );
+                                  if (service.name.toLowerCase().contains('interior')) {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            const InteriorDetailingScreen(),
+                                      ),
+                                    );
+                                  } else {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            ServiceDetailScreen(service: service),
+                                      ),
+                                    );
+                                  }
                                 },
                                 child: Container(
                                   decoration: BoxDecoration(

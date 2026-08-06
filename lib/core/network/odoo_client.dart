@@ -31,6 +31,7 @@ abstract class BaseOdooService {
   Future<bool> uploadProfileImage(String customerId, Uint8List imageBytes);
   Future<bool> clearProfilePicture(String customerId);
   Future<bool> deleteAccount();
+  Map<String, dynamic>? get savedUserInfo;
 }
 
 class OdooApiService implements BaseOdooService {
@@ -44,9 +45,23 @@ class OdooApiService implements BaseOdooService {
   String? _sessionId;
   Map<String, dynamic>? _savedUserInfo;
 
-  final _storage = const FlutterSecureStorage();
+  static const AndroidOptions _androidOptions = AndroidOptions(
+    encryptedSharedPreferences: true,
+    preferencesKeyPrefix: 'timeless_detailing',
+  );
+  static const IOSOptions _iosOptions = IOSOptions(
+    accessibility: KeychainAccessibility.first_unlock,
+  );
+
+  final _storage = const FlutterSecureStorage(
+    aOptions: _androidOptions,
+    iOptions: _iosOptions,
+  );
 
   OdooApiService({required this.baseUrl, required this.db});
+
+  @override
+  Map<String, dynamic>? get savedUserInfo => _savedUserInfo;
 
   /// Initialize the API client with instance URL, persistent cookies and headers
   Future<void> initialize() async {
@@ -172,11 +187,14 @@ class OdooApiService implements BaseOdooService {
             result['partner_display_name'] ??
             result['username'] ??
             '';
+        final userPhone = result['phone'] is String
+            ? result['phone'] as String
+            : '';
         _savedUserInfo = {
           'id': _partnerId ?? _uid,
           'name': userName,
           'email': result['username'] ?? email,
-          'phone': '',
+          'phone': userPhone,
         };
 
         // Secure save credentials for future auto logins
@@ -190,6 +208,7 @@ class OdooApiService implements BaseOdooService {
         await _storage.write(key: 'session_id', value: _sessionId ?? '');
         await _storage.write(key: 'user_name', value: userName);
         await _storage.write(key: 'user_email', value: email);
+        await _storage.write(key: 'user_phone', value: userPhone);
 
         return true;
       }
@@ -386,10 +405,7 @@ class OdooApiService implements BaseOdooService {
   @override
   Future<void> logout() async {
     try {
-      await _cookieJar?.deleteAll();
-      await _storage.deleteAll();
-      _uid = null;
-      _sessionId = null;
+      await _clearSession();
       _dio = null;
     } catch (e) {
       print('Odoo logout error: $e');
@@ -399,83 +415,174 @@ class OdooApiService implements BaseOdooService {
   @override
   Future<bool> checkAuthStatus() async {
     try {
+      await _ensureInitialized();
+
       final savedUid = await _storage.read(key: 'uid');
-      if (savedUid != null && savedUid.isNotEmpty) {
-        _uid = int.tryParse(savedUid);
-        final savedPartnerId = await _storage.read(key: 'partner_id');
-        if (savedPartnerId != null && savedPartnerId.isNotEmpty) {
-          _partnerId = int.tryParse(savedPartnerId);
-        }
-        _sessionId = await _storage.read(key: 'session_id');
-
-        final savedName = await _storage.read(key: 'user_name');
-        final savedEmail = await _storage.read(key: 'user_email');
-        if (savedName != null || savedEmail != null) {
-          _savedUserInfo = {
-            'id': _partnerId ?? _uid,
-            'name': savedName ?? '',
-            'email': savedEmail ?? '',
-            'phone': '',
-          };
-        }
-
-        return true;
+      if (savedUid == null || savedUid.isEmpty) {
+        return false;
       }
+
+      _uid = int.tryParse(savedUid);
+      final savedPartnerId = await _storage.read(key: 'partner_id');
+      if (savedPartnerId != null && savedPartnerId.isNotEmpty) {
+        _partnerId = int.tryParse(savedPartnerId);
+      }
+      _sessionId = await _storage.read(key: 'session_id');
+
+      final savedName = await _storage.read(key: 'user_name');
+      final savedEmail = await _storage.read(key: 'user_email');
+      final savedPhone = await _storage.read(key: 'user_phone');
+      if (savedName != null || savedEmail != null) {
+        _savedUserInfo = {
+          'id': _partnerId ?? _uid,
+          'name': savedName ?? '',
+          'email': savedEmail ?? '',
+          'phone': savedPhone ?? '',
+        };
+      }
+
+      if (_uid == null) {
+        await _clearSession();
+        return false;
+      }
+
+      try {
+        final result = await _callKw(
+          model: 'res.users',
+          method: 'read',
+          args: [
+            [_uid!],
+          ],
+          kwargs: {
+            'fields': ['id', 'name'],
+          },
+        ).timeout(const Duration(seconds: 5));
+
+        if (result is List && result.isNotEmpty) {
+          final user = result[0] as Map<String, dynamic>;
+          final serverName = user['name'] as String?;
+          if (serverName != null && serverName.isNotEmpty) {
+            _savedUserInfo ??= {};
+            _savedUserInfo!['name'] = serverName;
+            await _storage.write(key: 'user_name', value: serverName);
+          }
+          return true;
+        }
+      } catch (_) {}
+
+      try {
+        final sessionResp = await _dio!.post(
+          '/web/session/get_session_info',
+          data: {'jsonrpc': '2.0', 'method': 'call', 'params': {}},
+          options: Options(
+            sendTimeout: const Duration(seconds: 5),
+            receiveTimeout: const Duration(seconds: 5),
+          ),
+        );
+        final sessionResult = sessionResp.data['result'];
+        if (sessionResult != null &&
+            sessionResult['uid'] != null &&
+            sessionResult['uid'] != false) {
+          return true;
+        }
+      } catch (_) {}
+
+      await _clearSession();
       return false;
     } catch (e) {
+      debugPrint('checkAuthStatus error: $e');
       return false;
     }
+  }
+
+  Future<void> _clearSession() async {
+    try {
+      await _cookieJar?.deleteAll();
+      await _storage.deleteAll();
+    } catch (_) {}
+    _uid = null;
+    _partnerId = null;
+    _sessionId = null;
+    _savedUserInfo = null;
   }
 
   List<DetailService> _getFallbackServices() {
     return const [
       DetailService(
-        id: 'srv_1',
-        name: 'Exterior Wash & Wax',
+        id: '1',
+        name: 'Interior Detailing',
         description:
-            'Comprehensive exterior hand wash, wheel cleaning, and hydrophobic wax spray application.',
-        price: 49.99,
-        durationHours: 1.5,
-        imageUrl:
-            'https://images.unsplash.com/photo-1520340356584-f9917d1eea6f?auto=format&fit=crop&q=80&w=800',
-        category: 'Exterior',
-        whatsIncluded: [
-          'Hand wash & micro-fiber dry',
-          'Wheel & tire decontamination',
-          'Spray wax sealant',
-        ],
-      ),
-      DetailService(
-        id: 'srv_2',
-        name: 'Interior Deep Clean',
-        description:
-            'Deep vacuuming, steam cleaning, leather conditioning, and interior surface sanitizer application.',
-        price: 89.99,
-        durationHours: 2.5,
+            "Your vehicle's interior is where you spend every journey and deserves the same level of care as its exterior. Comprehensive restoration including seats, carpets, trim, headlining, and all touchpoints.",
+        price: 199.0,
+        durationHours: 3.5,
         imageUrl:
             'https://images.unsplash.com/photo-1607860108855-64acf2078ed9?auto=format&fit=crop&q=80&w=800',
         category: 'Interior',
         whatsIncluded: [
-          'Deep vacuum & steam extraction',
-          'Leather clean & condition',
-          'Dashboard & console detail',
+          'Carpets & Upholstery Deep Steam Cleaning',
+          'Leather Conditioning & UV Protection',
+          'Dashboard, Vents & Console Sanitization',
+          'Door Jambs, Trim & Cup Holder Detailing',
+          'Odor Elimination & Air Refreshener',
         ],
+        assetImagePath: 'assets/services/interior/interior_detailing.png',
       ),
       DetailService(
-        id: 'srv_3',
-        name: 'Full Signature Detailing',
+        id: '2',
+        name: 'Paint Care',
         description:
-            'Ultimate paint correction, ceramic sealant protection, and complete interior restoration package.',
-        price: 199.99,
-        durationHours: 4.5,
+            'Multi-stage paint refinement and high-gloss polishing treatment removing swirl marks, light scratches, and oxidation to restore mirror-like clarity.',
+        price: 299.0,
+        durationHours: 4.0,
         imageUrl:
-            'https://images.unsplash.com/photo-1601362840469-51e4d8d58785?auto=format&fit=crop&q=80&w=800',
-        category: 'Signature Packages',
+            'https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?auto=format&fit=crop&q=80&w=800',
+        category: 'Exterior',
         whatsIncluded: [
-          '1-Stage paint polishing',
-          'Ceramic spray coating',
-          'Full interior steam extraction',
+          'Clay Bar Decontamination & Iron Remover',
+          'Single-Stage Dual-Action Machine Polish',
+          'Paint Swirl & Light Scratch Reduction',
+          'Hydrophobic Sealant Application',
+          'Wheel & Tire Deep Clean & Dressing',
         ],
+        assetImagePath: 'assets/services/paint/paint_care.png',
+      ),
+      DetailService(
+        id: '3',
+        name: 'Protection',
+        description:
+            'Premier nano-ceramic hydrophobic protection program designed to keep paintwork, glass, and wheels in showroom condition for years.',
+        price: 599.0,
+        durationHours: 6.0,
+        imageUrl:
+            'https://images.unsplash.com/photo-1603584173870-7f23fdae1b7a?auto=format&fit=crop&q=80&w=800',
+        category: 'Protection',
+        whatsIncluded: [
+          '9H Professional Ceramic Coating (3-Year Shield)',
+          'Front Bumper & Hood Paint Protection Film',
+          'Glass Hydrophobic Rain Shield Coating',
+          'High-Temp Wheel Ceramic Armor',
+        ],
+        assetImagePath: 'assets/services/protection/protection.png',
+      ),
+      DetailService(
+        id: '4',
+        name: 'Maintenance Membership',
+        description:
+            'All-year protection with unlimited monthly maintenance washes, priority booking, exclusive member discounts on advanced treatments, and loyalty rewards.',
+        price: 89.0,
+        durationHours: 0.0,
+        imageUrl:
+            'https://images.unsplash.com/photo-1520340356584-f9917d1eea6f?auto=format&fit=crop&q=80&w=800',
+        category: 'Memberships',
+        whatsIncluded: [
+          '2 x Maintenance Washes Per Month',
+          '10% Off All Detailing Services',
+          'Priority Booking & Holiday Slots',
+          'Quarterly Interior Sanitization',
+          'Exclusive Member Loyalty Rewards',
+        ],
+        assetImagePath:
+            'assets/services/maintenance/maintenance_membership.png',
       ),
     ];
   }
@@ -709,7 +816,6 @@ class OdooApiService implements BaseOdooService {
         return _savedUserInfo;
       }
 
-      // Try reading res.partner with targetId
       try {
         final response = await _callKw(
           model: 'res.partner',
@@ -733,13 +839,13 @@ class OdooApiService implements BaseOdooService {
         if ((response as List).isNotEmpty) {
           final data = Map<String, dynamic>.from(response[0] as Map);
           _savedUserInfo = data;
+          await _persistProfileFields(data);
           return data;
         }
       } catch (e) {
         print(
           'res.partner read restricted: $e. Using user session info / res.users fallback.',
         );
-        // Fallback: try reading res.users for current user
         try {
           if (_uid != null) {
             final userResp = await _callKw(
@@ -768,6 +874,7 @@ class OdooApiService implements BaseOdooService {
                     u['email'] ?? u['login'] ?? _savedUserInfo?['email'] ?? '',
                 'phone': u['phone'] ?? _savedUserInfo?['phone'] ?? '',
               };
+              await _persistProfileFields(_savedUserInfo!);
               return _savedUserInfo;
             }
           }
@@ -779,6 +886,23 @@ class OdooApiService implements BaseOdooService {
       print('Odoo getCustomerProfile error: $e');
       return _savedUserInfo;
     }
+  }
+
+  Future<void> _persistProfileFields(Map<String, dynamic> data) async {
+    try {
+      final name = data['name'];
+      final email = data['email'];
+      final phone = data['phone'];
+      if (name is String && name.isNotEmpty) {
+        await _storage.write(key: 'user_name', value: name);
+      }
+      if (email is String && email.isNotEmpty) {
+        await _storage.write(key: 'user_email', value: email);
+      }
+      if (phone is String && phone.isNotEmpty) {
+        await _storage.write(key: 'user_phone', value: phone);
+      }
+    } catch (_) {}
   }
 
   @override

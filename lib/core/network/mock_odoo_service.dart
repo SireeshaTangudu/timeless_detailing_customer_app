@@ -5,6 +5,9 @@ import 'package:timeless_detailing_customer_app/features/services/models/service
 import 'package:timeless_detailing_customer_app/features/bookings/models/booking_model.dart';
 
 class MockOdooService implements BaseOdooService {
+  @override
+  Map<String, dynamic>? get savedUserInfo => _mockProfile;
+
   // Mock In-Memory Data Store
   final List<DetailService> _mockServices = [
     const DetailService(
@@ -14,8 +17,8 @@ class MockOdooService implements BaseOdooService {
           'A premium exterior cleaning including iron decontamination, clay bar wash, and long-lasting synthetic spray wax application.',
       price: 99.99,
       durationHours: 1.5,
-      imageUrl:
-          'https://images.unsplash.com/photo-1607860108855-64acf2078ed9?w=500&auto=format&fit=crop&q=60',
+      imageUrl: 'assets/images/services/interior/interior_detailing.jpg',
+
       category: 'Exterior Details',
       whatsIncluded: [
         'Pre-wash foam bath & rinse',
@@ -34,8 +37,7 @@ class MockOdooService implements BaseOdooService {
           'Complete interior restoration. Includes deep carpet extraction, leather conditioning, steam sanitization, and dashboard UV protection.',
       price: 149.99,
       durationHours: 2.5,
-      imageUrl:
-          'https://images.unsplash.com/photo-1563720223185-11003d516935?w=500&auto=format&fit=crop&q=60',
+      imageUrl: 'assets/images/services/paint_care/paint_care.png',
       category: 'Interior Details',
       whatsIncluded: [
         'Detailed vacuuming of seats, carpet & trunk',
@@ -54,8 +56,8 @@ class MockOdooService implements BaseOdooService {
           'Single-stage machine polishing to eliminate 60-70% of light swirl marks and scratches, restoring a deep high-gloss mirror finish.',
       price: 299.99,
       durationHours: 4.0,
-      imageUrl:
-          'https://images.unsplash.com/photo-1507136566006-cfc505b114fc?w=500&auto=format&fit=crop&q=60',
+      imageUrl: 'assets/images/services/interior/interior_detailing.jpg',
+
       category: 'Signature Packages',
       whatsIncluded: [
         'Multi-stage foam wash & complete paint decontamination',
@@ -74,8 +76,8 @@ class MockOdooService implements BaseOdooService {
           'Multi-stage paint correction followed by professional-grade 9H Ceramic Coating. Offers ultimate paint protection, hydrophobicity, and deep gloss.',
       price: 599.99,
       durationHours: 6.0,
-      imageUrl:
-          'https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?w=500&auto=format&fit=crop&q=60',
+      imageUrl: 'assets/images/services/interior/interior_detailing.jpg',
+
       category: 'Ceramic Coatings',
       whatsIncluded: [
         'Decontamination wash & multi-stage paint correction (removing 85%+ defects)',

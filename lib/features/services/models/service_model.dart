@@ -7,7 +7,8 @@ class DetailService {
   final String imageUrl;
   final String category;
   final List<String> whatsIncluded;
-  final int? odooProductId; // Maps to Odoo's product.product id
+  final int? odooProductId;
+  final String? assetImagePath;
 
   const DetailService({
     required this.id,
@@ -19,11 +20,10 @@ class DetailService {
     required this.category,
     required this.whatsIncluded,
     this.odooProductId,
+    this.assetImagePath,
   });
 
-  // Factory constructor to create a DetailService from Odoo JSON-RPC response map
   factory DetailService.fromOdooJson(Map<String, dynamic> json) {
-    // Helper to extract list from Odoo's HTML/text fields or JSON
     List<String> parseIncluded(dynamic included) {
       if (included == null) return [];
       if (included is List) {
@@ -44,7 +44,7 @@ class DetailService {
       name: json['name'] ?? 'Unknown Service',
       description: json['description_sale'] ?? json['description'] ?? 'Premium detailing service.',
       price: (json['lst_price'] as num?)?.toDouble() ?? 0.0,
-      durationHours: (json['detailing_duration'] as num?)?.toDouble() ?? 2.0, // custom Odoo field or fallback
+      durationHours: (json['detailing_duration'] as num?)?.toDouble() ?? 2.0,
       imageUrl: json['image_url'] ?? '',
       category: json['categ_id'] is List 
           ? (json['categ_id'] as List)[1].toString() 
@@ -54,7 +54,6 @@ class DetailService {
     );
   }
 
-  // Convert to Map for local database caching or mock representations
   Map<String, dynamic> toMap() {
     return {
       'id': id,
@@ -66,6 +65,7 @@ class DetailService {
       'category': category,
       'whatsIncluded': whatsIncluded,
       'odooProductId': odooProductId,
+      'assetImagePath': assetImagePath,
     };
   }
 }

@@ -22,6 +22,8 @@ class _SplashScreenState extends State<SplashScreen>
   late Animation<double> _fadeAnimation;
   late Animation<double> _scaleAnimation;
 
+  Future<void>? _authFuture;
+
   @override
   void initState() {
     super.initState();
@@ -44,44 +46,55 @@ class _SplashScreenState extends State<SplashScreen>
       ),
     );
 
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final auth = Provider.of<AuthController>(context, listen: false);
+      _authFuture = auth.checkAuthStatus();
+    });
+
     _controller.forward();
 
-    // Trigger auth check concurrently during splash screen display
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<AuthController>(context, listen: false).checkAuthStatus();
-    });
+    _navigateWhenReady();
+  }
 
-    // Automatic navigation after splash animation duration
-    Future.delayed(const Duration(milliseconds: 2500), () async {
-      if (!mounted) return;
+  Future<void> _navigateWhenReady() async {
+    const minSplashDuration = Duration(milliseconds: 2200);
+    final minSplashFuture = Future.delayed(minSplashDuration);
 
-      if (widget.onSplashComplete != null) {
-        widget.onSplashComplete!();
-        return;
-      }
+    await Future.wait([
+      minSplashFuture,
+      _authFuture ?? Future.value(false),
+    ]);
 
-      final auth = Provider.of<AuthController>(context, listen: false);
-      if (auth.isLoading) {
-        // Give up to 1 second extra if auth check is finishing
-        await Future.delayed(const Duration(milliseconds: 500));
-      }
+    if (!mounted) return;
 
-      if (!mounted) return;
+    if (widget.onSplashComplete != null) {
+      widget.onSplashComplete!();
+      return;
+    }
 
-      if (auth.isAuthenticated) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => const MainNavigationScaffold(),
-          ),
-        );
-      } else {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const OnboardingScreen()),
-        );
-      }
-    });
+    final auth = Provider.of<AuthController>(context, listen: false);
+
+    int retries = 0;
+    while (auth.isLoading && retries < 20) {
+      await Future.delayed(const Duration(milliseconds: 200));
+      retries++;
+    }
+
+    if (!mounted) return;
+
+    if (auth.isAuthenticated) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const MainNavigationScaffold(),
+        ),
+      );
+    } else {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const OnboardingScreen()),
+      );
+    }
   }
 
   @override
