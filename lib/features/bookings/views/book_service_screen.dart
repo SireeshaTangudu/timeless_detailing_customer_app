@@ -25,6 +25,8 @@ class _BookServiceScreenState extends State<BookServiceScreen> {
   final _notesController = TextEditingController();
   final _newVehicleMakeModelController = TextEditingController();
   final _newVehiclePlateController = TextEditingController();
+  final _collectorNameController = TextEditingController();
+  final _collectorLicenseController = TextEditingController();
 
   Vehicle? _selectedVehicle;
   DateTime _selectedDate = DateTime.now().add(const Duration(days: 1));
@@ -66,7 +68,10 @@ class _BookServiceScreenState extends State<BookServiceScreen> {
                 ),
                 const SizedBox(height: 16),
                 ListTile(
-                  leading: const Icon(Icons.camera_alt_outlined, color: Color(0xFFC4913F)),
+                  leading: const Icon(
+                    Icons.camera_alt_outlined,
+                    color: Color(0xFFC4913F),
+                  ),
                   title: Text(
                     'Take Photo',
                     style: GoogleFonts.inter(fontWeight: FontWeight.w500),
@@ -77,7 +82,10 @@ class _BookServiceScreenState extends State<BookServiceScreen> {
                   },
                 ),
                 ListTile(
-                  leading: const Icon(Icons.photo_library_outlined, color: Color(0xFFC4913F)),
+                  leading: const Icon(
+                    Icons.photo_library_outlined,
+                    color: Color(0xFFC4913F),
+                  ),
                   title: Text(
                     'Choose from Gallery',
                     style: GoogleFonts.inter(fontWeight: FontWeight.w500),
@@ -103,7 +111,9 @@ class _BookServiceScreenState extends State<BookServiceScreen> {
         );
         if (pickedFiles.isNotEmpty) {
           setState(() {
-            _attachedImages.addAll(pickedFiles.take(5 - _attachedImages.length));
+            _attachedImages.addAll(
+              pickedFiles.take(5 - _attachedImages.length),
+            );
           });
         }
       } else {
@@ -140,6 +150,8 @@ class _BookServiceScreenState extends State<BookServiceScreen> {
     _notesController.dispose();
     _newVehicleMakeModelController.dispose();
     _newVehiclePlateController.dispose();
+    _collectorNameController.dispose();
+    _collectorLicenseController.dispose();
     super.dispose();
   }
 
@@ -216,6 +228,19 @@ class _BookServiceScreenState extends State<BookServiceScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Please select or add a vehicle first.'),
+          backgroundColor: AppTheme.error,
+        ),
+      );
+      return;
+    }
+
+    if (_collectorNameController.text.trim().isNotEmpty &&
+        _collectorLicenseController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Please provide driver\'s license number for authorized collector.',
+          ),
           backgroundColor: AppTheme.error,
         ),
       );
@@ -609,7 +634,9 @@ class _BookServiceScreenState extends State<BookServiceScreen> {
                                   child: Container(
                                     padding: const EdgeInsets.all(3),
                                     decoration: BoxDecoration(
-                                      color: Colors.black.withValues(alpha: 0.7),
+                                      color: Colors.black.withValues(
+                                        alpha: 0.7,
+                                      ),
                                       shape: BoxShape.circle,
                                     ),
                                     child: const Icon(
@@ -663,16 +690,59 @@ class _BookServiceScreenState extends State<BookServiceScreen> {
                   ),
                   const SizedBox(height: 24),
 
-                  // Optional Detailing Notes Field
+                  // Authorized Vehicle Collector Section
                   Text(
-                    'Special Instructions (Optional)',
+                    'Authorized Vehicle Collector',
                     style: GoogleFonts.inter(
                       fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: const Color(0xFF3A2F1E),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'If you are unavailable to collect your vehicle after the service, you may authorize another person to collect it on your behalf. Please provide their name and driver\'s license number.',
+                    style: GoogleFonts.inter(
+                      fontSize: 11.5,
+                      color: const Color(0xFF8A8275),
+                      height: 1.35,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Collector Name',
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
                       fontWeight: FontWeight.w500,
                       color: const Color(0xFF3A2F1E),
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 6),
+                  CustomTextField(
+                    controller: _collectorNameController,
+                    hintText: 'e.g. Jane Smith',
+                    onChanged: (val) {
+                      setState(() {});
+                    },
+                  ),
+                  if (_collectorNameController.text.trim().isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    Text(
+                      'Driver License Number *',
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: const Color(0xFF3A2F1E),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    CustomTextField(
+                      controller: _collectorLicenseController,
+                      hintText: 'e.g. D1234567',
+                    ),
+                  ],
+                  const SizedBox(height: 24),
+
                   CustomTextField(
                     controller: _notesController,
                     hintText: 'Any special requests or areas of focus...',
