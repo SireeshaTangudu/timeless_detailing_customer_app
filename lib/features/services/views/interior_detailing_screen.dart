@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:timeless_detailing_customer_app/core/theme/app_theme.dart';
 import 'package:timeless_detailing_customer_app/core/theme/app_typography.dart';
+import 'package:timeless_detailing_customer_app/core/widgets/custom_app_bar.dart';
+import 'package:timeless_detailing_customer_app/core/widgets/custom_footer.dart';
+import 'package:timeless_detailing_customer_app/features/services/models/service_model.dart';
+import 'package:timeless_detailing_customer_app/features/bookings/views/book_service_screen.dart';
 
 class CarFocusPoint {
   final String id;
@@ -84,215 +88,126 @@ class _InteriorDetailingScreenState extends State<InteriorDetailingScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.isDark
-          ? const Color(0xFF0C0C0E)
-          : const Color(0xFFF9F9FB),
-      body: Stack(
+      backgroundColor: const Color(0xFFF9F7F4),
+      body: Column(
         children: [
-          CustomScrollView(
-            slivers: [
-              SliverAppBar(
-                pinned: true,
-                leading: Container(
-                  margin: const EdgeInsets.only(left: 12, top: 8, bottom: 8),
-                  decoration: BoxDecoration(
-                    color:
-                        (AppTheme.isDark
-                                ? const Color(0xFF16161A)
-                                : Colors.white)
-                            .withOpacity(0.85),
-                    shape: BoxShape.circle,
-                  ),
-                  child: IconButton(
-                    icon: const Icon(
-                      Icons.arrow_back_ios_new,
-                      color: Color(0xFFC4913F),
-                      size: 16,
+          CustomAppBar(
+            title: 'Interior Detailing',
+            onBackPressed: () => Navigator.pop(context),
+          ),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Intro Description Paragraph 1
+                  Text(
+                    "Your vehicle's interior is where you spend every journey, and it deserves the same level of care as its exterior. Our Interior Detailing is a comprehensive restoration service designed to deep clean, sanitize, and rejuvenate every interior surface while preserving the original materials.",
+                    style: GoogleFonts.inter(
+                      fontSize: 14,
+                      color: const Color(0xFF3A2F1E),
+                      height: 1.5,
+                      fontStyle: FontStyle.normal,
                     ),
-                    onPressed: () => Navigator.pop(context),
                   ),
-                ),
-                title: Text(
-                  'Interior Detailing',
-                  style: AppTypography.canela(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.textPrimary,
+                  const SizedBox(height: 12),
+
+                  // Intro Description Paragraph 2
+                  Text(
+                    "Using professional techniques and premium products, we meticulously clean carpets, upholstery, leather, plastics, trim, vents, cup holders, door panels, headlining, and all interior touchpoints. Every detail is carefully addressed to restore a clean, fresh, and refined cabin environment.",
+                    style: GoogleFonts.inter(
+                      fontSize: 14,
+                      color: const Color(0xFF3A2F1E),
+                      height: 1.5,
+                      fontStyle: FontStyle.normal,
+                    ),
                   ),
-                ),
-                backgroundColor: AppTheme.isDark
-                    ? const Color(0xFF0C0C0E)
-                    : const Color(0xFFF9F9FB),
-                elevation: 0,
-                centerTitle: true,
-              ),
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Interior Detailing',
-                        style: AppTypography.canela(
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                          color: AppTheme.textPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        'Your vehicle\u2019s interior is where you spend every journey, and it deserves the same level of care as its exterior. Our Interior Detail is a multi-stage clean, disinfect, and condition process designed to refresh seats, carpets, textiles, plastics, and leathers using only premium materials.',
-                        style: GoogleFonts.inter(
-                          fontSize: 13,
-                          color: AppTheme.textSecondary,
-                          height: 1.5,
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        'Using professional techniques and premium products, we meticulously clean every crevice, corner, surface, seam, headliner, panel, vent, cup holder, console, storage area, and passenger compartment\u2014with particular attention to reach-in areas, floor mats, and under-seat environments.',
-                        style: GoogleFonts.inter(
-                          fontSize: 13,
-                          color: AppTheme.textSecondary,
-                          height: 1.5,
-                        ),
-                      ),
-                    ],
+                  const SizedBox(height: 24),
+
+                  // Where We Focus Inside Your Vehicle Heading
+                  Text(
+                    'Where We Focus Inside Your Vehicle',
+                    style: GoogleFonts.lora(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w400,
+                      color: const Color(0xFF3A2F1E),
+                      fontStyle: FontStyle.normal,
+                    ),
                   ),
-                ),
-              ),
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 8, 24, 0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Where We Focus Inside',
-                        style: AppTypography.canela(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: AppTheme.textPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Your Vehicle',
-                        style: AppTypography.canela(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: AppTheme.textPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Tap a gold dot to see what\u2019s detailed in each area.',
-                        style: GoogleFonts.inter(
-                          fontSize: 12,
-                          color: AppTheme.textSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
-                  child: _CarViewWithHotspots(
+                  const SizedBox(height: 14),
+
+                  // Hotspot interactive Car diagram
+                  _CarViewWithHotspots(
                     points: _interiorFocusPoints,
                     selected: _selectedPoint,
                     onPointSelected: (point) {
                       setState(() {
-                        _selectedPoint = _selectedPoint?.id == point.id
-                            ? null
-                            : point;
+                        if (_selectedPoint?.id == point.id) {
+                          _selectedPoint = null;
+                        } else {
+                          _selectedPoint = point;
+                        }
                       });
                     },
                   ),
-                ),
-              ),
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 20, 24, 20),
-                  child: _SelectedPointCard(point: _selectedPoint),
-                ),
-              ),
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 4, 24, 24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'And on top of all that, this service will:',
-                        style: AppTypography.canela(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: AppTheme.textPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-                      ..._buildBulletList(_serviceBenefits),
-                      const SizedBox(height: 24),
-                      Text(
-                        'Techniques We Use',
-                        style: AppTypography.canela(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: AppTheme.textPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-                      ..._buildBulletList(_professionalTechniques),
-                      const SizedBox(height: 120),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-          Align(
-            alignment: Alignment.bottomCenter,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-              decoration: BoxDecoration(
-                color: AppTheme.isDark
-                    ? const Color(0xFF0C0C0E)
-                    : const Color(0xFFF9F9FB),
-                border: Border(
-                  top: BorderSide(color: AppTheme.divider, width: 1),
-                ),
-              ),
-              child: SafeArea(
-                child: SizedBox(
-                  width: double.infinity,
-                  height: 54,
-                  child: ElevatedButton(
-                    onPressed: () => Navigator.pop(context),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.primary,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: Text(
-                      'BOOK INTERIOR DETAIL',
-                      style: GoogleFonts.outfit(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                        letterSpacing: 0.5,
-                      ),
+                  const SizedBox(height: 16),
+                  // _SelectedPointCard(point: _selectedPoint),
+                  const SizedBox(height: 28),
+
+                  // Service Benefits Header
+                  Text(
+                    'And on top of all that, this service will...',
+                    style: GoogleFonts.lora(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w400,
+                      fontStyle: FontStyle.normal,
+                      color: const Color(0xFF3A2F1E),
                     ),
                   ),
-                ),
+                  const SizedBox(height: 14),
+                  ..._buildBulletList(_serviceBenefits),
+
+                  const SizedBox(height: 24),
+                ],
               ),
             ),
           ),
         ],
+      ),
+      bottomNavigationBar: CustomFooter(
+        title: 'Fares starting from R 2800',
+        subtitle: 'View breakup’s',
+        buttonText: 'BOOK Now',
+        backgroundColor: Color(0XFF121212),
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const BookServiceScreen(
+                initialService: DetailService(
+                  id: '1',
+                  name: 'Interior Detailing',
+                  description:
+                      'Comprehensive interior restoration and deep steam clean service.',
+                  price: 199.0,
+                  durationHours: 3.5,
+                  imageUrl: '',
+                  category: 'Interior',
+                  whatsIncluded: [
+                    'Carpets & Upholstery Deep Steam Cleaning',
+                    'Leather Conditioning & UV Protection',
+                    'Dashboard, Vents & Console Sanitization',
+                    'Door Jambs, Trim & Cup Holder Detailing',
+                    'Odor Elimination & Air Refreshener',
+                  ],
+                  assetImagePath:
+                      'assets/services/interior/interior_detailing.png',
+                ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -310,7 +225,7 @@ class _InteriorDetailingScreenState extends State<InteriorDetailingScreen> {
                 width: 6,
                 height: 6,
                 decoration: const BoxDecoration(
-                  color: Color(0xFFC4913F),
+                  color: Color(0xFF3A2F1E),
                   shape: BoxShape.circle,
                 ),
               ),
@@ -320,8 +235,8 @@ class _InteriorDetailingScreenState extends State<InteriorDetailingScreen> {
               child: Text(
                 e,
                 style: GoogleFonts.inter(
-                  fontSize: 13,
-                  color: AppTheme.textSecondary,
+                  fontSize: 14,
+                  color: Color(0XFF3A2F1E),
                   height: 1.45,
                 ),
               ),
@@ -346,50 +261,41 @@ class _CarViewWithHotspots extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppTheme.isDark
-            ? const Color(0xFF16161A)
-            : const Color(0xFFF4F4F6),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppTheme.cardBorder),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(18),
-        child: AspectRatio(
-          aspectRatio: 3 / 4.5,
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final w = constraints.maxWidth;
-              final h = constraints.maxHeight;
-              final selectedPoint = selected;
-              return Stack(
-                children: [
-                  Positioned.fill(
-                    child: Image.asset(
-                      'assets/images/car_view.png',
-                      fit: BoxFit.contain,
-                    ),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(18),
+      child: AspectRatio(
+        aspectRatio: 3 / 4.5,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final w = constraints.maxWidth;
+            final h = constraints.maxHeight;
+            final selectedPoint = selected;
+            return Stack(
+              children: [
+                Positioned.fill(
+                  child: Image.asset(
+                    'assets/images/car_view.png',
+                    fit: BoxFit.contain,
                   ),
-                  if (selectedPoint != null)
-                    _buildFloatingTooltip(
-                      point: selectedPoint,
-                      canvasWidth: w,
-                      canvasHeight: h,
-                      onClose: () => onPointSelected(selectedPoint),
-                    ),
-                  ...points.map((point) {
-                    final isSelected = selected?.id == point.id;
-                    return _buildHotspot(
-                      point: point,
-                      isSelected: isSelected,
-                      onTap: () => onPointSelected(point),
-                    );
-                  }),
-                ],
-              );
-            },
-          ),
+                ),
+                if (selectedPoint != null)
+                  _buildFloatingTooltip(
+                    point: selectedPoint,
+                    canvasWidth: w,
+                    canvasHeight: h,
+                    onClose: () => onPointSelected(selectedPoint),
+                  ),
+                ...points.map((point) {
+                  final isSelected = selected?.id == point.id;
+                  return _buildHotspot(
+                    point: point,
+                    isSelected: isSelected,
+                    onTap: () => onPointSelected(point),
+                  );
+                }),
+              ],
+            );
+          },
         ),
       ),
     );
@@ -578,103 +484,6 @@ class _HotspotDotState extends State<_HotspotDot>
                   offset: const Offset(0, 2),
                 ),
               ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SelectedPointCard extends StatelessWidget {
-  final CarFocusPoint? point;
-
-  const _SelectedPointCard({required this.point});
-
-  @override
-  Widget build(BuildContext context) {
-    if (point == null) {
-      return Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: AppTheme.isDark ? const Color(0xFF16161A) : Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppTheme.cardBorder),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppTheme.primary.withOpacity(0.12),
-              ),
-              child: const Icon(
-                Icons.touch_app_rounded,
-                color: AppTheme.primary,
-                size: 20,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                'Tap a gold dot on the car to see what we detail in that area.',
-                style: GoogleFonts.inter(
-                  fontSize: 13,
-                  color: AppTheme.textSecondary,
-                  height: 1.4,
-                ),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    final p = point!;
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: const Color(0xFFC4913F).withOpacity(0.08),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFC4913F).withOpacity(0.35)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 8,
-                height: 8,
-                decoration: const BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Color(0xFFC4913F),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  p.title,
-                  style: AppTypography.canela(
-                    fontSize: 17,
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.textPrimary,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Text(
-            p.description,
-            style: GoogleFonts.inter(
-              fontSize: 13,
-              color: AppTheme.textSecondary,
-              height: 1.5,
             ),
           ),
         ],

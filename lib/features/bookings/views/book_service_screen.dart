@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:timeless_detailing_customer_app/core/theme/app_theme.dart';
 import 'package:timeless_detailing_customer_app/core/widgets/custom_button.dart';
 import 'package:timeless_detailing_customer_app/core/widgets/custom_textfield.dart';
+import 'package:timeless_detailing_customer_app/core/widgets/custom_app_bar.dart';
 import 'package:timeless_detailing_customer_app/features/services/models/service_model.dart';
 import 'package:timeless_detailing_customer_app/features/dashboard/controllers/dashboard_controller.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/controllers/bookings_controller.dart';
@@ -213,24 +214,18 @@ class _BookServiceScreenState extends State<BookServiceScreen> {
     final bookingsController = Provider.of<BookingsController>(context);
 
     return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, size: 20),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text(
-          'BOOK SERVICE',
-          style: GoogleFonts.outfit(
-            fontWeight: FontWeight.bold,
-            letterSpacing: 2,
-            fontSize: 18,
+      backgroundColor: Colors.white,
+      body: Column(
+        children: [
+          CustomAppBar(
+            title: 'Book Service',
+            subtitle: widget.initialService.name,
           ),
-        ),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // Selected service summary card
             Container(
@@ -532,6 +527,9 @@ class _BookServiceScreenState extends State<BookServiceScreen> {
           ],
         ),
       ),
+    ),
+  ],
+),
     );
   }
 }

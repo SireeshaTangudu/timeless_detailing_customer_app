@@ -74,14 +74,11 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final themeController = Provider.of<ThemeController>(context);
-
     return MaterialApp(
       title: 'Timeless Detailing',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
-      themeMode: themeController.themeMode,
+      themeMode: ThemeMode.light,
       home: const SplashScreen(),
     );
   }

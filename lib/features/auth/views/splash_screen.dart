@@ -46,12 +46,10 @@ class _SplashScreenState extends State<SplashScreen>
       ),
     );
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final auth = Provider.of<AuthController>(context, listen: false);
-      _authFuture = auth.checkAuthStatus();
-    });
-
     _controller.forward();
+
+    final auth = Provider.of<AuthController>(context, listen: false);
+    _authFuture = auth.checkAuthStatus();
 
     _navigateWhenReady();
   }
@@ -75,8 +73,8 @@ class _SplashScreenState extends State<SplashScreen>
     final auth = Provider.of<AuthController>(context, listen: false);
 
     int retries = 0;
-    while (auth.isLoading && retries < 20) {
-      await Future.delayed(const Duration(milliseconds: 200));
+    while (auth.isLoading && retries < 15) {
+      await Future.delayed(const Duration(milliseconds: 150));
       retries++;
     }
 

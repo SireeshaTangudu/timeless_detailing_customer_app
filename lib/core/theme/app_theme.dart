@@ -2,21 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
-  // Theme Color Palette toggle
-  static bool isDark = true;
+  static const bool isDark = false;
 
-  static Color get background => isDark ? const Color(0xFF0C0C0E) : const Color(0xFFF9F9FB);
-  static Color get surface => isDark ? const Color(0xFF16161A) : const Color(0xFFFFFFFF);
-  static Color get surfaceLight => isDark ? const Color(0xFF222228) : const Color(0xFFF4F4F6);
+  static Color get background => const Color(0xFFF9F9FB);
+  static Color get surface => const Color(0xFFFFFFFF);
+  static Color get surfaceLight => const Color(0xFFF4F4F6);
   static const Color primary = Color(0xFFC4913F); // Primary Gold
   static const Color primaryLight = Color(0xFFE5B86B); // Soft Gold
   static const Color primaryDark = Color(0xFF8F621B); // Dark Gold
-  static Color get accent => isDark ? const Color(0xFF2C3E50) : const Color(0xFFE5E5EA);
-  static Color get textPrimary => isDark ? const Color(0xFFF5F5F7) : const Color(0xFF1C1C1E);
-  static Color get textSecondary => isDark ? const Color(0xFF9E9E9E) : const Color(0xFF6E6E73);
-  static Color get textMuted => isDark ? const Color(0xFF616161) : const Color(0xFFAEAEB2);
-  static Color get divider => isDark ? const Color(0xFF2C2C35) : const Color(0xFFE5E5EA);
-  static Color get cardBorder => isDark ? const Color(0xFF32323D) : const Color(0xFFE5E5EA);
+  static Color get accent => const Color(0xFFE5E5EA);
+  static Color get textPrimary => const Color(0xFF1C1C1E);
+  static Color get textSecondary => const Color(0xFF6E6E73);
+  static Color get textMuted => const Color(0xFFAEAEB2);
+  static Color get divider => const Color(0xFFE5E5EA);
+  static Color get cardBorder => const Color(0xFFE5E5EA);
   static const Color success = Color(0xFF2ECC71);
   static const Color warning = Color(0xFFF39C12);
   static const Color error = Color(0xFFE74C3C);
@@ -31,7 +30,7 @@ class AppTheme {
   );
 
   static LinearGradient get darkCardGradient => LinearGradient(
-    colors: [surface, isDark ? const Color(0xFF1E1E24) : const Color(0xFFF0F0F3)],
+    colors: [surface, const Color(0xFFF0F0F3)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );

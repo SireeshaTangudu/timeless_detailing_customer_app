@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:timeless_detailing_customer_app/core/theme/app_theme.dart';
+import 'package:timeless_detailing_customer_app/core/widgets/custom_app_bar.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/controllers/bookings_controller.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/models/booking_model.dart';
 import 'package:timeless_detailing_customer_app/features/tracking/views/live_tracking_screen.dart';
@@ -163,26 +164,24 @@ class BookingsHistoryScreen extends StatelessWidget {
         .toList();
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'BOOKING HISTORY',
-          style: GoogleFonts.outfit(
-            fontWeight: FontWeight.bold,
-            letterSpacing: 2,
-            fontSize: 18,
+      backgroundColor: const Color(0xFFF9F7F4),
+      body: Column(
+        children: [
+          CustomAppBar(
+            title: 'Bookings',
+            subtitle: 'View your detailing appointment history',
+            backIcon: Icons.menu,
+            onBackPressed: () => Scaffold.of(context).openDrawer(),
+            trailing: IconButton(
+              icon: const Icon(Icons.refresh, color: AppTheme.primary, size: 20),
+              onPressed: () => controller.loadBookings(),
+            ),
           ),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh, color: AppTheme.primary, size: 20),
-            onPressed: () => controller.loadBookings(),
-          ),
-        ],
-      ),
-      body: RefreshIndicator(
-        onRefresh: () => controller.loadBookings(),
-        color: AppTheme.primary,
-        backgroundColor: AppTheme.surface,
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: () => controller.loadBookings(),
+              color: AppTheme.primary,
+              backgroundColor: AppTheme.surface,
         child: controller.isLoading
             ? const Center(
                 child: CircularProgressIndicator(color: AppTheme.primary),
@@ -251,6 +250,9 @@ class BookingsHistoryScreen extends StatelessWidget {
                       ],
                     ],
                   ),
+            ),
+          ),
+        ],
       ),
     );
   }

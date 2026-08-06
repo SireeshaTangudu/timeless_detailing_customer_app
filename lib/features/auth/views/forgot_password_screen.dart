@@ -4,6 +4,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:timeless_detailing_customer_app/core/theme/app_theme.dart';
 import 'package:timeless_detailing_customer_app/features/auth/controllers/auth_controller.dart';
 
+import 'package:timeless_detailing_customer_app/core/widgets/custom_app_bar.dart';
+
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
 
@@ -95,59 +97,12 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Top Navigation Header
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
-              child: Row(
-                children: [
-                  // Circular Back Arrow Button
-                  GestureDetector(
-                    onTap: () {
-                      if (Navigator.canPop(context)) {
-                        Navigator.pop(context);
-                      }
-                    },
-                    child: Container(
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: const Color(0xFFE5E0D8),
-                          width: 1,
-                        ),
-                        color: Colors.white,
-                      ),
-                      child: const Icon(
-                        Icons.arrow_back,
-                        size: 18,
-                        color: Color(0xFF2C2C2E),
-                      ),
-                    ),
-                  ),
-
-                  // Header Title Centered
-                  Expanded(
-                    child: Center(
-                      child: Padding(
-                        padding: const EdgeInsets.only(right: 36.0), // Balance back icon width
-                        child: Text(
-                          'Forgot Password',
-                          style: GoogleFonts.inter(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: const Color(0xFF1C1C1E),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+      body: Column(
+        children: [
+          const CustomAppBar(
+            title: 'Forgot Password',
+            subtitle: 'Enter your email to receive reset instructions',
+          ),
 
             // Form Body Content
             Expanded(
@@ -294,7 +249,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             ),
           ],
         ),
-      ),
     );
   }
 }

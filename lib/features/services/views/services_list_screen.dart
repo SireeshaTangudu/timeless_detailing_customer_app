@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:timeless_detailing_customer_app/core/theme/app_theme.dart';
+import 'package:timeless_detailing_customer_app/core/widgets/custom_app_bar.dart';
 import 'package:timeless_detailing_customer_app/features/services/controllers/services_controller.dart';
 import 'package:timeless_detailing_customer_app/features/services/views/interior_detailing_screen.dart';
 import 'package:timeless_detailing_customer_app/features/services/views/service_detail_screen.dart';
@@ -15,25 +16,20 @@ class ServicesListScreen extends StatelessWidget {
     final controller = Provider.of<ServicesController>(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'SERVICE CATALOG',
-          style: GoogleFonts.outfit(
-            fontWeight: FontWeight.bold,
-            letterSpacing: 2,
-            fontSize: 18,
-          ),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh, color: AppTheme.primary, size: 20),
-            onPressed: () => controller.loadServices(),
-          ),
-        ],
-      ),
+      backgroundColor: const Color(0xFFF9F7F4),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          CustomAppBar(
+            title: 'Services',
+            subtitle: 'Explore our premium detailing packages',
+            backIcon: Icons.menu,
+            onBackPressed: () => Scaffold.of(context).openDrawer(),
+            trailing: IconButton(
+              icon: const Icon(Icons.refresh, color: AppTheme.primary, size: 20),
+              onPressed: () => controller.loadServices(),
+            ),
+          ),
           const SizedBox(height: 10),
           // Category chips
           if (controller.services.isNotEmpty)

@@ -201,6 +201,8 @@ class OdooApiService implements BaseOdooService {
         await _storage.write(key: 'instance_url', value: baseUrl);
         await _storage.write(key: 'database', value: db);
         await _storage.write(key: 'username', value: email);
+        await _storage.write(key: 'password', value: password);
+        await _storage.write(key: 'is_logged_in', value: 'true');
         await _storage.write(key: 'uid', value: _uid.toString());
         if (_partnerId != null) {
           await _storage.write(key: 'partner_id', value: _partnerId.toString());
@@ -418,11 +420,19 @@ class OdooApiService implements BaseOdooService {
       await _ensureInitialized();
 
       final savedUid = await _storage.read(key: 'uid');
-      if (savedUid == null || savedUid.isEmpty) {
+      final isLoggedInFlag = await _storage.read(key: 'is_logged_in');
+      final savedEmail =
+          await _storage.read(key: 'username') ??
+          await _storage.read(key: 'user_email');
+      final savedPassword = await _storage.read(key: 'password');
+
+      if ((savedUid == null || savedUid.isEmpty) && isLoggedInFlag != 'true') {
         return false;
       }
 
-      _uid = int.tryParse(savedUid);
+      if (savedUid != null && savedUid.isNotEmpty) {
+        _uid = int.tryParse(savedUid);
+      }
       final savedPartnerId = await _storage.read(key: 'partner_id');
       if (savedPartnerId != null && savedPartnerId.isNotEmpty) {
         _partnerId = int.tryParse(savedPartnerId);
@@ -430,53 +440,44 @@ class OdooApiService implements BaseOdooService {
       _sessionId = await _storage.read(key: 'session_id');
 
       final savedName = await _storage.read(key: 'user_name');
-      final savedEmail = await _storage.read(key: 'user_email');
       final savedPhone = await _storage.read(key: 'user_phone');
+      final savedImage = await _storage.read(key: 'user_image');
       if (savedName != null || savedEmail != null) {
         _savedUserInfo = {
-          'id': _partnerId ?? _uid,
-          'name': savedName ?? '',
+          'id': _partnerId ?? _uid ?? 1,
+          'name': savedName ?? 'Customer',
           'email': savedEmail ?? '',
           'phone': savedPhone ?? '',
+          if (savedImage != null && savedImage.isNotEmpty) 'image_1920': savedImage,
         };
       }
 
-      if (_uid == null) {
-        await _clearSession();
-        return false;
+      // 1. If password and email are saved, attempt background re-authentication to refresh session cookies
+      if (savedEmail != null &&
+          savedPassword != null &&
+          savedEmail.isNotEmpty &&
+          savedPassword.isNotEmpty) {
+        try {
+          final success = await login(savedEmail, savedPassword).timeout(
+            const Duration(seconds: 4),
+            onTimeout: () => false,
+          );
+          if (success) {
+            return true;
+          }
+        } catch (e) {
+          debugPrint('Silent re-auth timeout or error: $e');
+        }
       }
 
-      try {
-        final result = await _callKw(
-          model: 'res.users',
-          method: 'read',
-          args: [
-            [_uid!],
-          ],
-          kwargs: {
-            'fields': ['id', 'name'],
-          },
-        ).timeout(const Duration(seconds: 5));
-
-        if (result is List && result.isNotEmpty) {
-          final user = result[0] as Map<String, dynamic>;
-          final serverName = user['name'] as String?;
-          if (serverName != null && serverName.isNotEmpty) {
-            _savedUserInfo ??= {};
-            _savedUserInfo!['name'] = serverName;
-            await _storage.write(key: 'user_name', value: serverName);
-          }
-          return true;
-        }
-      } catch (_) {}
-
+      // 2. Try querying session info from Odoo server directly
       try {
         final sessionResp = await _dio!.post(
           '/web/session/get_session_info',
           data: {'jsonrpc': '2.0', 'method': 'call', 'params': {}},
           options: Options(
-            sendTimeout: const Duration(seconds: 5),
-            receiveTimeout: const Duration(seconds: 5),
+            sendTimeout: const Duration(seconds: 4),
+            receiveTimeout: const Duration(seconds: 4),
           ),
         );
         final sessionResult = sessionResp.data['result'];
@@ -487,10 +488,19 @@ class OdooApiService implements BaseOdooService {
         }
       } catch (_) {}
 
-      await _clearSession();
+      // PERSISTENCE FIX: Do NOT clear session if we have stored credentials/UID!
+      // Return true so the user stays logged in offline or across app restarts.
+      if ((_uid != null || _savedUserInfo != null) && isLoggedInFlag != 'false') {
+        return true;
+      }
+
       return false;
     } catch (e) {
       debugPrint('checkAuthStatus error: $e');
+      final savedUid = await _storage.read(key: 'uid');
+      if (savedUid != null && savedUid.isNotEmpty) {
+        return true;
+      }
       return false;
     }
   }
@@ -862,17 +872,29 @@ class OdooApiService implements BaseOdooService {
                   'email',
                   'phone',
                   'partner_id',
+                  'image_1920',
                 ],
               },
             );
             if ((userResp as List).isNotEmpty) {
               final u = userResp[0] as Map<String, dynamic>;
+              final fetchedImg = u['image_1920'];
+              final savedImg = await _storage.read(key: 'user_image');
+              final validImg = (fetchedImg != null &&
+                      fetchedImg != false &&
+                      fetchedImg is String &&
+                      fetchedImg.isNotEmpty &&
+                      fetchedImg != 'false')
+                  ? fetchedImg
+                  : (savedImg ?? _savedUserInfo?['image_1920']);
+
               _savedUserInfo = {
                 'id': _partnerId ?? _uid,
                 'name': u['name'] ?? _savedUserInfo?['name'] ?? '',
                 'email':
                     u['email'] ?? u['login'] ?? _savedUserInfo?['email'] ?? '',
                 'phone': u['phone'] ?? _savedUserInfo?['phone'] ?? '',
+                if (validImg != null) 'image_1920': validImg,
               };
               await _persistProfileFields(_savedUserInfo!);
               return _savedUserInfo;
@@ -893,6 +915,7 @@ class OdooApiService implements BaseOdooService {
       final name = data['name'];
       final email = data['email'];
       final phone = data['phone'];
+      final img = data['image_1920'] ?? data['image_128'];
       if (name is String && name.isNotEmpty) {
         await _storage.write(key: 'user_name', value: name);
       }
@@ -901,6 +924,9 @@ class OdooApiService implements BaseOdooService {
       }
       if (phone is String && phone.isNotEmpty) {
         await _storage.write(key: 'user_phone', value: phone);
+      }
+      if (img is String && img.isNotEmpty && img != 'false') {
+        await _storage.write(key: 'user_image', value: img);
       }
     } catch (_) {}
   }
@@ -970,6 +996,14 @@ class OdooApiService implements BaseOdooService {
       await _ensureInitialized();
       final partnerId = int.tryParse(customerId) ?? _partnerId ?? _uid ?? 1;
       final base64Image = base64Encode(imageBytes);
+
+      // Save locally to storage immediately so user picture is preserved locally
+      await _storage.write(key: 'user_image', value: base64Image);
+      if (_savedUserInfo != null) {
+        _savedUserInfo!['image_1920'] = base64Image;
+      } else {
+        _savedUserInfo = {'image_1920': base64Image};
+      }
 
       if (_uid != null) {
         try {

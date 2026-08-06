@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:timeless_detailing_customer_app/core/theme/app_theme.dart';
 import 'package:timeless_detailing_customer_app/core/widgets/custom_button.dart';
+import 'package:timeless_detailing_customer_app/core/widgets/custom_footer.dart';
 import 'package:timeless_detailing_customer_app/features/services/models/service_model.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/views/book_service_screen.dart';
 
@@ -171,35 +172,20 @@ class ServiceDetailScreen extends StatelessWidget {
               ),
             ],
           ),
-
-          // Anchored booking action bar
-          Align(
-            alignment: Alignment.bottomCenter,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-              decoration: BoxDecoration(
-                color: AppTheme.background,
-                border: Border(
-                  top: BorderSide(color: AppTheme.divider, width: 1),
-                ),
-              ),
-              child: SafeArea(
-                child: CustomButton(
-                  text: 'BOOK THIS SERVICE',
-                  icon: Icons.calendar_today_outlined,
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => BookServiceScreen(initialService: service),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ),
-          ),
         ],
+      ),
+      bottomNavigationBar: CustomFooter(
+        title: 'Est. ${service.durationHours} Hours',
+        subtitle: '\$${service.price.toStringAsFixed(2)}',
+        buttonText: 'BOOK THIS SERVICE',
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => BookServiceScreen(initialService: service),
+            ),
+          );
+        },
       ),
     );
   }

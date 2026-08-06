@@ -39,10 +39,12 @@ class _AssetServiceImageState extends State<_AssetServiceImage> {
       await rootBundle.load(widget.assetPath);
       return Image.asset(
         widget.assetPath,
-        fit: BoxFit.cover,
+        fit: BoxFit.contain,
+        filterQuality: FilterQuality.high,
+        isAntiAlias: true,
         width: double.infinity,
         height: double.infinity,
-        errorBuilder: (_, __, ___) => widget.fallback,
+        errorBuilder: (context, error, stackTrace) => widget.fallback,
       );
     } catch (_) {
       return widget.fallback;
@@ -106,15 +108,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
       return _AssetServiceImage(
         assetPath: assetPath,
         fallback: _buildFallbackIcon(service),
-        backgroundColor: const Color(0xFFFBF9F5),
+        backgroundColor: Colors.transparent,
       );
     }
     if (service.imageUrl.startsWith('http')) {
       return Image.network(
         service.imageUrl,
-        fit: BoxFit.cover,
+        fit: BoxFit.contain,
+        filterQuality: FilterQuality.high,
+        isAntiAlias: true,
         width: double.infinity,
-        errorBuilder: (_, __, ___) => _buildFallbackIcon(service),
+        errorBuilder: (context, error, stackTrace) =>
+            _buildFallbackIcon(service),
       );
     }
     return _buildFallbackIcon(service);
@@ -139,7 +144,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final servicesController = Provider.of<ServicesController>(context);
     final displayServices = servicesController.services;
     final media = MediaQuery.of(context);
-    final safeTop = media.padding.top;
     final safeBottom = media.padding.bottom;
 
     return Scaffold(
@@ -159,7 +163,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header Row: "Hello John Doe" & Circular Profile Icon Button
+                // Header Row: Greeting on Left & Circular Menu Icon Button on Right
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   crossAxisAlignment: CrossAxisAlignment.center,
@@ -189,10 +193,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                     ),
 
-                    // Profile Icon Button in Circular Border
+                    // Circular Menu Icon Button on Top Right (Opening Side Drawer)
                     GestureDetector(
                       onTap: () {
-                        widget.tabController.animateTo(3);
+                        Scaffold.of(context).openDrawer();
                       },
                       child: Container(
                         width: 38,
@@ -200,15 +204,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           border: Border.all(
-                            color: const Color(0xFFE5E0D8),
+                            color: const Color(0xFFAB8C5A),
                             width: 1.2,
                           ),
                           color: Colors.white,
                         ),
                         child: const Icon(
-                          Icons.person_outline,
+                          Icons.menu,
                           size: 20,
-                          color: Color(0xFFC4913F),
+                          color: Color(0xFFAB8C5A),
                         ),
                       ),
                     ),
@@ -280,7 +284,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         const SizedBox(width: 16),
                     itemBuilder: (context, index) {
                       final item = displayServices[index];
-                      final icon = _getServiceIcon(item.name);
 
                       return GestureDetector(
                         onTap: () {
@@ -324,21 +327,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             ],
                           ),
                           child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // Service PNG image
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(12),
+                              // Service PNG image / icon placed at TOP of card (matching Figma 100x86)
+                              Align(
+                                alignment: Alignment.topRight,
                                 child: SizedBox(
                                   width: 100,
-                                  height: 70,
+                                  height: 86,
                                   child: _buildServiceImage(item),
                                 ),
                               ),
-                              const SizedBox(height: 12),
                               const Spacer(),
 
-                              // Service Title aligned to the BOTTOM of the card
+                              // Service Title at the BOTTOM of the card (matching Figma)
                               Text(
                                 item.name,
                                 style: GoogleFonts.lora(

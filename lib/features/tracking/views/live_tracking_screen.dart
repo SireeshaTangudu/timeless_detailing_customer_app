@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:timeless_detailing_customer_app/core/theme/app_theme.dart';
+import 'package:timeless_detailing_customer_app/core/widgets/custom_app_bar.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/models/booking_model.dart';
 import 'package:timeless_detailing_customer_app/features/tracking/controllers/tracking_controller.dart';
 
@@ -61,42 +62,33 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
     ];
 
     return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, size: 20),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text(
-          'SERVICE BAY TRACKER',
-          style: GoogleFonts.outfit(
-            fontWeight: FontWeight.bold,
-            letterSpacing: 2,
-            fontSize: 16,
+      backgroundColor: const Color(0xFFF9F7F4),
+      body: Column(
+        children: [
+          CustomAppBar(
+            title: 'Upcoming Appointment Details',
+            subtitle: widget.booking.service.name,
+            trailing: TextButton.icon(
+              onPressed: () {
+                tracking.simulateNextStatusStep();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Simulating status update in Odoo backend...'),
+                    duration: Duration(milliseconds: 800),
+                    backgroundColor: AppTheme.primary,
+                  ),
+                );
+              },
+              icon: const Icon(Icons.science_outlined, size: 16),
+              label: const Text('Simulate'),
+            ),
           ),
-        ),
-        actions: [
-          // Simulated status button for demonstration
-          TextButton.icon(
-            onPressed: () {
-              tracking.simulateNextStatusStep();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Simulating status update in Odoo backend...'),
-                  duration: Duration(milliseconds: 800),
-                  backgroundColor: AppTheme.primary,
-                ),
-              );
-            },
-            icon: const Icon(Icons.science_outlined, size: 16),
-            label: const Text('Simulate'),
-          ),
-        ],
-      ),
-      body: tracking.isLoading
-          ? const Center(child: CircularProgressIndicator(color: AppTheme.primary))
-          : SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-              child: Column(
+          Expanded(
+            child: tracking.isLoading
+                ? const Center(child: CircularProgressIndicator(color: AppTheme.primary))
+                : SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                    child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   // Vehicle overview card
@@ -413,6 +405,9 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
                 ],
               ),
             ),
+          ),
+        ],
+      ),
     );
   }
 }

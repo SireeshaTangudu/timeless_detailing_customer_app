@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:timeless_detailing_customer_app/core/theme/app_theme.dart';
-import 'package:timeless_detailing_customer_app/core/theme/app_typography.dart';
+import 'package:timeless_detailing_customer_app/core/widgets/custom_app_bar.dart';
 import 'package:timeless_detailing_customer_app/features/auth/controllers/auth_controller.dart';
 import 'package:timeless_detailing_customer_app/features/dashboard/views/main_navigation_scaffold.dart';
 
@@ -126,52 +126,12 @@ class _SignupScreenState extends State<SignupScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Top Navigation Bar with Back Button & Centered Title
-            Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 16.0,
-                vertical: 12.0,
-              ),
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: GestureDetector(
-                      onTap: () => Navigator.pop(context),
-                      child: Container(
-                        width: 36,
-                        height: 36,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: const Color(0xFFE5E0D8),
-                            width: 1,
-                          ),
-                          color: Colors.white,
-                        ),
-                        child: const Icon(
-                          Icons.arrow_back,
-                          size: 18,
-                          color: Color(0xFF2C2C2E),
-                        ),
-                      ),
-                    ),
-                  ),
-                  Text(
-                    'Create New Account',
-                    style: AppTypography.canela(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: const Color(0xFF1C1C1E),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+      body: Column(
+        children: [
+          const CustomAppBar(
+            title: 'Sign up',
+            subtitle: 'Create an account to get started',
+          ),
 
             // Form Inputs
             Expanded(
@@ -378,7 +338,6 @@ class _SignupScreenState extends State<SignupScreen> {
             ),
           ],
         ),
-      ),
     );
   }
 }
