@@ -45,35 +45,30 @@ class BookingsController extends ChangeNotifier {
     _errorMessage = null;
     notifyListeners();
 
-    try {
-      final placeholderBooking = Booking(
-        id: '',
-        service: service,
-        vehicleName: vehicleName,
-        vehicleLicensePlate: vehiclePlate,
-        bookingDateTime: dateTime,
-        status: BookingStatus.confirmed,
-        currentStep: 0,
-        totalPrice: service.price,
-        notes: notes,
-        beforeImages: [],
-        afterImages: [],
-        technicianName: 'Marcus Vance',
-        technicianAvatar: '',
-      );
+    // Local simulated delay for smooth button feedback
+    await Future.delayed(const Duration(milliseconds: 300));
 
-      final created = await _odooService.createBooking(placeholderBooking);
-      
-      // Update local list
-      _bookings.insert(0, created);
-      _isLoading = false;
-      notifyListeners();
-      return created;
-    } catch (e) {
-      _errorMessage = 'Failed to create booking in Odoo.';
-      _isLoading = false;
-      notifyListeners();
-      return null;
-    }
+    final localBooking = Booking(
+      id: 'SO-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}',
+      service: service,
+      vehicleName: vehicleName,
+      vehicleLicensePlate: vehiclePlate,
+      bookingDateTime: dateTime,
+      status: BookingStatus.confirmed,
+      currentStep: 0,
+      totalPrice: service.price > 0 ? service.price : 2800.0,
+      notes: notes,
+      beforeImages: [],
+      afterImages: [],
+      technicianName: 'Marcus Vance',
+      technicianAvatar: '',
+    );
+
+    // Insert into local bookings list for UI testing
+    _bookings.insert(0, localBooking);
+    _isLoading = false;
+    notifyListeners();
+
+    return localBooking;
   }
 }

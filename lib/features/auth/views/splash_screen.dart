@@ -73,14 +73,15 @@ class _SplashScreenState extends State<SplashScreen>
     final auth = Provider.of<AuthController>(context, listen: false);
 
     int retries = 0;
-    while (auth.isLoading && retries < 15) {
+    while (auth.isLoading && retries < 40) {
       await Future.delayed(const Duration(milliseconds: 150));
       retries++;
     }
 
     if (!mounted) return;
 
-    if (auth.isAuthenticated) {
+    // Check if user is logged in (either via auth status or saved session profile)
+    if (auth.isAuthenticated || auth.userProfile != null) {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(

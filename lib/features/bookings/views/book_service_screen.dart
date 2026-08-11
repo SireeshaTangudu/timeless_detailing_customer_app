@@ -11,6 +11,8 @@ import 'package:timeless_detailing_customer_app/core/widgets/custom_app_bar.dart
 import 'package:timeless_detailing_customer_app/features/services/models/service_model.dart';
 import 'package:timeless_detailing_customer_app/features/dashboard/controllers/dashboard_controller.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/controllers/bookings_controller.dart';
+import 'package:timeless_detailing_customer_app/features/bookings/models/estimation_model.dart';
+import 'package:timeless_detailing_customer_app/features/bookings/views/estimation_screen.dart';
 
 class BookServiceScreen extends StatefulWidget {
   final DetailService initialService;
@@ -311,13 +313,45 @@ class _BookServiceScreenState extends State<BookServiceScreen> {
                 ),
                 const SizedBox(height: 24),
                 CustomButton(
-                  text: 'GO TO PORTAL',
+                  text: 'VIEW ESTIMATION',
                   height: 48,
+                  onPressed: () {
+                    Navigator.pop(context); // Close dialog
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => EstimationScreen(
+                          estimation: EstimationModel.fromBooking(
+                            result,
+                            vehicleType: 'Hatch Back',
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 10),
+                OutlinedButton(
                   onPressed: () {
                     Navigator.pop(context); // Close dialog
                     Navigator.pop(context); // Go back from Book Screen
                     Navigator.pop(context); // Go back from Detail Screen
                   },
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: AppTheme.primary, width: 1.5),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    minimumSize: const Size(double.infinity, 48),
+                  ),
+                  child: Text(
+                    'GO TO PORTAL',
+                    style: GoogleFonts.outfit(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.primary,
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -742,13 +776,6 @@ class _BookServiceScreenState extends State<BookServiceScreen> {
                     ),
                   ],
                   const SizedBox(height: 24),
-
-                  CustomTextField(
-                    controller: _notesController,
-                    hintText: 'Any special requests or areas of focus...',
-                    maxLines: 3,
-                  ),
-                  const SizedBox(height: 40),
                 ],
               ),
             ),

@@ -8,6 +8,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:dio_cookie_manager/dio_cookie_manager.dart';
 import 'package:cookie_jar/cookie_jar.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:intl/intl.dart';
 import 'package:timeless_detailing_customer_app/features/services/models/service_model.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/models/booking_model.dart';
 
@@ -426,7 +427,9 @@ class OdooApiService implements BaseOdooService {
           await _storage.read(key: 'user_email');
       final savedPassword = await _storage.read(key: 'password');
 
-      if ((savedUid == null || savedUid.isEmpty) && isLoggedInFlag != 'true') {
+      if ((savedUid == null || savedUid.isEmpty) &&
+          isLoggedInFlag != 'true' &&
+          (savedEmail == null || savedEmail.isEmpty)) {
         return false;
       }
 
@@ -452,14 +455,14 @@ class OdooApiService implements BaseOdooService {
         };
       }
 
-      // 1. If password and email are saved, attempt background re-authentication to refresh session cookies
+      // 1. If password and email are saved, attempt background re-authentication to refresh session cookies with 15s timeout
       if (savedEmail != null &&
           savedPassword != null &&
           savedEmail.isNotEmpty &&
           savedPassword.isNotEmpty) {
         try {
           final success = await login(savedEmail, savedPassword).timeout(
-            const Duration(seconds: 4),
+            const Duration(seconds: 15),
             onTimeout: () => false,
           );
           if (success) {
@@ -476,8 +479,8 @@ class OdooApiService implements BaseOdooService {
           '/web/session/get_session_info',
           data: {'jsonrpc': '2.0', 'method': 'call', 'params': {}},
           options: Options(
-            sendTimeout: const Duration(seconds: 4),
-            receiveTimeout: const Duration(seconds: 4),
+            sendTimeout: const Duration(seconds: 5),
+            receiveTimeout: const Duration(seconds: 5),
           ),
         );
         final sessionResult = sessionResp.data['result'];
@@ -488,9 +491,10 @@ class OdooApiService implements BaseOdooService {
         }
       } catch (_) {}
 
-      // PERSISTENCE FIX: Do NOT clear session if we have stored credentials/UID!
-      // Return true so the user stays logged in offline or across app restarts.
-      if ((_uid != null || _savedUserInfo != null) && isLoggedInFlag != 'false') {
+      // PERSISTENCE FIX: If stored credentials/UID exist, user IS logged in!
+      // Return true so user bypasses onboarding and goes straight to dashboard.
+      if ((_uid != null || _savedUserInfo != null || isLoggedInFlag == 'true' || savedEmail != null) &&
+          isLoggedInFlag != 'false') {
         return true;
       }
 
@@ -498,7 +502,12 @@ class OdooApiService implements BaseOdooService {
     } catch (e) {
       debugPrint('checkAuthStatus error: $e');
       final savedUid = await _storage.read(key: 'uid');
-      if (savedUid != null && savedUid.isNotEmpty) {
+      final isLoggedInFlag = await _storage.read(key: 'is_logged_in');
+      final savedEmail = await _storage.read(key: 'username');
+      if ((savedUid != null && savedUid.isNotEmpty) ||
+          isLoggedInFlag == 'true' ||
+          (savedEmail != null && savedEmail.isNotEmpty)) {
+        if (savedUid != null) _uid = int.tryParse(savedUid);
         return true;
       }
       return false;
@@ -741,7 +750,7 @@ class OdooApiService implements BaseOdooService {
         args: [
           {
             'partner_id': _uid ?? 1,
-            'date_order': booking.bookingDateTime.toIso8601String(),
+            'date_order': DateFormat('yyyy-MM-dd HH:mm:ss').format(booking.bookingDateTime),
             'note': booking.notes,
             'vehicle_name': booking.vehicleName,
             'vehicle_plate': booking.vehicleLicensePlate,

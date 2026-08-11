@@ -6,6 +6,8 @@ import 'package:timeless_detailing_customer_app/core/theme/app_theme.dart';
 import 'package:timeless_detailing_customer_app/core/widgets/custom_app_bar.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/controllers/bookings_controller.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/models/booking_model.dart';
+import 'package:timeless_detailing_customer_app/features/bookings/models/estimation_model.dart';
+import 'package:timeless_detailing_customer_app/features/bookings/views/estimation_screen.dart';
 import 'package:timeless_detailing_customer_app/features/tracking/views/live_tracking_screen.dart';
 
 class BookingsHistoryScreen extends StatelessWidget {
@@ -139,9 +141,43 @@ class BookingsHistoryScreen extends StatelessWidget {
                 const SizedBox(height: 20),
               ],
               
-              ElevatedButton(
+              ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => EstimationScreen(
+                        estimation: EstimationModel.fromBooking(
+                          booking,
+                          vehicleType: 'Hatch Back',
+                        ),
+                      ),
+                    ),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1E1A16),
+                  foregroundColor: const Color(0xFFC4913F),
+                  minimumSize: const Size(double.infinity, 48),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: const BorderSide(color: Color(0xFFC4913F), width: 1),
+                  ),
+                ),
+                icon: const Icon(Icons.receipt_long_outlined, size: 18),
+                label: Text(
+                  'VIEW ESTIMATION BREAKDOWN',
+                  style: GoogleFonts.outfit(
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: const Text('DISMISS'),
+                child: const Text('CLOSE'),
               ),
             ],
           ),
