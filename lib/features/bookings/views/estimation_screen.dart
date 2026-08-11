@@ -7,10 +7,7 @@ import 'package:timeless_detailing_customer_app/features/bookings/models/estimat
 class EstimationScreen extends StatelessWidget {
   final EstimationModel? estimation;
 
-  const EstimationScreen({
-    super.key,
-    this.estimation,
-  });
+  const EstimationScreen({super.key, this.estimation});
 
   Future<void> _openGoogleMapsDirections(BuildContext context) async {
     const String queryLocation = 'Durgam Cheruvu, Hyderabad';
@@ -29,10 +26,7 @@ class EstimationScreen extends StatelessWidget {
 
     try {
       if (await canLaunchUrl(geoUri)) {
-        await launchUrl(
-          geoUri,
-          mode: LaunchMode.externalApplication,
-        );
+        await launchUrl(geoUri, mode: LaunchMode.externalApplication);
         return;
       }
 
@@ -44,10 +38,7 @@ class EstimationScreen extends StatelessWidget {
         return;
       }
 
-      await launchUrl(
-        googleMapsSearchUrl,
-        mode: LaunchMode.platformDefault,
-      );
+      await launchUrl(googleMapsSearchUrl, mode: LaunchMode.platformDefault);
     } catch (e) {
       debugPrint('Could not launch Google Maps: $e');
     }
@@ -55,11 +46,12 @@ class EstimationScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Fallback to static default data matching Figma if no estimate passed
     final data = estimation ?? EstimationModel.defaultStatic();
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF9F9FB),
+      backgroundColor: const Color(
+        0xFFF7F5F0,
+      ), // Warm light cream background matching Figma
       body: Column(
         children: [
           CustomAppBar(
@@ -73,20 +65,20 @@ class EstimationScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Main Estimation Ticket Card
+                  // Main Estimation Ticket Card (Top Dark, Bottom Light matching Figma)
                   _buildEstimateTicketCard(context, data),
 
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 16),
 
                   // Disclaimer notice
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
                     child: Text(
                       data.disclaimerText,
                       textAlign: TextAlign.center,
                       style: GoogleFonts.montserrat(
-                        fontSize: 12,
-                        color: const Color(0xFF7E786D),
+                        fontSize: 11.5,
+                        color: const Color(0xFF7E7667),
                         height: 1.45,
                         fontWeight: FontWeight.w400,
                       ),
@@ -108,7 +100,7 @@ class EstimationScreen extends StatelessWidget {
 
                   const SizedBox(height: 14),
 
-                  // Next steps timeline container
+                  // Next steps timeline container (Dark Luxury Container)
                   _buildNextStepsCard(context, data),
 
                   const SizedBox(height: 32),
@@ -121,37 +113,40 @@ class EstimationScreen extends StatelessWidget {
     );
   }
 
-  /// Dark luxury ticket card with top price display, serrated edge, details, and direction button
+  /// Two-tone ticket card matching Figma: Top Dark Price Box with Serrated teeth, Bottom White Details Box
   Widget _buildEstimateTicketCard(BuildContext context, EstimationModel data) {
+    const darkBoxColor = Color(0xFF1D1813);
+    const lightBoxColor = Colors.white;
+
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF1E1A16), // Dark luxury background matching Figma
+        color: lightBoxColor,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.12),
+            color: Colors.black.withValues(alpha: 0.06),
             blurRadius: 16,
-            offset: const Offset(0, 6),
+            offset: const Offset(0, 4),
           ),
         ],
-        border: Border.all(
-          color: const Color(0xFF3B3227),
-          width: 1,
-        ),
+        border: Border.all(color: const Color(0xFFEBE7E0), width: 1),
       ),
+      clipBehavior: Clip.antiAlias,
       child: Column(
         children: [
-          // Top Price Header Box
-          Padding(
+          // Top Dark Price Container
+          Container(
+            width: double.infinity,
+            color: darkBoxColor,
             padding: const EdgeInsets.fromLTRB(20, 24, 20, 18),
             child: Column(
               children: [
-                // Top Icon Badge
+                // Gold Icon Badge
                 Container(
                   width: 44,
                   height: 44,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF2C241B),
+                    color: const Color(0xFF2A231C),
                     shape: BoxShape.circle,
                     border: Border.all(
                       color: const Color(0xFFC4913F).withValues(alpha: 0.4),
@@ -166,21 +161,21 @@ class EstimationScreen extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: 12),
 
-                // Description text
+                // Subtitle description
                 Text(
                   '${data.serviceDescription} only at',
                   textAlign: TextAlign.center,
                   style: GoogleFonts.montserrat(
-                    fontSize: 12.5,
-                    color: const Color(0xFFBCAE9B),
+                    fontSize: 12,
+                    color: const Color(0xFFC5B7A1),
                     fontWeight: FontWeight.w400,
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
 
-                // Price display
+                // Price
                 Text(
                   data.formattedPrice,
                   style: GoogleFonts.outfit(
@@ -194,32 +189,45 @@ class EstimationScreen extends StatelessWidget {
             ),
           ),
 
-          // Ticket serrated divider edge
+          // Sawtooth Ticket Serrated Edge Transition (Dark to Light)
           CustomPaint(
-            size: const Size(double.infinity, 16),
-            painter: TicketSerratedPainter(
-              color: const Color(0xFF1E1A16),
-              borderColor: const Color(0xFF3B3227),
+            size: const Size(double.infinity, 12),
+            painter: SawtoothTicketPainter(
+              darkColor: darkBoxColor,
+              lightColor: lightBoxColor,
             ),
           ),
 
-          // Details List Box
-          Padding(
+          // Bottom Light Details Container
+          Container(
+            width: double.infinity,
+            color: lightBoxColor,
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
             child: Column(
               children: [
-                _buildDetailRow('Selected Car', data.vehicleName),
+                _buildLightDetailRow('Selected Car', data.vehicleName),
                 const SizedBox(height: 12),
-                _buildDetailRow('Car Type', data.vehicleType),
+                _buildLightDetailRow('Car Type', data.vehicleType),
                 const SizedBox(height: 12),
-                _buildDetailRow('Service', data.serviceName),
+                _buildLightDetailRow('Service', data.serviceName),
+
+                const SizedBox(height: 14),
+
+                // Thin Dotted Divider Line
+                CustomPaint(
+                  size: const Size(double.infinity, 1),
+                  painter: DashedLinePainter(color: const Color(0xFFE5DFD5)),
+                ),
+
+                const SizedBox(height: 14),
+
+                _buildLightDetailRow('Service Date', data.serviceDate),
                 const SizedBox(height: 12),
-                _buildDetailRow('Service Date', data.serviceDate),
-                const SizedBox(height: 12),
-                _buildDetailRow('Time', data.serviceTime),
+                _buildLightDetailRow('Slot', data.serviceTime),
+
                 const SizedBox(height: 22),
 
-                // Button: Get Directions to Garage
+                // Get Directions to Garage Button
                 SizedBox(
                   width: double.infinity,
                   height: 48,
@@ -237,7 +245,7 @@ class EstimationScreen extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         const Icon(
-                          Icons.directions_outlined,
+                          Icons.near_me_outlined,
                           size: 18,
                           color: Colors.white,
                         ),
@@ -262,7 +270,8 @@ class EstimationScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildDetailRow(String label, String value) {
+  /// Light Detail Row with Grey Label left, Bold Dark Text right
+  Widget _buildLightDetailRow(String label, String value) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -271,7 +280,7 @@ class EstimationScreen extends StatelessWidget {
           label,
           style: GoogleFonts.montserrat(
             fontSize: 13,
-            color: const Color(0xFF9E9484),
+            color: const Color(0xFF8C8273),
             fontWeight: FontWeight.w400,
           ),
         ),
@@ -282,7 +291,7 @@ class EstimationScreen extends StatelessWidget {
             textAlign: TextAlign.right,
             style: GoogleFonts.montserrat(
               fontSize: 13,
-              color: Colors.white,
+              color: const Color(0xFF1C1C1E),
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -296,12 +305,9 @@ class EstimationScreen extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 22),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E1A16),
+        color: const Color(0xFF1D1813),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: const Color(0xFF3B3227),
-          width: 1,
-        ),
+        border: Border.all(color: const Color(0xFF3B3227), width: 1),
       ),
       child: Column(
         children: List.generate(data.nextSteps.length, (index) {
@@ -312,7 +318,7 @@ class EstimationScreen extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Step Number Circle & Connecting Vertical Line
+                // Left Step Number Circle with Vertical Connector Line
                 Column(
                   children: [
                     Container(
@@ -320,9 +326,7 @@ class EstimationScreen extends StatelessWidget {
                       height: 28,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: step.isCompleted
-                            ? const Color(0xFFC4913F)
-                            : Colors.transparent,
+                        color: const Color(0xFF2A231C),
                         border: Border.all(
                           color: const Color(0xFFC4913F),
                           width: 1.5,
@@ -334,9 +338,7 @@ class EstimationScreen extends StatelessWidget {
                           style: GoogleFonts.outfit(
                             fontSize: 13,
                             fontWeight: FontWeight.bold,
-                            color: step.isCompleted
-                                ? Colors.white
-                                : const Color(0xFFC4913F),
+                            color: const Color(0xFFC4913F),
                           ),
                         ),
                       ),
@@ -346,24 +348,24 @@ class EstimationScreen extends StatelessWidget {
                         child: Container(
                           width: 1.5,
                           margin: const EdgeInsets.symmetric(vertical: 4),
-                          color: const Color(0xFF4A3F31),
+                          color: const Color(0xFF4A3E30),
                         ),
                       ),
                   ],
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 14),
 
-                // Step Title Text
+                // Right Step Description Text
                 Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.only(top: 4, bottom: 20),
+                    padding: EdgeInsets.only(top: 4, bottom: isLast ? 0 : 20),
                     child: Text(
                       step.title,
                       style: GoogleFonts.montserrat(
                         fontSize: 13.5,
+                        color: Colors.white,
                         fontWeight: FontWeight.w500,
-                        color: Colors.white.withValues(alpha: 0.92),
-                        height: 1.3,
+                        height: 1.35,
                       ),
                     ),
                   ),
@@ -377,75 +379,84 @@ class EstimationScreen extends StatelessWidget {
   }
 }
 
-/// Custom painter to draw scalloped / ticket serrated edge with side cutouts matching Figma ticket design
-class TicketSerratedPainter extends CustomPainter {
-  final Color color;
-  final Color borderColor;
+/// Custom painter to draw triangular sawtooth serrated ticket edge between dark top and light bottom
+class SawtoothTicketPainter extends CustomPainter {
+  final Color darkColor;
+  final Color lightColor;
 
-  TicketSerratedPainter({
-    required this.color,
-    required this.borderColor,
-  });
+  SawtoothTicketPainter({required this.darkColor, required this.lightColor});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final darkPaint = Paint()
+      ..color = darkColor
+      ..style = PaintingStyle.fill;
+
+    final lightPaint = Paint()
+      ..color = lightColor
+      ..style = PaintingStyle.fill;
+
+    // Fill background with light color
+    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), lightPaint);
+
+    // Draw dark top portion with triangular sawtooth teeth at bottom
+    final path = Path();
+    path.moveTo(0, 0);
+    path.lineTo(0, size.height - 10);
+
+    const toothWidth = 22.0;
+    const toothHeight = 8.0;
+    final teethCount = (size.width / toothWidth).ceil();
+
+    for (int i = 0; i < teethCount; i++) {
+      final startX = i * toothWidth;
+      final midX = startX + (toothWidth / 2);
+      final endX = startX + toothWidth;
+      path.lineTo(midX, size.height);
+      path.lineTo(endX, size.height - toothHeight);
+    }
+
+    path.lineTo(size.width, 0);
+    path.close();
+
+    canvas.drawPath(path, darkPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant SawtoothTicketPainter oldDelegate) {
+    return oldDelegate.darkColor != darkColor ||
+        oldDelegate.lightColor != lightColor;
+  }
+}
+
+/// Custom painter for thin dashed line divider
+class DashedLinePainter extends CustomPainter {
+  final Color color;
+
+  DashedLinePainter({required this.color});
 
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
       ..color = color
-      ..style = PaintingStyle.fill;
-
-    final dashPaint = Paint()
-      ..color = borderColor
-      ..strokeWidth = 1
+      ..strokeWidth = 1.0
       ..style = PaintingStyle.stroke;
 
-    final path = Path();
-
-    // Side semicircular cutouts (left and right)
-    const radius = 8.0;
-    
-    // Left notch
-    path.moveTo(0, 0);
-    path.arcToPoint(
-      Offset(0, size.height),
-      radius: const Radius.circular(radius),
-      clockwise: true,
-    );
-
-    // Bottom line across
-    path.lineTo(size.width, size.height);
-
-    // Right notch
-    path.arcToPoint(
-      Offset(size.width, 0),
-      radius: const Radius.circular(radius),
-      clockwise: true,
-    );
-
-    // Top line back
-    path.lineTo(0, 0);
-    path.close();
-
-    canvas.drawPath(path, paint);
-
-    // Draw dashed separator line in middle of ticket divider
     const dashWidth = 5.0;
     const dashSpace = 4.0;
-    double startX = radius + 4;
-    final endX = size.width - radius - 4;
-    final y = size.height / 2;
+    double startX = 0.0;
 
-    while (startX < endX) {
+    while (startX < size.width) {
       canvas.drawLine(
-        Offset(startX, y),
-        Offset((startX + dashWidth).clamp(startX, endX), y),
-        dashPaint,
+        Offset(startX, 0),
+        Offset((startX + dashWidth).clamp(0, size.width), 0),
+        paint,
       );
       startX += dashWidth + dashSpace;
     }
   }
 
   @override
-  bool shouldRepaint(covariant TicketSerratedPainter oldDelegate) {
-    return oldDelegate.color != color || oldDelegate.borderColor != borderColor;
-  }
+  bool shouldRepaint(covariant DashedLinePainter oldDelegate) =>
+      oldDelegate.color != color;
 }
