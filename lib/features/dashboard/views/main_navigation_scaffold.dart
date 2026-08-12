@@ -205,12 +205,15 @@ class _MainNavigationScaffoldState extends State<MainNavigationScaffold>
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  onTap: () async {
-                    Navigator.pop(context);
-                    await auth.logout();
-                    if (!context.mounted) return;
-                    Navigator.pushAndRemoveUntil(
+                  onTap: () {
+                    final navigator = Navigator.of(context, rootNavigator: true);
+                    final auth = Provider.of<AuthController>(
                       context,
+                      listen: false,
+                    );
+                    auth.logout();
+
+                    navigator.pushAndRemoveUntil(
                       MaterialPageRoute(
                         builder: (context) => const LoginScreen(),
                       ),

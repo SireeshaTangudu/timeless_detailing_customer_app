@@ -32,6 +32,10 @@ abstract class BaseOdooService {
   Future<bool> uploadProfileImage(String customerId, Uint8List imageBytes);
   Future<bool> clearProfilePicture(String customerId);
   Future<bool> deleteAccount();
+  Future<bool> changePassword({
+    required String oldPassword,
+    required String newPassword,
+  });
   Map<String, dynamic>? get savedUserInfo;
 }
 
@@ -451,7 +455,8 @@ class OdooApiService implements BaseOdooService {
           'name': savedName ?? 'Customer',
           'email': savedEmail ?? '',
           'phone': savedPhone ?? '',
-          if (savedImage != null && savedImage.isNotEmpty) 'image_1920': savedImage,
+          if (savedImage != null && savedImage.isNotEmpty)
+            'image_1920': savedImage,
         };
       }
 
@@ -461,10 +466,10 @@ class OdooApiService implements BaseOdooService {
           savedEmail.isNotEmpty &&
           savedPassword.isNotEmpty) {
         try {
-          final success = await login(savedEmail, savedPassword).timeout(
-            const Duration(seconds: 15),
-            onTimeout: () => false,
-          );
+          final success = await login(
+            savedEmail,
+            savedPassword,
+          ).timeout(const Duration(seconds: 15), onTimeout: () => false);
           if (success) {
             return true;
           }
@@ -493,7 +498,10 @@ class OdooApiService implements BaseOdooService {
 
       // PERSISTENCE FIX: If stored credentials/UID exist, user IS logged in!
       // Return true so user bypasses onboarding and goes straight to dashboard.
-      if ((_uid != null || _savedUserInfo != null || isLoggedInFlag == 'true' || savedEmail != null) &&
+      if ((_uid != null ||
+              _savedUserInfo != null ||
+              isLoggedInFlag == 'true' ||
+              savedEmail != null) &&
           isLoggedInFlag != 'false') {
         return true;
       }
@@ -750,7 +758,9 @@ class OdooApiService implements BaseOdooService {
         args: [
           {
             'partner_id': _uid ?? 1,
-            'date_order': DateFormat('yyyy-MM-dd HH:mm:ss').format(booking.bookingDateTime),
+            'date_order': DateFormat(
+              'yyyy-MM-dd HH:mm:ss',
+            ).format(booking.bookingDateTime),
             'note': booking.notes,
             'vehicle_name': booking.vehicleName,
             'vehicle_plate': booking.vehicleLicensePlate,
@@ -889,7 +899,8 @@ class OdooApiService implements BaseOdooService {
               final u = userResp[0] as Map<String, dynamic>;
               final fetchedImg = u['image_1920'];
               final savedImg = await _storage.read(key: 'user_image');
-              final validImg = (fetchedImg != null &&
+              final validImg =
+                  (fetchedImg != null &&
                       fetchedImg != false &&
                       fetchedImg is String &&
                       fetchedImg.isNotEmpty &&
@@ -1147,6 +1158,37 @@ class OdooApiService implements BaseOdooService {
       return response == true;
     } catch (e) {
       debugPrint('Odoo clearProfilePicture error: $e');
+      return false;
+    }
+  }
+
+  @override
+  Future<bool> changePassword({
+    required String oldPassword,
+    required String newPassword,
+  }) async {
+    debugPrint('🔵 Attempting password $oldPassword $newPassword');
+    await _ensureInitialized();
+    if (_dio == null) throw Exception('Not authenticated');
+
+    try {
+      final response = await _dio!.post(
+        '/web/dataset/call_kw',
+        data: {
+          "jsonrpc": "2.0",
+          "method": "call",
+          "params": {
+            "model": "res.users",
+            "method": "change_password",
+            "args": [oldPassword, newPassword],
+            "kwargs": {},
+          },
+        },
+      );
+
+      return response.data['error'] == null;
+    } catch (e) {
+      debugPrint("Change password error: $e");
       return false;
     }
   }

@@ -79,18 +79,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 width: double.infinity,
                 height: 48,
                 child: ElevatedButton(
-                  onPressed: () async {
-                    Navigator.pop(context);
+                  onPressed: () {
+                    final navigator = Navigator.of(context, rootNavigator: true);
                     final auth = Provider.of<AuthController>(
                       context,
                       listen: false,
                     );
-                    await auth.logout();
+                    auth.logout();
 
-                    if (!context.mounted) return;
-
-                    Navigator.pushAndRemoveUntil(
-                      context,
+                    navigator.pushAndRemoveUntil(
                       MaterialPageRoute(
                         builder: (context) => const LoginScreen(),
                       ),
@@ -116,6 +113,282 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ],
           ),
+        );
+      },
+    );
+  }
+
+  void _showChangePasswordSheet() {
+    final oldPasswordController = TextEditingController();
+    final newPasswordController = TextEditingController();
+    final confirmPasswordController = TextEditingController();
+    bool isSubmitting = false;
+    bool obscureOld = true;
+    bool obscureNew = true;
+    bool obscureConfirm = true;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF16161A),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+                left: 24,
+                right: 24,
+                top: 24,
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Change Password',
+                          style: AppTypography.canela(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.primary,
+                          ),
+                        ),
+                        GestureDetector(
+                          onTap: isSubmitting ? null : () => Navigator.pop(context),
+                          child: Container(
+                            width: 28,
+                            height: 28,
+                            decoration: const BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Color(0xFFC4913F),
+                            ),
+                            child: const Icon(
+                              Icons.close,
+                              size: 16,
+                              color: Colors.black,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Current Password',
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFFD1D1D1),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: oldPasswordController,
+                      obscureText: obscureOld,
+                      style: GoogleFonts.inter(fontSize: 14, color: Colors.white),
+                      decoration: InputDecoration(
+                        filled: true,
+                        fillColor: const Color(0xFF24242A),
+                        hintText: 'Enter current password',
+                        hintStyle: GoogleFonts.inter(color: Colors.grey, fontSize: 13),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide.none,
+                        ),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            obscureOld ? Icons.visibility_off : Icons.visibility,
+                            color: const Color(0xFFC4913F),
+                            size: 20,
+                          ),
+                          onPressed: () => setSheetState(() => obscureOld = !obscureOld),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    Text(
+                      'New Password',
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFFD1D1D1),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: newPasswordController,
+                      obscureText: obscureNew,
+                      style: GoogleFonts.inter(fontSize: 14, color: Colors.white),
+                      decoration: InputDecoration(
+                        filled: true,
+                        fillColor: const Color(0xFF24242A),
+                        hintText: 'Enter new password',
+                        hintStyle: GoogleFonts.inter(color: Colors.grey, fontSize: 13),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide.none,
+                        ),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            obscureNew ? Icons.visibility_off : Icons.visibility,
+                            color: const Color(0xFFC4913F),
+                            size: 20,
+                          ),
+                          onPressed: () => setSheetState(() => obscureNew = !obscureNew),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    Text(
+                      'Confirm New Password',
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFFD1D1D1),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: confirmPasswordController,
+                      obscureText: obscureConfirm,
+                      style: GoogleFonts.inter(fontSize: 14, color: Colors.white),
+                      decoration: InputDecoration(
+                        filled: true,
+                        fillColor: const Color(0xFF24242A),
+                        hintText: 'Confirm new password',
+                        hintStyle: GoogleFonts.inter(color: Colors.grey, fontSize: 13),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide.none,
+                        ),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            obscureConfirm ? Icons.visibility_off : Icons.visibility,
+                            color: const Color(0xFFC4913F),
+                            size: 20,
+                          ),
+                          onPressed: () => setSheetState(() => obscureConfirm = !obscureConfirm),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: ElevatedButton(
+                        onPressed: isSubmitting
+                            ? null
+                            : () async {
+                                final oldPwd = oldPasswordController.text.trim();
+                                final newPwd = newPasswordController.text.trim();
+                                final confirmPwd = confirmPasswordController.text.trim();
+
+                                if (oldPwd.isEmpty || newPwd.isEmpty || confirmPwd.isEmpty) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Please fill in all password fields.'),
+                                      backgroundColor: AppTheme.error,
+                                    ),
+                                  );
+                                  return;
+                                }
+
+                                if (newPwd != confirmPwd) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('New passwords do not match.'),
+                                      backgroundColor: AppTheme.error,
+                                    ),
+                                  );
+                                  return;
+                                }
+
+                                setSheetState(() => isSubmitting = true);
+                                final navigator = Navigator.of(context, rootNavigator: true);
+                                final messenger = ScaffoldMessenger.of(context);
+                                final auth = Provider.of<AuthController>(context, listen: false);
+
+                                final success = await auth.changePassword(
+                                  oldPassword: oldPwd,
+                                  newPassword: newPwd,
+                                );
+
+                                if (success) {
+                                  auth.logout();
+
+                                  navigator.pushAndRemoveUntil(
+                                    MaterialPageRoute(
+                                      builder: (context) => const LoginScreen(),
+                                    ),
+                                    (route) => false,
+                                  );
+
+                                  messenger.showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        'Password changed successfully. Please log in with your new password.',
+                                        style: GoogleFonts.inter(color: Colors.white),
+                                      ),
+                                      backgroundColor: AppTheme.primary,
+                                      duration: const Duration(seconds: 4),
+                                    ),
+                                  );
+                                } else {
+                                  setSheetState(() => isSubmitting = false);
+                                  messenger.showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        auth.errorMessage ??
+                                            'Failed to change password. Please verify your current password.',
+                                        style: GoogleFonts.inter(color: Colors.white),
+                                      ),
+                                      backgroundColor: AppTheme.error,
+                                      duration: const Duration(seconds: 4),
+                                    ),
+                                  );
+                                }
+                              },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppTheme.primary,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          disabledBackgroundColor: AppTheme.primary.withValues(alpha: 0.5),
+                        ),
+                        child: isSubmitting
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                ),
+                              )
+                            : Text(
+                                'Update Password',
+                                style: GoogleFonts.inter(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
         );
       },
     );
@@ -593,6 +866,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                   ),
                   const SizedBox(height: 4),
+                  _buildSettingsTile(
+                    title: 'Change Password',
+                    icon: Icons.lock_outline_rounded,
+                    onTap: _showChangePasswordSheet,
+                  ),
+                  const Divider(color: Color(0xFFF0EDE6), height: 1),
                   _buildSettingsTile(
                     title: 'Remove Profile Picture',
                     icon: Icons.person_remove_alt_1_outlined,

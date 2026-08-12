@@ -132,9 +132,14 @@ class AuthController extends ChangeNotifier {
   Future<void> logout() async {
     _isLoading = true;
     notifyListeners();
-    await _odooService.logout();
+    try {
+      await _odooService.logout();
+    } catch (e) {
+      debugPrint('Logout service exception: $e');
+    }
     _isAuthenticated = false;
     _userProfile = null;
+    _errorMessage = null;
     _isLoading = false;
     notifyListeners();
   }
@@ -144,17 +149,19 @@ class AuthController extends ChangeNotifier {
     notifyListeners();
     try {
       final isLoggedIn = await _odooService.checkAuthStatus().timeout(
-        const Duration(seconds: 15),
-        onTimeout: () => _odooService.savedUserInfo != null,
+        const Duration(seconds: 10),
+        onTimeout: () => false,
       );
       
-      _isAuthenticated = isLoggedIn || (_odooService.savedUserInfo != null);
+      _isAuthenticated = isLoggedIn;
 
       if (_isAuthenticated) {
         final profile = await _odooService
             .getCustomerProfile('current')
-            .timeout(const Duration(seconds: 8), onTimeout: () => null);
+            .timeout(const Duration(seconds: 5), onTimeout: () => null);
         _userProfile = profile ?? _odooService.savedUserInfo;
+      } else {
+        _userProfile = null;
       }
 
       _isLoading = false;
@@ -162,14 +169,8 @@ class AuthController extends ChangeNotifier {
       return _isAuthenticated;
     } catch (e) {
       debugPrint('AuthController.checkAuthStatus error: $e');
-      if (_odooService.savedUserInfo != null) {
-        _isAuthenticated = true;
-        _userProfile = _odooService.savedUserInfo;
-        _isLoading = false;
-        notifyListeners();
-        return true;
-      }
       _isAuthenticated = false;
+      _userProfile = null;
       _isLoading = false;
       notifyListeners();
       return false;
@@ -324,7 +325,32 @@ class AuthController extends ChangeNotifier {
       _isLoading = false;
       _userProfile ??= {};
       _userProfile!.remove('image_1920');
-      _errorMessage = _extractPermissionError(e) ?? 'Photo removed locally. Server sync failed: $e';
+      return false;
+    }
+  }
+
+  Future<bool> changePassword({
+    required String oldPassword,
+    required String newPassword,
+  }) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final success = await _odooService.changePassword(
+        oldPassword: oldPassword,
+        newPassword: newPassword,
+      );
+      if (!success) {
+        _errorMessage = 'Failed to change password. Please verify your current password.';
+      }
+      _isLoading = false;
+      notifyListeners();
+      return success;
+    } catch (e) {
+      _isLoading = false;
+      _errorMessage = 'Error changing password: $e';
       notifyListeners();
       return false;
     }

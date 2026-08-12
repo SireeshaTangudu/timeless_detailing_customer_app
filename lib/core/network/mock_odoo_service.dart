@@ -346,4 +346,13 @@ class MockOdooService implements BaseOdooService {
       );
     }
   }
+
+  @override
+  Future<bool> changePassword({
+    required String oldPassword,
+    required String newPassword,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 500));
+    return true;
+  }
 }
