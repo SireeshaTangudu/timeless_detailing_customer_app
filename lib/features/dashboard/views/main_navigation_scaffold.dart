@@ -20,8 +20,14 @@ class MainNavigationScaffold extends StatefulWidget {
 
 class _MainNavigationScaffoldState extends State<MainNavigationScaffold>
     with SingleTickerProviderStateMixin {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   late TabController _tabController;
   int _currentIndex = 0;
+
+  void _openDrawer() {
+    debugPrint('🔵 [MainNavigationScaffold] Opening side drawer via _scaffoldKey!');
+    _scaffoldKey.currentState?.openDrawer();
+  }
 
   @override
   void initState() {
@@ -60,7 +66,9 @@ class _MainNavigationScaffoldState extends State<MainNavigationScaffold>
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       decoration: BoxDecoration(
-        color: isSelected ? AppTheme.primary.withValues(alpha: 0.1) : Colors.transparent,
+        color: isSelected
+            ? AppTheme.primary.withValues(alpha: 0.1)
+            : Colors.transparent,
         borderRadius: BorderRadius.circular(12),
       ),
       child: ListTile(
@@ -77,9 +85,7 @@ class _MainNavigationScaffoldState extends State<MainNavigationScaffold>
             color: isSelected ? AppTheme.primary : const Color(0xFF3A2F1E),
           ),
         ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         onTap: () => _onSelectItem(index),
       ),
     );
@@ -90,6 +96,7 @@ class _MainNavigationScaffoldState extends State<MainNavigationScaffold>
     final auth = Provider.of<AuthController>(context);
 
     return Scaffold(
+      key: _scaffoldKey,
       drawer: Drawer(
         backgroundColor: Colors.white,
         child: SafeArea(
@@ -138,7 +145,9 @@ class _MainNavigationScaffoldState extends State<MainNavigationScaffold>
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            auth.userEmail.isNotEmpty ? auth.userEmail : 'Customer Account',
+                            auth.userEmail.isNotEmpty
+                                ? auth.userEmail
+                                : 'Customer Account',
                             style: GoogleFonts.inter(
                               fontSize: 12,
                               color: const Color(0xFF7A7A7E),
@@ -191,9 +200,16 @@ class _MainNavigationScaffoldState extends State<MainNavigationScaffold>
 
               // Logout Option
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
                 child: ListTile(
-                  leading: const Icon(Icons.logout, color: Color(0xFFE74C3C), size: 22),
+                  leading: const Icon(
+                    Icons.logout,
+                    color: Color(0xFFE74C3C),
+                    size: 22,
+                  ),
                   title: Text(
                     'Logout',
                     style: GoogleFonts.inter(
@@ -206,7 +222,10 @@ class _MainNavigationScaffoldState extends State<MainNavigationScaffold>
                     borderRadius: BorderRadius.circular(12),
                   ),
                   onTap: () {
-                    final navigator = Navigator.of(context, rootNavigator: true);
+                    final navigator = Navigator.of(
+                      context,
+                      rootNavigator: true,
+                    );
                     final auth = Provider.of<AuthController>(
                       context,
                       listen: false,
@@ -230,11 +249,11 @@ class _MainNavigationScaffoldState extends State<MainNavigationScaffold>
         controller: _tabController,
         physics: const NeverScrollableScrollPhysics(),
         children: [
-          DashboardScreen(tabController: _tabController),
-          const ServicesListScreen(),
-          const BookingsHistoryScreen(),
-          ProfileScreen(tabController: _tabController),
-          const AboutUsScreen(),
+          DashboardScreen(tabController: _tabController, onMenuTap: _openDrawer),
+          ServicesListScreen(onMenuTap: _openDrawer),
+          BookingsHistoryScreen(onMenuTap: _openDrawer),
+          ProfileScreen(tabController: _tabController, onMenuTap: _openDrawer),
+          AboutUsScreen(onMenuTap: _openDrawer),
         ],
       ),
     );

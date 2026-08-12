@@ -2,11 +2,20 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'package:timeless_detailing_customer_app/core/network/odoo_client.dart';
 import 'package:timeless_detailing_customer_app/features/services/models/service_model.dart';
+import 'package:timeless_detailing_customer_app/features/services/models/service_variant_model.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/models/booking_model.dart';
+import 'package:timeless_detailing_customer_app/features/bookings/models/bookable_slot_model.dart';
+import 'package:timeless_detailing_customer_app/features/tracking/models/project_model.dart';
 
 class MockOdooService implements BaseOdooService {
   @override
   Map<String, dynamic>? get savedUserInfo => _mockProfile;
+
+  @override
+  int? get currentPartnerId => 26;
+
+  @override
+  int? get currentUid => 26;
 
   // Mock In-Memory Data Store
   final List<DetailService> _mockServices = [
@@ -354,5 +363,208 @@ class MockOdooService implements BaseOdooService {
   }) async {
     await Future.delayed(const Duration(milliseconds: 500));
     return true;
+  }
+
+  @override
+  Future<List<DetailService>> getServicesFromProductTemplate() async {
+    return _mockServices;
+  }
+
+  @override
+  Future<List<ProductVariant>> getServiceDetailsWithVariants(
+    int templateId,
+  ) async {
+    return [
+      ProductVariant(
+        id: 1,
+        name: 'Service Variant 1',
+        displayName: 'Service Type A',
+        lstPrice: 100.00,
+        variantValues: const [
+          ProductVariantValue(id: 5, name: 'Small'),
+          ProductVariantValue(id: 6, name: 'Medium'),
+        ],
+        appointmentType: const AppointmentType(
+          id: 2,
+          name: 'Appointment Type',
+          appointmentDuration: 60,
+          messageIntro: 'Welcome message',
+          minScheduleHours: 24,
+          maxScheduleDays: 30,
+          minCancellationHours: 4,
+        ),
+        appointmentResource: const AppointmentResource(
+          id: 8,
+          name: 'Resource/Staff Name',
+          capacity: 1,
+        ),
+      ),
+    ];
+  }
+
+  @override
+  Future<BookableSlotsResult?> getBookableSlots({
+    required int appointmentTypeId,
+    required String timezone,
+    required int resourceId,
+    required int askedCapacity,
+    required String date,
+  }) async {
+    return BookableSlotsResult(
+      date: date,
+      timezone: timezone,
+      appointmentTypeId: appointmentTypeId,
+      resourceId: resourceId,
+      slots: [
+        BookableSlot(
+          datetime: '$date 06:30:00',
+          startHour: '6:30 AM',
+          endHour: false,
+          isLongDuration: false,
+          slotDuration: 1.0,
+          urlParameters: 'allday=0&date_time=$date+06%3A30%3A00',
+          availableResources: [
+            AppointmentResource(
+              id: resourceId,
+              name: 'Maintenance Wash',
+              capacity: 1,
+            ),
+          ],
+        ),
+        BookableSlot(
+          datetime: '$date 08:30:00',
+          startHour: '8:30 AM',
+          endHour: false,
+          isLongDuration: false,
+          slotDuration: 1.0,
+          urlParameters: 'allday=0&date_time=$date+08%3A30%3A00',
+          availableResources: [
+            AppointmentResource(
+              id: resourceId,
+              name: 'Maintenance Wash',
+              capacity: 1,
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  @override
+  Future<Map<String, dynamic>?> bookAppointment({
+    required String name,
+    required int appointmentTypeId,
+    int? productId,
+    required int appointmentBookerId,
+    required List<int> partnerIds,
+    required String start,
+    required String stop,
+    double duration = 1.0,
+    int? resourceId,
+    String? phone,
+    String? collectorName,
+    String? collectorLicense,
+    String? vehicleMake,
+    String? vehicleModel,
+    List<String>? vehicleImagesBase64,
+  }) async {
+    return {
+      'id': 37,
+      'name': name,
+      'start': start,
+      'stop': stop,
+      'booking_phone': phone ?? '+27821234567',
+      'booking_vehicle_make': vehicleMake ?? 'Toyota',
+      'booking_vehicle_model': vehicleModel ?? 'Hilux',
+      'booking_collector_name': collectorName ?? 'Jane Smith',
+      'booking_collector_license': collectorLicense ?? 'AB1234576',
+    };
+  }
+
+  @override
+  Future<Map<String, dynamic>> getUserBookings(int partnerId) async {
+    return {
+      'length': _mockBookings.length,
+      'records': _mockBookings
+          .map(
+            (b) => {
+              'id': int.tryParse(b.id) ?? 20,
+              'name': b.service.name,
+              'start': b.bookingDateTime.toIso8601String().replaceAll('T', ' '),
+              'stop': b.bookingDateTime
+                  .add(const Duration(hours: 1))
+                  .toIso8601String()
+                  .replaceAll('T', ' '),
+              'duration': 1.0,
+              'active': true,
+              'booking_vehicle_make': b.vehicleName.split(' ').first,
+              'booking_vehicle_model': b.vehicleName
+                  .split(' ')
+                  .skip(1)
+                  .join(' '),
+            },
+          )
+          .toList(),
+    };
+  }
+
+  @override
+  Future<Map<String, dynamic>?> getBookingDetails(int bookingId) async {
+    return {
+      'id': bookingId,
+      'name': 'MS Dhoni - Car Detailing Booking',
+      'start': '2026-08-14 03:30:00',
+      'stop': '2026-08-14 04:30:00',
+      'duration': 1.0,
+      'active': true,
+    };
+  }
+
+  @override
+  Future<Map<String, dynamic>?> cancelBooking({
+    required int bookingId,
+    required List<int> partnerIds,
+  }) async {
+    return {
+      'id': bookingId,
+      'cancelled': true,
+      'active': false,
+      'appointment_status': 'cancelled',
+    };
+  }
+
+  @override
+  Future<List<ProjectModel>> getProjects() async {
+    return const [
+      ProjectModel(
+        id: 14,
+        name: 'Detailing Bay Alpha',
+        taskCount: 5,
+        labelTasks: 'In Progress, To Do',
+      ),
+      ProjectModel(
+        id: 15,
+        name: 'Ceramic Shield Workshop',
+        taskCount: 3,
+        labelTasks: 'Done, In Progress',
+      ),
+    ];
+  }
+
+  @override
+  Future<List<ProjectTaskModel>> getProjectTasks(int projectId) async {
+    return const [
+      ProjectTaskModel(
+        id: 101,
+        name: 'Paint Correction & Decontamination',
+        priority: '1',
+        portalUserNames: ['Marcus Vance', 'Sarah Jenkins'],
+        state: 'in_progress',
+        stageId: 1,
+        stageName: 'In Progress',
+        projectId: 14,
+        projectName: 'Detailing Bay Alpha',
+      ),
+    ];
   }
 }

@@ -9,6 +9,7 @@ import 'package:timeless_detailing_customer_app/features/dashboard/controllers/d
 import 'package:timeless_detailing_customer_app/features/services/controllers/services_controller.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/controllers/bookings_controller.dart';
 import 'package:timeless_detailing_customer_app/features/tracking/controllers/tracking_controller.dart';
+import 'package:timeless_detailing_customer_app/features/tracking/controllers/projects_controller.dart';
 import 'package:timeless_detailing_customer_app/core/theme/theme_controller.dart';
 
 class MyHttpOverrides extends HttpOverrides {
@@ -29,8 +30,8 @@ void main() {
   // =========================================================================
   final odooService = OdooApiService(
     baseUrl:
-        'https://keerthan-lfi-lfi-timeless-detailing-staging-35193428.dev.odoo.com',
-    db: 'keerthan-lfi-lfi-timeless-detailing-staging-35193428',
+        'https://keerthan-lfi-lfi-timeless-detailing-uat-36279192.dev.odoo.com/odoo',
+    db: 'keerthan-lfi-lfi-timeless-detailing-uat-36279192',
   );
 
   runApp(
@@ -50,6 +51,9 @@ void main() {
         ),
         ChangeNotifierProvider(
           create: (context) => BookingsController(odooService),
+        ),
+        ChangeNotifierProvider(
+          create: (context) => ProjectsController(odooService),
         ),
         ChangeNotifierProxyProvider2<
           BaseOdooService,

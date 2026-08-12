@@ -4,27 +4,35 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:timeless_detailing_customer_app/core/theme/app_theme.dart';
 import 'package:timeless_detailing_customer_app/core/widgets/custom_app_bar.dart';
 import 'package:timeless_detailing_customer_app/features/services/controllers/services_controller.dart';
-import 'package:timeless_detailing_customer_app/features/services/views/interior_detailing_screen.dart';
-import 'package:timeless_detailing_customer_app/features/services/views/service_detail_screen.dart';
+import 'package:timeless_detailing_customer_app/features/services/views/service_variants_screen.dart';
 
 class ServicesListScreen extends StatelessWidget {
-  const ServicesListScreen({super.key});
+  final VoidCallback? onMenuTap;
+
+  const ServicesListScreen({super.key, this.onMenuTap});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final controller = Provider.of<ServicesController>(context);
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF9F7F4),
-      body: Column(
+    return Container(
+      color: const Color(0xFFF9F7F4),
+      child: SafeArea(
+        child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           CustomAppBar(
             title: 'Services',
             subtitle: 'Explore our premium detailing packages',
             backIcon: Icons.menu,
-            onBackPressed: () => Scaffold.of(context).openDrawer(),
+            onBackPressed: () {
+              if (onMenuTap != null) {
+                onMenuTap!();
+              } else {
+                Scaffold.of(context).openDrawer();
+              }
+            },
             trailing: IconButton(
               icon: const Icon(Icons.refresh, color: AppTheme.primary, size: 20),
               onPressed: () => controller.loadServices(),
@@ -96,25 +104,16 @@ class ServicesListScreen extends StatelessWidget {
                             itemBuilder: (context, index) {
                               final service = controller.filteredServices[index];
                               return GestureDetector(
-                                onTap: () {
-                                  if (service.name.toLowerCase().contains('interior')) {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) =>
-                                            const InteriorDetailingScreen(),
-                                      ),
-                                    );
-                                  } else {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) =>
-                                            ServiceDetailScreen(service: service),
-                                      ),
-                                    );
-                                  }
-                                },
+                                 onTap: () {
+                                   final templateId = service.odooProductId ?? int.tryParse(service.id) ?? 4;
+                                   debugPrint('🔵 [ServicesListScreen] Tapped service "${service.name}", opening ServiceVariantsScreen for templateId=$templateId');
+                                   Navigator.push(
+                                     context,
+                                     MaterialPageRoute(
+                                       builder: (context) => ServiceVariantsScreen(parentService: service),
+                                     ),
+                                   );
+                                 },
                                 child: Container(
                                   decoration: BoxDecoration(
                                     color: AppTheme.surface,
@@ -125,19 +124,31 @@ class ServicesListScreen extends StatelessWidget {
                                     crossAxisAlignment: CrossAxisAlignment.stretch,
                                     children: [
                                       // Image top border rounded
-                                      ClipRRect(
-                                        borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
-                                        child: Image.network(
-                                          service.imageUrl,
-                                          height: 160,
-                                          fit: BoxFit.cover,
-                                          errorBuilder: (context, error, stackTrace) => Container(
-                                            height: 160,
-                                            color: AppTheme.surfaceLight,
-                                            child: const Icon(Icons.broken_image_outlined, color: AppTheme.primary),
-                                          ),
-                                        ),
-                                      ),
+                                       ClipRRect(
+                                         borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
+                                         child: service.assetImagePath != null && service.assetImagePath!.isNotEmpty
+                                             ? Image.asset(
+                                                 service.assetImagePath!,
+                                                 height: 160,
+                                                 fit: BoxFit.cover,
+                                               )
+                                             : (service.imageUrl.startsWith('http')
+                                                 ? Image.network(
+                                                     service.imageUrl,
+                                                     height: 160,
+                                                     fit: BoxFit.cover,
+                                                     errorBuilder: (context, error, stackTrace) => Container(
+                                                       height: 160,
+                                                       color: AppTheme.surfaceLight,
+                                                       child: const Icon(Icons.broken_image_outlined, color: AppTheme.primary),
+                                                     ),
+                                                   )
+                                                 : Container(
+                                                     height: 160,
+                                                     color: AppTheme.surfaceLight,
+                                                     child: const Icon(Icons.cleaning_services_rounded, color: AppTheme.primary, size: 40),
+                                                   )),
+                                       ),
                                       Padding(
                                         padding: const EdgeInsets.all(16.0),
                                         child: Column(
@@ -205,6 +216,7 @@ class ServicesListScreen extends StatelessWidget {
           ),
         ],
       ),
-    );
+    ),
+  );
   }
 }

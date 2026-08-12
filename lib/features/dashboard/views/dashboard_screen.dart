@@ -79,9 +79,14 @@ class _AssetServiceImageState extends State<_AssetServiceImage> {
 }
 
 class DashboardScreen extends StatefulWidget {
-  final TabController tabController;
+  final TabController? tabController;
+  final VoidCallback? onMenuTap;
 
-  const DashboardScreen({super.key, required this.tabController});
+  const DashboardScreen({
+    super.key,
+    this.tabController,
+    this.onMenuTap,
+  });
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
@@ -195,8 +200,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
                     // Circular Menu Icon Button on Top Right (Opening Side Drawer)
                     GestureDetector(
+                      behavior: HitTestBehavior.opaque,
                       onTap: () {
-                        Scaffold.of(context).openDrawer();
+                        debugPrint('🔵 [DashboardScreen] Menu button clicked!');
+                        if (widget.onMenuTap != null) {
+                          widget.onMenuTap!();
+                        } else {
+                          try {
+                            Scaffold.of(context).openDrawer();
+                          } catch (e) {
+                            debugPrint('Error opening drawer: $e');
+                          }
+                        }
                       },
                       child: Container(
                         width: 38,

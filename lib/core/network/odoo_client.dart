@@ -10,7 +10,10 @@ import 'package:cookie_jar/cookie_jar.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:intl/intl.dart';
 import 'package:timeless_detailing_customer_app/features/services/models/service_model.dart';
+import 'package:timeless_detailing_customer_app/features/services/models/service_variant_model.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/models/booking_model.dart';
+import 'package:timeless_detailing_customer_app/features/bookings/models/bookable_slot_model.dart';
+import 'package:timeless_detailing_customer_app/features/tracking/models/project_model.dart';
 
 abstract class BaseOdooService {
   Future<bool> login(String email, String password);
@@ -37,6 +40,44 @@ abstract class BaseOdooService {
     required String newPassword,
   });
   Map<String, dynamic>? get savedUserInfo;
+  int? get currentPartnerId;
+  int? get currentUid;
+
+  // Mobile API Guide Endpoints (1-9)
+  Future<List<DetailService>> getServicesFromProductTemplate();
+  Future<List<ProductVariant>> getServiceDetailsWithVariants(int templateId);
+  Future<BookableSlotsResult?> getBookableSlots({
+    required int appointmentTypeId,
+    required String timezone,
+    required int resourceId,
+    required int askedCapacity,
+    required String date,
+  });
+  Future<Map<String, dynamic>?> bookAppointment({
+    required String name,
+    required int appointmentTypeId,
+    int? productId,
+    required int appointmentBookerId,
+    required List<int> partnerIds,
+    required String start,
+    required String stop,
+    double duration = 1.0,
+    int? resourceId,
+    String? phone,
+    String? collectorName,
+    String? collectorLicense,
+    String? vehicleMake,
+    String? vehicleModel,
+    List<String>? vehicleImagesBase64,
+  });
+  Future<Map<String, dynamic>> getUserBookings(int partnerId);
+  Future<Map<String, dynamic>?> getBookingDetails(int bookingId);
+  Future<Map<String, dynamic>?> cancelBooking({
+    required int bookingId,
+    required List<int> partnerIds,
+  });
+  Future<List<ProjectModel>> getProjects();
+  Future<List<ProjectTaskModel>> getProjectTasks(int projectId);
 }
 
 class OdooApiService implements BaseOdooService {
@@ -68,13 +109,26 @@ class OdooApiService implements BaseOdooService {
   @override
   Map<String, dynamic>? get savedUserInfo => _savedUserInfo;
 
+  @override
+  int? get currentPartnerId => _partnerId;
+
+  @override
+  int? get currentUid => _uid;
+
   /// Initialize the API client with instance URL, persistent cookies and headers
   Future<void> initialize() async {
     if (_dio != null) return;
 
-    final cleanUrl = baseUrl.endsWith('/')
-        ? baseUrl.substring(0, baseUrl.length - 1)
-        : baseUrl;
+    String cleanUrl = baseUrl.trim();
+    if (cleanUrl.endsWith('/')) {
+      cleanUrl = cleanUrl.substring(0, cleanUrl.length - 1);
+    }
+    if (cleanUrl.toLowerCase().endsWith('/odoo')) {
+      cleanUrl = cleanUrl.substring(0, cleanUrl.length - 5);
+    }
+    if (cleanUrl.endsWith('/')) {
+      cleanUrl = cleanUrl.substring(0, cleanUrl.length - 1);
+    }
 
     _dio = Dio(
       BaseOptions(
@@ -119,6 +173,7 @@ class OdooApiService implements BaseOdooService {
   }) async {
     await _ensureInitialized();
     try {
+      debugPrint('🔵 [OdooApiService] _callKw $model/$method...');
       final response = await _dio!.post(
         '/web/dataset/call_kw',
         data: {
@@ -132,8 +187,8 @@ class OdooApiService implements BaseOdooService {
           },
         },
         options: Options(
-          sendTimeout: const Duration(seconds: 5),
-          receiveTimeout: const Duration(seconds: 5),
+          sendTimeout: const Duration(seconds: 30),
+          receiveTimeout: const Duration(seconds: 30),
         ),
       );
 
@@ -158,6 +213,7 @@ class OdooApiService implements BaseOdooService {
     print('Odoo login attempt: URL=$baseUrl, DB=$db, Login=$email');
     try {
       await _ensureInitialized();
+      await _cookieJar?.deleteAll();
 
       final response = await _dio!.post(
         '/web/session/authenticate',
@@ -534,84 +590,7 @@ class OdooApiService implements BaseOdooService {
   }
 
   List<DetailService> _getFallbackServices() {
-    return const [
-      DetailService(
-        id: '1',
-        name: 'Interior Detailing',
-        description:
-            "Your vehicle's interior is where you spend every journey and deserves the same level of care as its exterior. Comprehensive restoration including seats, carpets, trim, headlining, and all touchpoints.",
-        price: 199.0,
-        durationHours: 3.5,
-        imageUrl:
-            'https://images.unsplash.com/photo-1607860108855-64acf2078ed9?auto=format&fit=crop&q=80&w=800',
-        category: 'Interior',
-        whatsIncluded: [
-          'Carpets & Upholstery Deep Steam Cleaning',
-          'Leather Conditioning & UV Protection',
-          'Dashboard, Vents & Console Sanitization',
-          'Door Jambs, Trim & Cup Holder Detailing',
-          'Odor Elimination & Air Refreshener',
-        ],
-        assetImagePath: 'assets/services/interior/interior_detailing.png',
-      ),
-      DetailService(
-        id: '2',
-        name: 'Paint Care',
-        description:
-            'Multi-stage paint refinement and high-gloss polishing treatment removing swirl marks, light scratches, and oxidation to restore mirror-like clarity.',
-        price: 299.0,
-        durationHours: 4.0,
-        imageUrl:
-            'https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?auto=format&fit=crop&q=80&w=800',
-        category: 'Exterior',
-        whatsIncluded: [
-          'Clay Bar Decontamination & Iron Remover',
-          'Single-Stage Dual-Action Machine Polish',
-          'Paint Swirl & Light Scratch Reduction',
-          'Hydrophobic Sealant Application',
-          'Wheel & Tire Deep Clean & Dressing',
-        ],
-        assetImagePath: 'assets/services/paint/paint_care.png',
-      ),
-      DetailService(
-        id: '3',
-        name: 'Protection',
-        description:
-            'Premier nano-ceramic hydrophobic protection program designed to keep paintwork, glass, and wheels in showroom condition for years.',
-        price: 599.0,
-        durationHours: 6.0,
-        imageUrl:
-            'https://images.unsplash.com/photo-1603584173870-7f23fdae1b7a?auto=format&fit=crop&q=80&w=800',
-        category: 'Protection',
-        whatsIncluded: [
-          '9H Professional Ceramic Coating (3-Year Shield)',
-          'Front Bumper & Hood Paint Protection Film',
-          'Glass Hydrophobic Rain Shield Coating',
-          'High-Temp Wheel Ceramic Armor',
-        ],
-        assetImagePath: 'assets/services/protection/protection.png',
-      ),
-      DetailService(
-        id: '4',
-        name: 'Maintenance Membership',
-        description:
-            'All-year protection with unlimited monthly maintenance washes, priority booking, exclusive member discounts on advanced treatments, and loyalty rewards.',
-        price: 89.0,
-        durationHours: 0.0,
-        imageUrl:
-            'https://images.unsplash.com/photo-1520340356584-f9917d1eea6f?auto=format&fit=crop&q=80&w=800',
-        category: 'Memberships',
-        whatsIncluded: [
-          '2 x Maintenance Washes Per Month',
-          '10% Off All Detailing Services',
-          'Priority Booking & Holiday Slots',
-          'Quarterly Interior Sanitization',
-          'Exclusive Member Loyalty Rewards',
-        ],
-        assetImagePath:
-            'assets/services/maintenance/maintenance_membership.png',
-      ),
-    ];
+    return const [];
   }
 
   @override
@@ -625,9 +604,7 @@ class OdooApiService implements BaseOdooService {
           model: 'product.template',
           method: 'search_read',
           args: [
-            [
-              ['sale_ok', '=', true],
-            ],
+            [],
           ],
           kwargs: {
             'fields': [
@@ -661,9 +638,7 @@ class OdooApiService implements BaseOdooService {
           model: 'product.product',
           method: 'search_read',
           args: [
-            [
-              ['sale_ok', '=', true],
-            ],
+            [],
           ],
           kwargs: {
             'fields': [
@@ -672,9 +647,7 @@ class OdooApiService implements BaseOdooService {
               'description_sale',
               'lst_price',
               'categ_id',
-              'detailing_duration',
-              'whats_included',
-              'image_url',
+              'image_1920',
             ],
             'limit': 50,
           },
@@ -696,6 +669,529 @@ class OdooApiService implements BaseOdooService {
     } catch (e) {
       print('Odoo getServices error: $e');
       return _getFallbackServices();
+    }
+  }
+
+  // =========================================================================
+  // MOBILE API INTEGRATION GUIDE ENDPOINTS (1 to 9)
+  // =========================================================================
+
+  /// ENDPOINT 1: Get Main Services (`product.template/web_search_read`)
+  @override
+  Future<List<DetailService>> getServicesFromProductTemplate() async {
+    debugPrint('🔵 [OdooApiService] Calling product.template/web_search_read...');
+    try {
+      final response = await _callKw(
+        model: 'product.template',
+        method: 'web_search_read',
+        args: [],
+        kwargs: {
+          'domain': [],
+          'specification': {
+            'id': {},
+            'name': {},
+            'list_price': {},
+            'currency_id': {},
+            'product_variant_count': {},
+          },
+        },
+      );
+
+      final List records = (response is Map && response.containsKey('records'))
+          ? (response['records'] as List)
+          : (response is List ? response : []);
+
+      if (records.isNotEmpty) {
+        debugPrint('🟢 [OdooApiService] web_search_read returned ${records.length} records');
+        return records.map((item) {
+          return DetailService.fromOdooJson(Map<String, dynamic>.from(item as Map));
+        }).toList();
+      }
+
+      debugPrint('🟡 [OdooApiService] web_search_read returned 0 records. Trying getServices()...');
+      final fallbackServices = await getServices();
+      if (fallbackServices.isNotEmpty) {
+        return fallbackServices;
+      }
+      return _getFallbackServices();
+    } catch (e) {
+      debugPrint('🔴 [OdooApiService] Endpoint 1 error: $e. Using fallback services');
+      return getServices();
+    }
+  }
+
+  /// ENDPOINT 2: Get Service Details with Variants (`product.product/web_search_read`)
+  @override
+  Future<List<ProductVariant>> getServiceDetailsWithVariants(int templateId) async {
+    debugPrint('🔵 [OdooApiService] Calling Endpoint 2 (product.product/web_search_read) for templateId=$templateId...');
+    try {
+      final response = await _callKw(
+        model: 'product.product',
+        method: 'web_search_read',
+        args: [],
+        kwargs: {
+          'domain': [
+            ['product_tmpl_id', '=', templateId],
+          ],
+          'specification': {
+            'id': {},
+            'name': {},
+            'display_name': {},
+            'lst_price': {},
+            'product_template_variant_value_ids': {
+              'fields': {
+                'id': {},
+                'name': {},
+              },
+            },
+            'appointment_type_id': {
+              'fields': {
+                'id': {},
+                'name': {},
+                'appointment_duration': {},
+                'message_intro': {},
+              },
+            },
+          },
+        },
+      );
+
+      final List records = (response is Map && response.containsKey('records'))
+          ? (response['records'] as List)
+          : (response is List ? response : []);
+
+      if (records.isNotEmpty) {
+        debugPrint('🟢 [OdooApiService] Endpoint 2 returned ${records.length} variants');
+        return records.map((item) {
+          return ProductVariant.fromJson(Map<String, dynamic>.from(item as Map));
+        }).toList();
+      }
+
+      // Fallback: search_read on product.product
+      final fallbackResponse = await _callKw(
+        model: 'product.product',
+        method: 'search_read',
+        args: [
+          [
+            ['product_tmpl_id', '=', templateId],
+          ],
+        ],
+        kwargs: {
+          'fields': ['id', 'name', 'display_name', 'lst_price'],
+          'limit': 50,
+        },
+      );
+
+      if (fallbackResponse is List && fallbackResponse.isNotEmpty) {
+        debugPrint('🟢 [OdooApiService] Endpoint 2 fallback search_read returned ${fallbackResponse.length} variants');
+        return fallbackResponse.map((item) {
+          return ProductVariant.fromJson(Map<String, dynamic>.from(item as Map));
+        }).toList();
+      }
+
+      return [];
+    } catch (e) {
+      debugPrint('🔴 [OdooApiService] Endpoint 2 error for templateId=$templateId: $e');
+      return [];
+    }
+  }
+
+  /// ENDPOINT 3: Get Bookable Slots (`appointment.type/get_bookable_slots`)
+  @override
+  Future<BookableSlotsResult?> getBookableSlots({
+    required int appointmentTypeId,
+    required String timezone,
+    required int resourceId,
+    required int askedCapacity,
+    required String date,
+  }) async {
+    try {
+      final response = await _callKw(
+        model: 'appointment.type',
+        method: 'get_bookable_slots',
+        args: [
+          [appointmentTypeId],
+          timezone,
+        ],
+        kwargs: {
+          'resource_id': resourceId,
+          'asked_capacity': askedCapacity,
+          'date': date,
+        },
+      );
+
+      if (response is Map<String, dynamic>) {
+        return BookableSlotsResult.fromJson(response);
+      }
+      if (response is Map) {
+        return BookableSlotsResult.fromJson(Map<String, dynamic>.from(response));
+      }
+      return null;
+    } catch (e) {
+      print('Endpoint 3 (appointment.type/get_bookable_slots) error: $e');
+      return null;
+    }
+  }
+
+  /// ENDPOINT 4: Book Appointment (`calendar.event/web_save`)
+  @override
+  Future<Map<String, dynamic>?> bookAppointment({
+    required String name,
+    required int appointmentTypeId,
+    int? productId,
+    required int appointmentBookerId,
+    required List<int> partnerIds,
+    required String start,
+    required String stop,
+    double duration = 1.0,
+    int? resourceId,
+    String? phone,
+    String? collectorName,
+    String? collectorLicense,
+    String? vehicleMake,
+    String? vehicleModel,
+    List<String>? vehicleImagesBase64,
+  }) async {
+    try {
+      final formattedPartnerIds = partnerIds.map((id) => [6, 0, [id]]).toList();
+      final bookingLines = resourceId != null
+          ? [
+              [
+                0,
+                0,
+                {
+                  'appointment_resource_id': resourceId,
+                  'capacity_reserved': 1,
+                }
+              ]
+            ]
+          : [];
+
+      final formattedImages = (vehicleImagesBase64 != null && vehicleImagesBase64.isNotEmpty)
+          ? vehicleImagesBase64.asMap().entries.map((entry) {
+              final idx = entry.key + 1;
+              final rawB64 = entry.value;
+              final b64 = rawB64.contains(',') ? rawB64.split(',').last : rawB64;
+              return [
+                0,
+                0,
+                {
+                  'name': 'vehicle_photo_$idx.jpg',
+                  'type': 'binary',
+                  'datas': b64,
+                  'mimetype': 'image/jpeg',
+                }
+              ];
+            }).toList()
+          : [];
+
+      final payload = {
+        'name': name,
+        'appointment_type_id': appointmentTypeId,
+        if (productId != null) 'product_id': productId,
+        'appointment_booker_id': appointmentBookerId,
+        'partner_ids': formattedPartnerIds,
+        'start': start,
+        'stop': stop,
+        'duration': duration,
+        'booking_line_ids': bookingLines,
+        if (phone != null) 'phone': phone,
+        if (collectorName != null) 'collector_name': collectorName,
+        if (collectorLicense != null) 'collector_license': collectorLicense,
+        if (vehicleMake != null) 'vehicle_make': vehicleMake,
+        if (vehicleModel != null) 'vehicle_model': vehicleModel,
+        'vehicle_images': formattedImages,
+      };
+
+      final response = await _callKw(
+        model: 'calendar.event',
+        method: 'web_save',
+        args: [
+          [],
+          payload,
+        ],
+        kwargs: {
+          'specification': {
+            'id': {},
+            'name': {},
+            'start': {},
+            'stop': {},
+            'booking_phone': {},
+            'booking_vehicle_make': {},
+            'booking_vehicle_model': {},
+            'booking_collector_name': {},
+            'booking_collector_license': {},
+            'opportunity_id': {
+              'fields': {
+                'id': {},
+                'name': {},
+              },
+            },
+          },
+        },
+      );
+
+      if (response is List && response.isNotEmpty) {
+        return Map<String, dynamic>.from(response[0] as Map);
+      }
+      return null;
+    } catch (e) {
+      final errStr = e.toString();
+      debugPrint('🔴 [OdooApiService] Endpoint 4 (calendar.event/web_save) error: $errStr');
+      if (errStr.contains('cannot be used for') && appointmentTypeId != 2) {
+        debugPrint('🟡 [OdooApiService] Retrying Endpoint 4 with appointmentTypeId=2...');
+        return bookAppointment(
+          name: name,
+          appointmentTypeId: 2,
+          productId: productId,
+          appointmentBookerId: appointmentBookerId,
+          partnerIds: partnerIds,
+          start: start,
+          stop: stop,
+          duration: duration,
+          resourceId: resourceId,
+          phone: phone,
+          collectorName: collectorName,
+          collectorLicense: collectorLicense,
+          vehicleMake: vehicleMake,
+          vehicleModel: vehicleModel,
+          vehicleImagesBase64: vehicleImagesBase64,
+        );
+      }
+      rethrow;
+    }
+  }
+
+  /// ENDPOINT 5: Get User Bookings (`calendar.event/web_search_read`)
+  @override
+  Future<Map<String, dynamic>> getUserBookings(int partnerId) async {
+    try {
+      final response = await _callKw(
+        model: 'calendar.event',
+        method: 'web_search_read',
+        args: [],
+        kwargs: {
+          'domain': [
+            ['appointment_booker_id', '=', partnerId],
+            ['appointment_type_id', '!=', false],
+          ],
+          'specification': {
+            'id': {},
+            'name': {},
+            'start': {},
+            'stop': {},
+            'duration': {},
+            'active': {},
+            'appointment_type_id': {
+              'fields': {
+                'id': {},
+                'name': {},
+              },
+            },
+            'appointment_resource_ids': {
+              'fields': {
+                'id': {},
+                'name': {},
+              },
+            },
+            'booking_phone': {},
+            'booking_vehicle_make': {},
+            'booking_vehicle_model': {},
+            'booking_collector_required': {},
+            'booking_collector_name': {},
+            'booking_collector_license': {},
+            'opportunity_id': {
+              'fields': {
+                'id': {},
+                'name': {},
+              },
+            },
+          },
+          'order': 'start desc',
+        },
+      );
+
+      if (response is Map) {
+        return Map<String, dynamic>.from(response);
+      }
+      if (response is List) {
+        return {'length': response.length, 'records': response};
+      }
+      return {'length': 0, 'records': []};
+    } catch (e) {
+      print('Endpoint 5 (calendar.event/web_search_read) error: $e');
+      return {'length': 0, 'records': []};
+    }
+  }
+
+  /// ENDPOINT 6: Get Specific Booking Details (`calendar.event/web_read`)
+  @override
+  Future<Map<String, dynamic>?> getBookingDetails(int bookingId) async {
+    try {
+      final response = await _callKw(
+        model: 'calendar.event',
+        method: 'web_read',
+        args: [
+          [bookingId],
+        ],
+        kwargs: {
+          'specification': {
+            'id': {},
+            'name': {},
+            'start': {},
+            'stop': {},
+            'duration': {},
+            'active': {},
+            'appointment_type_id': {
+              'fields': {
+                'id': {},
+                'name': {},
+              },
+            },
+            'appointment_resource_ids': {
+              'fields': {
+                'id': {},
+                'name': {},
+              },
+            },
+            'booking_phone': {},
+            'booking_vehicle_make': {},
+            'booking_vehicle_model': {},
+            'booking_collector_required': {},
+            'booking_collector_name': {},
+            'booking_collector_license': {},
+            'opportunity_id': {
+              'fields': {
+                'id': {},
+                'name': {},
+              },
+            },
+          },
+        },
+      );
+
+      if (response is List && response.isNotEmpty) {
+        return Map<String, dynamic>.from(response[0] as Map);
+      }
+      if (response is Map) {
+        return Map<String, dynamic>.from(response);
+      }
+      return null;
+    } catch (e) {
+      debugPrint('Endpoint 6 (calendar.event/web_read) error: $e');
+      return null;
+    }
+  }
+
+  /// ENDPOINT 7: Cancel Booking (`calendar.event/action_cancel_meeting`)
+  @override
+  Future<Map<String, dynamic>?> cancelBooking({
+    required int bookingId,
+    required List<int> partnerIds,
+  }) async {
+    try {
+      final response = await _callKw(
+        model: 'calendar.event',
+        method: 'action_cancel_meeting',
+        args: [
+          [bookingId],
+        ],
+        kwargs: {
+          'partner_ids': partnerIds,
+        },
+      );
+
+      if (response is Map) {
+        return Map<String, dynamic>.from(response);
+      }
+      return {'cancelled': true, 'response': response};
+    } catch (e) {
+      debugPrint('Endpoint 7 (calendar.event/action_cancel_meeting) error: $e');
+      return null;
+    }
+  }
+
+  /// ENDPOINT 8: Get All Projects (`project.project/web_search_read`)
+  @override
+  Future<List<ProjectModel>> getProjects() async {
+    try {
+      final response = await _callKw(
+        model: 'project.project',
+        method: 'web_search_read',
+        args: [],
+        kwargs: {
+          'domain': [
+            ['is_template', '=', false],
+          ],
+          'specification': {
+            'id': {},
+            'name': {},
+            'task_count': {},
+            'label_tasks': {},
+          },
+          'order': 'name asc',
+        },
+      );
+
+      final List records = (response is Map && response.containsKey('records'))
+          ? (response['records'] as List)
+          : (response is List ? response : []);
+
+      return records.map((item) {
+        return ProjectModel.fromJson(Map<String, dynamic>.from(item as Map));
+      }).toList();
+    } catch (e) {
+      print('Endpoint 8 (project.project/web_search_read) error: $e');
+      return [];
+    }
+  }
+
+  /// ENDPOINT 9: Get Project Tasks (`project.task/web_search_read`)
+  @override
+  Future<List<ProjectTaskModel>> getProjectTasks(int projectId) async {
+    try {
+      final response = await _callKw(
+        model: 'project.task',
+        method: 'web_search_read',
+        args: [],
+        kwargs: {
+          'domain': [
+            ['project_id', '=', projectId],
+            ['display_in_project', '=', true],
+          ],
+          'specification': {
+            'id': {},
+            'name': {},
+            'priority': {},
+            'portal_user_names': {},
+            'state': {},
+            'stage_id': {
+              'fields': {
+                'id': {},
+                'name': {},
+              },
+            },
+            'project_id': {
+              'fields': {
+                'id': {},
+                'name': {},
+              },
+            },
+          },
+          'order': 'id desc',
+        },
+      );
+
+      final List records = (response is Map && response.containsKey('records'))
+          ? (response['records'] as List)
+          : (response is List ? response : []);
+
+      return records.map((item) {
+        return ProjectTaskModel.fromJson(Map<String, dynamic>.from(item as Map));
+      }).toList();
+    } catch (e) {
+      print('Endpoint 9 (project.task/web_search_read) error: $e');
+      return [];
     }
   }
 

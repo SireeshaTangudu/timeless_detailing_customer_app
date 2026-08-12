@@ -6,14 +6,76 @@ import 'package:timeless_detailing_customer_app/core/widgets/custom_footer.dart'
 import 'package:timeless_detailing_customer_app/features/services/models/service_model.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/views/book_service_screen.dart';
 
-class ServiceDetailScreen extends StatelessWidget {
+import 'package:provider/provider.dart';
+import 'package:timeless_detailing_customer_app/features/services/controllers/services_controller.dart';
+
+class ServiceDetailScreen extends StatefulWidget {
   final DetailService service;
 
   const ServiceDetailScreen({super.key, required this.service});
 
   @override
+  State<ServiceDetailScreen> createState() => _ServiceDetailScreenState();
+}
+
+class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        final templateId = widget.service.odooProductId ??
+            int.tryParse(widget.service.id) ??
+            4;
+        debugPrint(
+          '🔵 [ServiceDetailScreen] On click of service "${widget.service.name}", calling Endpoint 2 (product.product/web_search_read) for templateId=$templateId...',
+        );
+        Provider.of<ServicesController>(context, listen: false)
+            .fetchVariants(templateId);
+      }
+    });
+  }
+
+  Widget _buildHeaderImage(DetailService service) {
+    if (service.assetImagePath != null && service.assetImagePath!.isNotEmpty) {
+      return Image.asset(
+        service.assetImagePath!,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => Container(
+          color: const Color(0xFF2A2318),
+          child: const Center(
+            child: Icon(Icons.cleaning_services_rounded, size: 64, color: AppTheme.primary),
+          ),
+        ),
+      );
+    }
+    if (service.imageUrl.startsWith('http')) {
+      return Image.network(
+        service.imageUrl,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => Container(
+          color: const Color(0xFF2A2318),
+          child: const Center(
+            child: Icon(Icons.cleaning_services_rounded, size: 64, color: AppTheme.primary),
+          ),
+        ),
+      );
+    }
+    return Container(
+      color: const Color(0xFF2A2318),
+      child: const Center(
+        child: Icon(Icons.cleaning_services_rounded, size: 64, color: AppTheme.primary),
+      ),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final service = widget.service;
     final theme = Theme.of(context);
+    final controller = Provider.of<ServicesController>(context);
+    final templateId = service.odooProductId ?? int.tryParse(service.id) ?? 4;
+    final variants = controller.services; // Or variants state
 
     return Scaffold(
       body: Stack(
@@ -38,10 +100,7 @@ class ServiceDetailScreen extends StatelessWidget {
                 flexibleSpace: FlexibleSpaceBar(
                   background: Hero(
                     tag: 'srv_img_${service.id}',
-                    child: Image.network(
-                      service.imageUrl,
-                      fit: BoxFit.cover,
-                    ),
+                    child: _buildHeaderImage(service),
                   ),
                 ),
               ),

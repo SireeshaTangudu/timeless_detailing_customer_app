@@ -3,7 +3,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:timeless_detailing_customer_app/core/theme/app_theme.dart';
 
 class AboutUsScreen extends StatefulWidget {
-  const AboutUsScreen({super.key});
+  final VoidCallback? onMenuTap;
+
+  const AboutUsScreen({super.key, this.onMenuTap});
 
   @override
   State<AboutUsScreen> createState() => _AboutUsScreenState();
@@ -27,13 +29,18 @@ class _AboutUsScreenState extends State<AboutUsScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: CustomScrollView(
+    return CustomScrollView(
         slivers: [
           // Hero Header Image & Monogram
           SliverAppBar(
             expandedHeight: 220,
             pinned: true,
+            leading: widget.onMenuTap != null
+                ? IconButton(
+                    icon: const Icon(Icons.menu, color: Colors.white),
+                    onPressed: widget.onMenuTap,
+                  )
+                : null,
             backgroundColor: AppTheme.background,
             flexibleSpace: FlexibleSpaceBar(
               background: Stack(
@@ -129,8 +136,7 @@ class _AboutUsScreenState extends State<AboutUsScreen>
             ),
           ),
         ],
-      ),
-    );
+      );
   }
 
   Widget _buildProfileTab(BuildContext context) {

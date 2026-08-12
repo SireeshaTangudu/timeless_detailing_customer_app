@@ -8,7 +8,9 @@ import '../models/booking_model.dart';
 import 'estimation_screen.dart';
 
 class BookingsHistoryScreen extends StatefulWidget {
-  const BookingsHistoryScreen({super.key});
+  final VoidCallback? onMenuTap;
+
+  const BookingsHistoryScreen({super.key, this.onMenuTap});
 
   @override
   State<BookingsHistoryScreen> createState() => _BookingsHistoryScreenState();
@@ -16,6 +18,14 @@ class BookingsHistoryScreen extends StatefulWidget {
 
 class _BookingsHistoryScreenState extends State<BookingsHistoryScreen> {
   int _selectedTabIndex = 0; // 0: Completed Orders, 1: Upcoming Bookings
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<BookingsController>(context, listen: false).loadBookings();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -29,23 +39,33 @@ class _BookingsHistoryScreenState extends State<BookingsHistoryScreen> {
         .where((b) => b.status != BookingStatus.completed)
         .toList();
 
-    // Default static items if controller list is empty for initial prototype testing matching Figma
-    final displayList = _selectedTabIndex == 0
-        ? (completedList.isNotEmpty ? completedList : _getStaticCompleted())
-        : (upcomingList.isNotEmpty ? upcomingList : _getStaticUpcoming());
+    final displayList = _selectedTabIndex == 0 ? completedList : upcomingList;
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF7F5F0), // Warm light cream matching Figma
-      body: Column(
+    return Container(
+      color: const Color(0xFFF7F5F0), // Warm light cream matching Figma
+      child: SafeArea(
+        child: Column(
         children: [
           CustomAppBar(
             title: 'My Orders and Bookings',
-            onBackPressed: () => Navigator.pop(context),
+            backIcon: widget.onMenuTap != null ? Icons.menu : Icons.arrow_back,
+            onBackPressed: () {
+              if (widget.onMenuTap != null) {
+                widget.onMenuTap!();
+              } else {
+                Navigator.pop(context);
+              }
+            },
           ),
           Expanded(
-            child: SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            child: RefreshIndicator(
+              onRefresh: () => controller.loadBookings(),
+              color: const Color(0xFFC4913F),
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(
+                  parent: BouncingScrollPhysics(),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -80,10 +100,12 @@ class _BookingsHistoryScreenState extends State<BookingsHistoryScreen> {
               ),
             ),
           ),
-        ],
-      ),
-    );
-  }
+        ),
+      ],
+    ),
+  ),
+);
+}
 
   /// Segmented Tab Pill matching Figma
   Widget _buildTabPill(int index, String label) {
@@ -134,11 +156,14 @@ class _BookingsHistoryScreenState extends State<BookingsHistoryScreen> {
   Widget _buildBookingRowCard(BuildContext context, dynamic item) {
     final String title = item is Booking ? item.service.name : item['title'];
     final String dateStr = item is Booking
-        ? DateFormat('dth MMMM, yyyy').format(item.bookingDateTime)
+        ? DateFormat('d MMMM, yyyy').format(item.bookingDateTime)
         : item['date'];
     final String priceStr = item is Booking
         ? 'R ${item.totalPrice.toStringAsFixed(0)}'
         : item['price'];
+    final String? vehicleStr = item is Booking ? item.vehicleName : null;
+    final String? apptType = item is Booking ? item.appointmentTypeName : null;
+    final String? resourceName = item is Booking ? item.appointmentResourceName : null;
 
     return GestureDetector(
       onTap: () {
@@ -171,8 +196,8 @@ class _BookingsHistoryScreenState extends State<BookingsHistoryScreen> {
           children: [
             // Gold Icon inside soft warm beige container
             Container(
-              width: 42,
-              height: 42,
+              width: 44,
+              height: 44,
               decoration: BoxDecoration(
                 color: const Color(0xFFFAF5ED),
                 borderRadius: BorderRadius.circular(12),
@@ -184,12 +209,12 @@ class _BookingsHistoryScreenState extends State<BookingsHistoryScreen> {
               child: const Icon(
                 Icons.cleaning_services_outlined,
                 color: Color(0xFFC4913F),
-                size: 20,
+                size: 22,
               ),
             ),
             const SizedBox(width: 14),
 
-            // Service Title & Date
+            // Service Title & Date/Vehicle
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -204,13 +229,42 @@ class _BookingsHistoryScreenState extends State<BookingsHistoryScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    dateStr,
+                    (vehicleStr != null && vehicleStr.isNotEmpty && vehicleStr != 'Client Vehicle')
+                        ? '$vehicleStr • $dateStr'
+                        : dateStr,
                     style: GoogleFonts.montserrat(
                       fontSize: 12,
                       color: const Color(0xFF8C8273),
                       fontWeight: FontWeight.w400,
                     ),
                   ),
+                  if (resourceName != null && resourceName.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFAF3E8),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        resourceName,
+                        style: GoogleFonts.montserrat(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFFC4913F),
+                        ),
+                      ),
+                    ),
+                  ] else if (apptType != null && apptType.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      apptType,
+                      style: GoogleFonts.montserrat(
+                        fontSize: 11,
+                        color: const Color(0xFF8C8273),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -263,37 +317,177 @@ class _BookingsHistoryScreenState extends State<BookingsHistoryScreen> {
       ),
     );
   }
-
-  // Static items for prototype matching Figma
-  List<Map<String, String>> _getStaticCompleted() {
-    return [
-      {'title': 'Interior Detailing', 'date': '10th July, 2026', 'price': 'R 2800'},
-      {'title': 'Interior Detailing', 'date': '12th July, 2026', 'price': 'R 2800'},
-      {'title': 'Interior Detailing', 'date': '15th July, 2026', 'price': 'R 2800'},
-    ];
-  }
-
-  List<Map<String, String>> _getStaticUpcoming() {
-    return [
-      {'title': 'Paint Enhancement', 'date': '12th August, 2026', 'price': 'R 3800'},
-    ];
-  }
 }
 
 /// Screen 2 in Figma: "Your New Estimate" (Updated Quote Breakdown & Invoice)
-class NewEstimateScreen extends StatelessWidget {
+class NewEstimateScreen extends StatefulWidget {
   final dynamic bookingItem;
+  final int? bookingId;
 
   const NewEstimateScreen({
     super.key,
     this.bookingItem,
+    this.bookingId,
   });
 
   @override
+  State<NewEstimateScreen> createState() => _NewEstimateScreenState();
+}
+
+class _NewEstimateScreenState extends State<NewEstimateScreen> {
+  Booking? _fetchedBooking;
+  bool _isLoadingDetails = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final int? idToFetch = widget.bookingId ??
+        (widget.bookingItem is int
+            ? widget.bookingItem as int
+            : (widget.bookingItem is Booking
+                ? (widget.bookingItem as Booking).odooSaleOrderId
+                : int.tryParse(widget.bookingItem?.toString() ?? '')));
+
+    // If a specific booking ID is available and we haven't received full Endpoint 6 fields, query Endpoint 6 (`calendar.event/web_read`)
+    if (idToFetch != null &&
+        (widget.bookingItem is! Booking ||
+            (widget.bookingItem as Booking).appointmentTypeName == null)) {
+      _fetchDetails(idToFetch);
+    }
+  }
+
+  Future<void> _fetchDetails(int bookingId) async {
+    setState(() => _isLoadingDetails = true);
+    final controller = Provider.of<BookingsController>(context, listen: false);
+    final result = await controller.fetchBookingDetails(bookingId);
+    if (mounted) {
+      setState(() {
+        _fetchedBooking = result;
+        _isLoadingDetails = false;
+      });
+    }
+  }
+
+  Future<void> _confirmCancel(BuildContext context, Booking booking) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          'Cancel Appointment',
+          style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 18),
+        ),
+        content: Text(
+          'Are you sure you want to cancel your detailing appointment for ${booking.service.name}?',
+          style: GoogleFonts.montserrat(fontSize: 13, color: const Color(0xFF555555)),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(
+              'Keep Appointment',
+              style: GoogleFonts.montserrat(
+                color: const Color(0xFF8C8273),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFB71C1C),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: Text(
+              'Yes, Cancel',
+              style: GoogleFonts.montserrat(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true && mounted) {
+      final controller = Provider.of<BookingsController>(context, listen: false);
+      final bookingId = booking.odooSaleOrderId ?? int.tryParse(booking.id) ?? 20;
+      final success = await controller.cancelBooking(bookingId);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              success
+                  ? 'Appointment cancelled successfully'
+                  : 'Failed to cancel appointment',
+            ),
+            backgroundColor:
+                success ? const Color(0xFF1D1813) : const Color(0xFFB71C1C),
+          ),
+        );
+        if (success) {
+          Navigator.pop(context);
+        }
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final String serviceTitle = bookingItem is Booking
-        ? bookingItem.service.name
-        : (bookingItem?['title'] ?? 'Interior Detailing');
+    if (_isLoadingDetails) {
+      return Scaffold(
+        backgroundColor: const Color(0xFFF7F5F0),
+        body: Column(
+          children: [
+            CustomAppBar(
+              title: 'Your New Estimate',
+              onBackPressed: () => Navigator.pop(context),
+            ),
+            const Expanded(
+              child: Center(
+                child: CircularProgressIndicator(
+                  color: Color(0xFFC4913F),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final Booking? b = _fetchedBooking ??
+        (widget.bookingItem is Booking ? widget.bookingItem as Booking : null);
+
+    final String serviceTitle = b != null
+        ? b.service.name
+        : (widget.bookingItem?['title'] ?? 'Car Detailing');
+    final String priceStr = b != null
+        ? 'R ${b.totalPrice.toStringAsFixed(0)}'
+        : (widget.bookingItem?['price'] ?? 'R 0');
+    final String selectedCar = b != null
+        ? (b.vehicleName.isNotEmpty ? b.vehicleName : 'Client Vehicle')
+        : (widget.bookingItem?['car'] ?? 'Client Vehicle');
+    final String serviceDate = b != null
+        ? DateFormat('d MMMM, yyyy').format(b.bookingDateTime)
+        : (widget.bookingItem?['date'] ?? '');
+    final String startFormatted = b != null
+        ? DateFormat('hh:mm a').format(b.bookingDateTime)
+        : '12:00 PM';
+    final String stopFormatted = b != null && b.stopDateTime != null
+        ? DateFormat('hh:mm a').format(b.stopDateTime!)
+        : '01:00 PM';
+    final String serviceTime = '$startFormatted - $stopFormatted';
+    final String statusText = b != null ? b.statusTitle : 'Confirmed';
+
+    final String? apptType = b?.appointmentTypeName;
+    final String? apptResource = b?.appointmentResourceName;
+    final String? phone = b?.bookingPhone;
+    final bool collectorRequired = b?.bookingCollectorRequired ?? false;
+    final String? collectorName = b?.bookingCollectorName;
+    final String? collectorLicense = b?.bookingCollectorLicense;
+    final String? oppName = b?.opportunityName;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF7F5F0), // Warm light cream
@@ -353,7 +547,7 @@ class NewEstimateScreen extends StatelessWidget {
                               ),
                               const SizedBox(height: 12),
                               Text(
-                                'Below is the final cost for your interior detailing service',
+                                'Below is the final cost for your detailing service',
                                 textAlign: TextAlign.center,
                                 style: GoogleFonts.montserrat(
                                   fontSize: 12,
@@ -362,7 +556,7 @@ class NewEstimateScreen extends StatelessWidget {
                               ),
                               const SizedBox(height: 6),
                               Text(
-                                'R 3800',
+                                priceStr,
                                 style: GoogleFonts.outfit(
                                   fontSize: 38,
                                   fontWeight: FontWeight.bold,
@@ -382,39 +576,68 @@ class NewEstimateScreen extends StatelessWidget {
                           ),
                         ),
 
-                        // Middle Details Section
+                        // Middle Details Section with Odoo Endpoint 5 Keys
                         Container(
                           padding: const EdgeInsets.all(20),
                           child: Column(
                             children: [
-                              _buildDetailRow('Selected Car', 'Volkswagen Polo TDI 2.0'),
+                              _buildDetailRow('Service Name', serviceTitle, isBold: true),
+                              if (apptType != null && apptType.isNotEmpty) ...[
+                                const SizedBox(height: 12),
+                                _buildDetailRow('Appointment Type', apptType),
+                              ],
+                              if (apptResource != null && apptResource.isNotEmpty) ...[
+                                const SizedBox(height: 12),
+                                _buildDetailRow('Detailing Resource', apptResource),
+                              ],
                               const SizedBox(height: 12),
-                              _buildDetailRow('Car Type', 'Hatch Back'),
+                              _buildDetailRow('Selected Vehicle', selectedCar),
+                              if (phone != null && phone.isNotEmpty) ...[
+                                const SizedBox(height: 12),
+                                _buildDetailRow('Contact Phone', phone),
+                              ],
                               const SizedBox(height: 12),
-                              _buildDetailRow('Service', serviceTitle),
+                              _buildDetailRow('Service Date', serviceDate),
                               const SizedBox(height: 12),
-                              _buildDetailRow('Service Date', '12th August'),
-                              const SizedBox(height: 12),
-                              _buildDetailRow('Time', '12:00 PM'),
-                              const SizedBox(height: 12),
+                              _buildDetailRow('Time Slot', serviceTime),
                               
-                              // Car Drop-off Status with Green badge
+                              if (collectorRequired) ...[
+                                const SizedBox(height: 12),
+                                _buildDetailRow('Collector Required', 'Yes'),
+                                if (collectorName != null && collectorName.isNotEmpty) ...[
+                                  const SizedBox(height: 12),
+                                  _buildDetailRow('Collector Name', collectorName),
+                                ],
+                                if (collectorLicense != null && collectorLicense.isNotEmpty) ...[
+                                  const SizedBox(height: 12),
+                                  _buildDetailRow('Collector License', collectorLicense),
+                                ],
+                              ],
+
+                              if (oppName != null && oppName.isNotEmpty) ...[
+                                const SizedBox(height: 12),
+                                _buildDetailRow('Opportunity Ref', oppName),
+                              ],
+
+                              const SizedBox(height: 12),
+
+                              // Booking Status with Green badge
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
                                   Text(
-                                    'Car Drop-off Status',
+                                    'Booking Status',
                                     style: GoogleFonts.montserrat(
                                       fontSize: 13,
                                       color: const Color(0xFF8C8273),
                                     ),
                                   ),
                                   Text(
-                                    'Dropped Off',
+                                    statusText,
                                     style: GoogleFonts.montserrat(
                                       fontSize: 13,
                                       fontWeight: FontWeight.bold,
-                                      color: const Color(0xFF2E7D32), // Green status matching Figma
+                                      color: const Color(0xFF2E7D32),
                                     ),
                                   ),
                                 ],
@@ -431,14 +654,7 @@ class NewEstimateScreen extends StatelessWidget {
                               const SizedBox(height: 16),
 
                               // Cost Breakdown Table
-                              _buildDetailRow('Estimated Cost', 'R 2800.00'),
-                              const SizedBox(height: 10),
-                              _buildDetailRow('Add on 1', 'R 100.00'),
-                              const SizedBox(height: 10),
-                              _buildDetailRow('Add on 2', 'R 100.00'),
-                              const SizedBox(height: 10),
-                              _buildDetailRow('Add on 3', 'R 100.00'),
-                              
+                              _buildDetailRow('Estimated Cost', priceStr),
                               const SizedBox(height: 14),
 
                               CustomPaint(
@@ -448,7 +664,7 @@ class NewEstimateScreen extends StatelessWidget {
 
                               const SizedBox(height: 14),
 
-                              _buildDetailRow('Total Amount to be Paid', 'R 3100.00', isBold: true),
+                              _buildDetailRow('Total Amount', priceStr, isBold: true),
                               const SizedBox(height: 10),
                               
                               // Payment Status Paid Green
@@ -506,6 +722,34 @@ class NewEstimateScreen extends StatelessWidget {
                                   ),
                                 ),
                               ),
+
+                              // Cancel Appointment Button (ENDPOINT 7: calendar.event/action_cancel_meeting)
+                              if (b != null) ...[
+                                const SizedBox(height: 12),
+                                SizedBox(
+                                  width: double.infinity,
+                                  height: 48,
+                                  child: OutlinedButton.icon(
+                                    onPressed: () => _confirmCancel(context, b),
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: const Color(0xFFB71C1C),
+                                      side: const BorderSide(color: Color(0xFFE57373), width: 1.2),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                    ),
+                                    icon: const Icon(Icons.cancel_outlined, size: 18, color: Color(0xFFB71C1C)),
+                                    label: Text(
+                                      'Cancel Appointment',
+                                      style: GoogleFonts.outfit(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold,
+                                        color: const Color(0xFFB71C1C),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ],
                           ),
                         ),

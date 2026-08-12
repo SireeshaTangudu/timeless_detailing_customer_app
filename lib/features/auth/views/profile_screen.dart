@@ -5,16 +5,20 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart';
 import 'package:timeless_detailing_customer_app/core/theme/app_theme.dart';
 import 'package:timeless_detailing_customer_app/core/theme/app_typography.dart';
 import 'package:timeless_detailing_customer_app/features/auth/controllers/auth_controller.dart';
 import 'package:timeless_detailing_customer_app/features/auth/views/settings_screen.dart';
+import 'package:timeless_detailing_customer_app/features/bookings/controllers/bookings_controller.dart';
+import 'package:timeless_detailing_customer_app/features/bookings/models/booking_model.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/views/bookings_history_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   final TabController? tabController;
+  final VoidCallback? onMenuTap;
 
-  const ProfileScreen({super.key, this.tabController});
+  const ProfileScreen({super.key, this.tabController, this.onMenuTap});
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -25,7 +29,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<AuthController>(context, listen: false).refreshProfile();
+      final auth = Provider.of<AuthController>(context, listen: false);
+      auth.refreshProfile();
+      final partnerId = auth.userProfile?['id'] is int
+          ? auth.userProfile!['id'] as int
+          : null;
+      Provider.of<BookingsController>(context, listen: false)
+          .loadBookings(partnerId: partnerId);
     });
   }
 
@@ -474,9 +484,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     final auth = Provider.of<AuthController>(context);
 
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
+    return Container(
+      color: Colors.white,
+      child: SafeArea(
         child: Column(
           children: [
             // Top Navigation Bar: Back Arrow, "My Profile" Title & Gear Icon
@@ -492,7 +502,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     alignment: Alignment.centerLeft,
                     child: GestureDetector(
                       onTap: () {
-                        if (Navigator.canPop(context)) {
+                        if (widget.onMenuTap != null) {
+                          widget.onMenuTap!();
+                        } else if (Navigator.canPop(context)) {
                           Navigator.pop(context);
                         } else if (widget.tabController != null) {
                           widget.tabController!.animateTo(0);
@@ -509,10 +521,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                           color: Colors.white,
                         ),
-                        child: const Icon(
-                          Icons.arrow_back,
+                        child: Icon(
+                          widget.onMenuTap != null ? Icons.menu : Icons.arrow_back,
                           size: 18,
-                          color: Color(0xFF2C2C2E),
+                          color: const Color(0xFF2C2C2E),
                         ),
                       ),
                     ),
@@ -563,7 +575,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
             // User Info Section & Action Cards
             Expanded(
               child: RefreshIndicator(
-                onRefresh: () => auth.refreshProfile(),
+                onRefresh: () async {
+                  await auth.refreshProfile();
+                  if (mounted) {
+                    final partnerId = auth.userProfile?['id'] is int
+                        ? auth.userProfile!['id'] as int
+                        : null;
+                    await Provider.of<BookingsController>(context, listen: false)
+                        .loadBookings(partnerId: partnerId);
+                  }
+                },
                 color: AppTheme.primary,
                 child: SingleChildScrollView(
                   physics: const AlwaysScrollableScrollPhysics(),
@@ -860,6 +881,211 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ],
                       ),
                       const SizedBox(height: 24),
+
+                      // Orders & History Section
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Orders & History',
+                            style: AppTypography.canela(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFF1C1C1E),
+                            ),
+                          ),
+                          GestureDetector(
+                            onTap: () {
+                              if (widget.tabController != null) {
+                                widget.tabController!.animateTo(2); // Go to Bookings tab
+                              } else {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const BookingsHistoryScreen(),
+                                  ),
+                                );
+                              }
+                            },
+                            child: Text(
+                              'See All',
+                              style: GoogleFonts.inter(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: AppTheme.primary,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+
+                      Consumer<BookingsController>(
+                        builder: (context, bookingsController, child) {
+                          if (bookingsController.isLoading) {
+                            return Container(
+                              height: 100,
+                              alignment: Alignment.center,
+                              child: const CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primary),
+                              ),
+                            );
+                          }
+
+                          final bookings = bookingsController.bookings;
+                          if (bookings.isEmpty) {
+                            return Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(20),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFBF9F5),
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: const Color(0xFFEBE7DF),
+                                ),
+                              ),
+                              child: Column(
+                                children: [
+                                  const Icon(
+                                    Icons.receipt_long_outlined,
+                                    size: 36,
+                                    color: Color(0xFF8E8E93),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'No Order History Found',
+                                    style: GoogleFonts.inter(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: const Color(0xFF1C1C1E),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Your scheduled and completed bookings will appear here.',
+                                    textAlign: TextAlign.center,
+                                    style: GoogleFonts.inter(
+                                      fontSize: 12,
+                                      color: const Color(0xFF7A7A7E),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }
+
+                          final recentBookings = bookings.take(3).toList();
+                          return ListView.separated(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: recentBookings.length,
+                            separatorBuilder: (context, index) => const SizedBox(height: 12),
+                            itemBuilder: (context, index) {
+                              final booking = recentBookings[index];
+                              final dateStr = DateFormat('dd MMM yyyy, hh:mm a').format(booking.bookingDateTime);
+                              final isCompleted = booking.status == BookingStatus.completed;
+
+                              return GestureDetector(
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => NewEstimateScreen(bookingItem: booking),
+                                    ),
+                                  );
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(
+                                      color: const Color(0xFFEBE7DF),
+                                      width: 1,
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withValues(alpha: 0.03),
+                                        blurRadius: 10,
+                                        offset: const Offset(0, 3),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        width: 44,
+                                        height: 44,
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFFAF5ED),
+                                          borderRadius: BorderRadius.circular(12),
+                                          border: Border.all(
+                                            color: const Color(0xFFC4913F).withValues(alpha: 0.3),
+                                            width: 1,
+                                          ),
+                                        ),
+                                        child: const Icon(
+                                          Icons.cleaning_services_outlined,
+                                          color: Color(0xFFC4913F),
+                                          size: 22,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 14),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              booking.service.name,
+                                              style: GoogleFonts.inter(
+                                                fontSize: 15,
+                                                fontWeight: FontWeight.bold,
+                                                color: const Color(0xFF1C1C1E),
+                                              ),
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              booking.vehicleName.isNotEmpty
+                                                  ? '${booking.vehicleName} • $dateStr'
+                                                  : dateStr,
+                                              style: GoogleFonts.inter(
+                                                fontSize: 12,
+                                                color: const Color(0xFF7A7A7E),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: isCompleted
+                                              ? const Color(0xFFE8F5E9)
+                                              : const Color(0xFFFFF3E0),
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                        child: Text(
+                                          booking.statusTitle,
+                                          style: GoogleFonts.inter(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w600,
+                                            color: isCompleted
+                                                ? const Color(0xFF2E7D32)
+                                                : const Color(0xFFE65100),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 32),
                     ],
                   ),
                 ),

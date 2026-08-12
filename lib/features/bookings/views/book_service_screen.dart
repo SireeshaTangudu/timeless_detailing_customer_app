@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:convert';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -25,17 +26,30 @@ class BookServiceScreen extends StatefulWidget {
 
 class _BookServiceScreenState extends State<BookServiceScreen> {
   final _notesController = TextEditingController();
-  final _newVehicleMakeModelController = TextEditingController();
-  final _newVehiclePlateController = TextEditingController();
+  final _vehicleMakeController = TextEditingController(text: 'Toyota');
+  final _vehicleModelController = TextEditingController(text: 'Hilux');
+  final _vehiclePlateController = TextEditingController(text: 'ND 123 456');
   final _collectorNameController = TextEditingController();
   final _collectorLicenseController = TextEditingController();
 
-  Vehicle? _selectedVehicle;
   DateTime _selectedDate = DateTime.now().add(const Duration(days: 1));
   String _selectedTimeSlot = '9:00 AM';
 
   final ImagePicker _picker = ImagePicker();
   final List<XFile> _attachedImages = [];
+
+  void _fetchOdooBookableSlots(DateTime date) {
+    final appointmentTypeId = widget.initialService.appointmentTypeId ?? 1;
+    debugPrint(
+      '🔵 [BookServiceScreen] Calling Endpoint 3 (appointment.type/get_bookable_slots) for appointmentTypeId=$appointmentTypeId, date=${DateFormat('yyyy-MM-dd').format(date)}...',
+    );
+    Provider.of<BookingsController>(context, listen: false).fetchBookableSlots(
+      appointmentTypeId: appointmentTypeId,
+      timezone: 'UTC',
+      resourceId: 1,
+      date: date,
+    );
+  }
 
   void _showImageSourcePicker() {
     if (_attachedImages.length >= 5) {
@@ -140,96 +154,48 @@ class _BookServiceScreenState extends State<BookServiceScreen> {
   @override
   void initState() {
     super.initState();
-    // Default select first vehicle in garage if available
     final garage = Provider.of<DashboardController>(context, listen: false);
     if (garage.vehicles.isNotEmpty) {
-      _selectedVehicle = garage.vehicles.first;
+      final v = garage.vehicles.first;
+      final parts = v.makeModel.split(' ');
+      if (parts.isNotEmpty) {
+        _vehicleMakeController.text = parts.first;
+      }
+      if (parts.length > 1) {
+        _vehicleModelController.text = parts.sublist(1).join(' ');
+      }
+      if (v.licensePlate.isNotEmpty) {
+        _vehiclePlateController.text = v.licensePlate;
+      }
     }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _fetchOdooBookableSlots(_selectedDate);
+      }
+    });
   }
 
   @override
   void dispose() {
     _notesController.dispose();
-    _newVehicleMakeModelController.dispose();
-    _newVehiclePlateController.dispose();
+    _vehicleMakeController.dispose();
+    _vehicleModelController.dispose();
+    _vehiclePlateController.dispose();
     _collectorNameController.dispose();
     _collectorLicenseController.dispose();
     super.dispose();
   }
 
-  void _showAddVehicleDialog() {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          backgroundColor: AppTheme.surface,
-          title: Text(
-            'Quick Add Vehicle',
-            style: GoogleFonts.outfit(fontWeight: FontWeight.bold),
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CustomTextField(
-                controller: _newVehicleMakeModelController,
-                hintText: 'e.g. Tesla Model 3',
-                labelText: 'Make & Model',
-              ),
-              const SizedBox(height: 16),
-              CustomTextField(
-                controller: _newVehiclePlateController,
-                hintText: 'e.g. CA-456-XY',
-                labelText: 'License Plate',
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                _newVehicleMakeModelController.clear();
-                _newVehiclePlateController.clear();
-                Navigator.pop(context);
-              },
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primary,
-                foregroundColor: AppTheme.background,
-              ),
-              onPressed: () {
-                if (_newVehicleMakeModelController.text.isNotEmpty &&
-                    _newVehiclePlateController.text.isNotEmpty) {
-                  final garage = Provider.of<DashboardController>(
-                    context,
-                    listen: false,
-                  );
-                  garage.addVehicle(
-                    _newVehicleMakeModelController.text.trim(),
-                    _newVehiclePlateController.text.trim().toUpperCase(),
-                    'N/A',
-                  );
-                  setState(() {
-                    _selectedVehicle = garage.vehicles.last;
-                  });
-                  _newVehicleMakeModelController.clear();
-                  _newVehiclePlateController.clear();
-                  Navigator.pop(context);
-                }
-              },
-              child: const Text('Add & Select'),
-            ),
-          ],
-        );
-      },
-    );
-  }
+
 
   void _handleConfirmBooking() async {
-    if (_selectedVehicle == null) {
+    final vehicleMake = _vehicleMakeController.text.trim();
+    final vehicleModel = _vehicleModelController.text.trim();
+
+    if (vehicleMake.isEmpty || vehicleModel.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Please select or add a vehicle first.'),
+          content: Text('Please enter Vehicle Make and Vehicle Model.'),
           backgroundColor: AppTheme.error,
         ),
       );
@@ -266,12 +232,51 @@ class _BookServiceScreenState extends State<BookServiceScreen> {
       context,
       listen: false,
     );
-    final result = await bookingsController.scheduleBooking(
+
+    final appointmentTypeId = widget.initialService.appointmentTypeId ?? 1;
+    final productId = widget.initialService.odooProductId;
+
+    List<String> base64Images = [];
+    if (_attachedImages.isNotEmpty) {
+      for (final img in _attachedImages) {
+        try {
+          final bytes = await img.readAsBytes();
+          base64Images.add(base64Encode(bytes));
+        } catch (e) {
+          debugPrint('Error reading attached image: $e');
+        }
+      }
+    }
+
+    debugPrint(
+      '🔵 [BookServiceScreen] Triggering Endpoint 4 (calendar.event/web_save) for service="${widget.initialService.name}", apptTypeId=$appointmentTypeId, productId=$productId, make=$vehicleMake, model=$vehicleModel, imagesCount=${base64Images.length}...',
+    );
+
+    final result = await bookingsController.scheduleAppointment(
       service: widget.initialService,
-      vehicleName: _selectedVehicle!.makeModel,
-      vehiclePlate: _selectedVehicle!.licensePlate,
-      dateTime: finalDateTime,
-      notes: _notesController.text.trim(),
+      appointmentTypeId: appointmentTypeId,
+      productId: productId,
+      startDateTime: finalDateTime,
+      stopDateTime: finalDateTime.add(
+        Duration(
+          hours: widget.initialService.durationHours.toInt() > 0
+              ? widget.initialService.durationHours.toInt()
+              : 1,
+        ),
+      ),
+      vehicleMake: vehicleMake,
+      vehicleModel: vehicleModel,
+      vehiclePlate: _vehiclePlateController.text.trim().isNotEmpty
+          ? _vehiclePlateController.text.trim()
+          : 'ND 123 456',
+      phone: '+27821234567',
+      collectorName: _collectorNameController.text.trim().isNotEmpty
+          ? _collectorNameController.text.trim()
+          : null,
+      collectorLicense: _collectorLicenseController.text.trim().isNotEmpty
+          ? _collectorLicenseController.text.trim()
+          : null,
+      vehicleImagesBase64: base64Images.isNotEmpty ? base64Images : null,
     );
 
     if (!mounted) return;
@@ -387,9 +392,56 @@ class _BookServiceScreenState extends State<BookServiceScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Select Car Label & Dropdown
+                  // Vehicle Make & Vehicle Model Textfields (in place of select car)
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Vehicle Make',
+                              style: GoogleFonts.inter(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                                color: const Color(0xFF3A2F1E),
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            CustomTextField(
+                              hintText: 'e.g. Toyota',
+                              controller: _vehicleMakeController,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Vehicle Model',
+                              style: GoogleFonts.inter(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                                color: const Color(0xFF3A2F1E),
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            CustomTextField(
+                              hintText: 'e.g. Hilux',
+                              controller: _vehicleModelController,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+
                   Text(
-                    'Select Car',
+                    'Vehicle License Plate (Optional)',
                     style: GoogleFonts.inter(
                       fontSize: 13,
                       fontWeight: FontWeight.w500,
@@ -397,75 +449,9 @@ class _BookServiceScreenState extends State<BookServiceScreen> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: const Color(0xFFEBE7DF)),
-                    ),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<Vehicle>(
-                        isExpanded: true,
-                        hint: Text(
-                          'Select',
-                          style: GoogleFonts.inter(
-                            fontSize: 14,
-                            color: const Color(0xFFB0A89C),
-                          ),
-                        ),
-                        value: _selectedVehicle,
-                        icon: const Icon(
-                          Icons.keyboard_arrow_down_rounded,
-                          color: Color(0xFFC4913F),
-                        ),
-                        items: [
-                          ...garage.vehicles.map((v) {
-                            return DropdownMenuItem<Vehicle>(
-                              value: v,
-                              child: Text(
-                                '${v.makeModel} (${v.licensePlate})',
-                                style: GoogleFonts.inter(
-                                  fontSize: 14,
-                                  color: const Color(0xFF3A2F1E),
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            );
-                          }),
-                        ],
-                        onChanged: (vehicle) {
-                          if (vehicle != null) {
-                            setState(() {
-                              _selectedVehicle = vehicle;
-                            });
-                          }
-                        },
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: TextButton(
-                      onPressed: _showAddVehicleDialog,
-                      style: TextButton.styleFrom(
-                        padding: EdgeInsets.zero,
-                        minimumSize: Size.zero,
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      ),
-                      child: Text(
-                        '+ Add New Vehicle',
-                        style: GoogleFonts.inter(
-                          fontSize: 12,
-                          color: const Color(0xFFC4913F),
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
+                  CustomTextField(
+                    hintText: 'e.g. ND 123 456',
+                    controller: _vehiclePlateController,
                   ),
                   const SizedBox(height: 20),
 
@@ -504,6 +490,7 @@ class _BookServiceScreenState extends State<BookServiceScreen> {
                         setState(() {
                           _selectedDate = date;
                         });
+                        _fetchOdooBookableSlots(date);
                       }
                     },
                     child: Container(
@@ -548,19 +535,38 @@ class _BookServiceScreenState extends State<BookServiceScreen> {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 12,
-                    runSpacing: 12,
-                    children:
-                        [
-                          '9:00 AM',
-                          '10:00 AM',
-                          '11:00 AM',
-                          '12:00 PM',
-                          '2:00 PM',
-                          '3:00 PM',
-                          '4:00 PM',
-                        ].map((slot) {
+                  Builder(
+                    builder: (context) {
+                      final slotsResult = bookingsController.currentBookableSlots;
+                      final isLoadingSlots = bookingsController.isLoadingSlots;
+
+                      List<String> dynamicSlots = [
+                        '9:00 AM',
+                        '10:00 AM',
+                        '11:00 AM',
+                        '12:00 PM',
+                        '2:00 PM',
+                        '3:00 PM',
+                        '4:00 PM',
+                      ];
+
+                      if (slotsResult != null && slotsResult.slots.isNotEmpty) {
+                        dynamicSlots = slotsResult.slots.map((s) => s.formattedTime).toList();
+                      }
+
+                      if (isLoadingSlots) {
+                        return const Center(
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(vertical: 16),
+                            child: CircularProgressIndicator(color: AppTheme.primary),
+                          ),
+                        );
+                      }
+
+                      return Wrap(
+                        spacing: 12,
+                        runSpacing: 12,
+                        children: dynamicSlots.map((slot) {
                           final isSelected =
                               _selectedTimeSlot == slot ||
                               _selectedTimeSlot.replaceAll('0', '') ==
@@ -603,6 +609,8 @@ class _BookServiceScreenState extends State<BookServiceScreen> {
                             ),
                           );
                         }).toList(),
+                      );
+                    },
                   ),
                   const SizedBox(height: 24),
 
