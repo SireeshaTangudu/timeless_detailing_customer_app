@@ -624,6 +624,7 @@ class _NewEstimateScreenState extends State<NewEstimateScreen> {
                               // Booking Status with Green badge
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
                                     'Booking Status',
@@ -632,12 +633,16 @@ class _NewEstimateScreenState extends State<NewEstimateScreen> {
                                       color: const Color(0xFF8C8273),
                                     ),
                                   ),
-                                  Text(
-                                    statusText,
-                                    style: GoogleFonts.montserrat(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.bold,
-                                      color: const Color(0xFF2E7D32),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      statusText,
+                                      textAlign: TextAlign.end,
+                                      style: GoogleFonts.montserrat(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.bold,
+                                        color: const Color(0xFF2E7D32),
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -670,6 +675,7 @@ class _NewEstimateScreenState extends State<NewEstimateScreen> {
                               // Payment Status Paid Green
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
                                     'Payment Status',
@@ -678,12 +684,16 @@ class _NewEstimateScreenState extends State<NewEstimateScreen> {
                                       color: const Color(0xFF8C8273),
                                     ),
                                   ),
-                                  Text(
-                                    'Paid',
-                                    style: GoogleFonts.montserrat(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.bold,
-                                      color: const Color(0xFF2E7D32),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      'Paid',
+                                      textAlign: TextAlign.end,
+                                      style: GoogleFonts.montserrat(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.bold,
+                                        color: const Color(0xFF2E7D32),
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -770,6 +780,7 @@ class _NewEstimateScreenState extends State<NewEstimateScreen> {
   Widget _buildDetailRow(String label, String value, {bool isBold = false}) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
@@ -779,12 +790,16 @@ class _NewEstimateScreenState extends State<NewEstimateScreen> {
             fontWeight: isBold ? FontWeight.bold : FontWeight.w400,
           ),
         ),
-        Text(
-          value,
-          style: GoogleFonts.montserrat(
-            fontSize: 13,
-            color: const Color(0xFF1C1C1E),
-            fontWeight: isBold ? FontWeight.bold : FontWeight.w600,
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            value,
+            textAlign: TextAlign.end,
+            style: GoogleFonts.montserrat(
+              fontSize: 13,
+              color: const Color(0xFF1C1C1E),
+              fontWeight: isBold ? FontWeight.bold : FontWeight.w600,
+            ),
           ),
         ),
       ],

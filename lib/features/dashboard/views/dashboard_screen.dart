@@ -7,8 +7,12 @@ import 'package:timeless_detailing_customer_app/core/theme/app_typography.dart';
 import 'package:timeless_detailing_customer_app/features/auth/controllers/auth_controller.dart';
 import 'package:timeless_detailing_customer_app/features/services/controllers/services_controller.dart';
 import 'package:timeless_detailing_customer_app/features/services/models/service_model.dart';
+import 'package:intl/intl.dart';
 import 'package:timeless_detailing_customer_app/features/services/views/interior_detailing_screen.dart';
 import 'package:timeless_detailing_customer_app/features/services/views/service_detail_screen.dart';
+import 'package:timeless_detailing_customer_app/features/bookings/controllers/bookings_controller.dart';
+import 'package:timeless_detailing_customer_app/features/bookings/models/booking_model.dart';
+import 'package:timeless_detailing_customer_app/features/bookings/views/bookings_history_screen.dart';
 
 class _AssetServiceImage extends StatefulWidget {
   final String assetPath;
@@ -258,6 +262,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     letterSpacing: -0.2,
                   ),
                 ),
+
+                // Upcoming Appointment Card (if any active booking exists)
+                Consumer<BookingsController>(
+                  builder: (context, bookingsController, child) {
+                    final upcoming = bookingsController.bookings;
+                    if (upcoming.isEmpty) return const SizedBox.shrink();
+                    final b = upcoming.first;
+                    return _buildUpcomingAppointmentCard(context, b);
+                  },
+                ),
+
                 const Spacer(),
 
                 // Cue Label: "Swipe to view all services »"
@@ -381,5 +396,236 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
       ),
     );
+  }
+
+  Widget _buildUpcomingAppointmentCard(
+    BuildContext context,
+    Booking booking,
+  ) {
+    final serviceTitle = booking.service.name;
+    final dateStr = DateFormat('d MMMM, yyyy').format(booking.bookingDateTime);
+    final startStr = DateFormat('hh:mm a').format(booking.bookingDateTime);
+    final stopStr = booking.stopDateTime != null
+        ? DateFormat('hh:mm a').format(booking.stopDateTime!)
+        : '01:00 PM';
+    final timeStr = '$startStr - $stopStr';
+    final priceStr = 'R ${booking.totalPrice.toStringAsFixed(0)}';
+
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(top: 14),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1D1813),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.08),
+            blurRadius: 14,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF2E7D32).withValues(alpha: 0.25),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: const Color(0xFF4CAF50),
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.circle,
+                      size: 7,
+                      color: Color(0xFF4CAF50),
+                    ),
+                    const SizedBox(width: 5),
+                    Text(
+                      'UPCOMING APPOINTMENT',
+                      style: GoogleFonts.outfit(
+                        fontSize: 9,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF81C784),
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Text(
+                priceStr,
+                style: GoogleFonts.outfit(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFFC4913F),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            serviceTitle,
+            style: GoogleFonts.outfit(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              const Icon(
+                Icons.calendar_today_outlined,
+                size: 13,
+                color: Color(0xFFC5B7A1),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                '$dateStr • $timeStr',
+                style: GoogleFonts.montserrat(
+                  fontSize: 11,
+                  color: const Color(0xFFC5B7A1),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: SizedBox(
+                  height: 36,
+                  child: OutlinedButton.icon(
+                    onPressed: () => _confirmCancelAppointment(context, booking),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFFEF5350),
+                      side: const BorderSide(color: Color(0xFFE57373), width: 1),
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    icon: const Icon(Icons.cancel_outlined, size: 14),
+                    label: Text(
+                      'Cancel',
+                      style: GoogleFonts.outfit(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: SizedBox(
+                  height: 36,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => NewEstimateScreen(bookingItem: booking),
+                        ),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFC4913F),
+                      foregroundColor: const Color(0xFF1C1C1E),
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: Text(
+                      'View Details',
+                      style: GoogleFonts.outfit(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _confirmCancelAppointment(
+    BuildContext context,
+    Booking booking,
+  ) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFFF9F7F4),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          'Cancel Appointment?',
+          style: GoogleFonts.outfit(fontWeight: FontWeight.bold),
+        ),
+        content: Text(
+          'Are you sure you want to cancel "${booking.service.name}"? This will trigger calendar.event/action_cancel_meeting.',
+          style: GoogleFonts.montserrat(fontSize: 13),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(
+              'No, Keep It',
+              style: GoogleFonts.montserrat(color: const Color(0xFF7A7A7E)),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFB71C1C),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: Text(
+              'Yes, Cancel',
+              style: GoogleFonts.montserrat(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true && mounted) {
+      final controller = Provider.of<BookingsController>(context, listen: false);
+      final bookingId = booking.odooSaleOrderId ?? int.tryParse(booking.id) ?? 20;
+      final success = await controller.cancelBooking(bookingId);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              success
+                  ? 'Appointment cancelled successfully'
+                  : 'Failed to cancel appointment',
+            ),
+            backgroundColor:
+                success ? const Color(0xFF1D1813) : const Color(0xFFB71C1C),
+          ),
+        );
+      }
+    }
   }
 }
