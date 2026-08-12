@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:timeless_detailing_customer_app/core/widgets/custom_app_bar.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/models/estimation_model.dart';
+import 'package:timeless_detailing_customer_app/features/bookings/views/widgets/garage_selector_modal.dart';
 
 class EstimationScreen extends StatelessWidget {
   final EstimationModel? estimation;
@@ -10,38 +10,8 @@ class EstimationScreen extends StatelessWidget {
   const EstimationScreen({super.key, this.estimation});
 
   Future<void> _openGoogleMapsDirections(BuildContext context) async {
-    const String queryLocation = 'Durgam Cheruvu, Hyderabad';
-    const double garageLat = 17.4399;
-    const double garageLng = 78.3846;
-
-    // 1. Android geo intent: opens Google Maps app in Place Pin view (Image 1)
-    final Uri geoUri = Uri.parse(
-      'geo:$garageLat,$garageLng?q=${Uri.encodeComponent(queryLocation)}',
-    );
-
-    // 2. Google Maps Place Search URL: opens place card showing [ Directions ], [ Start ], [ Share ] (Image 1)
-    final Uri googleMapsSearchUrl = Uri.parse(
-      'https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(queryLocation)}',
-    );
-
-    try {
-      if (await canLaunchUrl(geoUri)) {
-        await launchUrl(geoUri, mode: LaunchMode.externalApplication);
-        return;
-      }
-
-      if (await canLaunchUrl(googleMapsSearchUrl)) {
-        await launchUrl(
-          googleMapsSearchUrl,
-          mode: LaunchMode.externalApplication,
-        );
-        return;
-      }
-
-      await launchUrl(googleMapsSearchUrl, mode: LaunchMode.platformDefault);
-    } catch (e) {
-      debugPrint('Could not launch Google Maps: $e');
-    }
+    // Opens multiple garage branches selection modal
+    await GarageSelectorModal.show(context);
   }
 
   @override
