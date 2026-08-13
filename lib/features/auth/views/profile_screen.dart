@@ -504,12 +504,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     alignment: Alignment.centerLeft,
                     child: GestureDetector(
                       onTap: () {
-                        if (widget.onMenuTap != null) {
-                          widget.onMenuTap!();
-                        } else if (Navigator.canPop(context)) {
+                        if (Navigator.canPop(context)) {
                           Navigator.pop(context);
                         } else if (widget.tabController != null) {
                           widget.tabController!.animateTo(0);
+                        } else if (widget.onMenuTap != null) {
+                          widget.onMenuTap!();
                         }
                       },
                       child: Container(
@@ -524,11 +524,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           color: Colors.white,
                         ),
                         child: Icon(
-                          widget.onMenuTap != null
-                              ? Icons.menu
-                              : Icons.arrow_back,
+                          Icons.arrow_back_sharp,
                           size: 18,
-                          color: const Color(0xFF2C2C2E),
+                          color: const Color(0xFFAB8C5A),
                         ),
                       ),
                     ),

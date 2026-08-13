@@ -27,6 +27,8 @@ class Booking {
 
   // Endpoint 5 specific Odoo field keys
   final String? bookingPhone;
+  final String? bookingVehicleMake;
+  final String? bookingVehicleModel;
   final bool bookingCollectorRequired;
   final String? bookingCollectorName;
   final String? bookingCollectorLicense;
@@ -51,6 +53,8 @@ class Booking {
     required this.technicianAvatar,
     this.odooSaleOrderId,
     this.bookingPhone,
+    this.bookingVehicleMake,
+    this.bookingVehicleModel,
     this.bookingCollectorRequired = false,
     this.bookingCollectorName,
     this.bookingCollectorLicense,
@@ -58,6 +62,9 @@ class Booking {
     this.appointmentTypeName,
     this.opportunityName,
   });
+
+  String get vehicleMake => bookingVehicleMake ?? (vehicleName.contains(' ') ? vehicleName.split(' ').first : 'Sedan');
+  String get vehicleModel => bookingVehicleModel ?? (vehicleName.contains(' ') ? vehicleName.split(' ').sublist(1).join(' ') : 'Hatch Back');
 
   // Returns human readable status title
   String get statusTitle {
@@ -226,6 +233,8 @@ class Booking {
       technicianAvatar: json['technician_avatar'] is String ? json['technician_avatar'] : '',
       odooSaleOrderId: json['id'] is int ? json['id'] as int : int.tryParse(json['id']?.toString() ?? ''),
       bookingPhone: phone,
+      bookingVehicleMake: make.isNotEmpty ? make : null,
+      bookingVehicleModel: model.isNotEmpty ? model : null,
       bookingCollectorRequired: collectorReq,
       bookingCollectorName: collectorName,
       bookingCollectorLicense: collectorLicense,

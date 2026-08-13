@@ -13,6 +13,7 @@ import 'package:timeless_detailing_customer_app/features/services/views/service_
 import 'package:timeless_detailing_customer_app/features/bookings/controllers/bookings_controller.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/models/booking_model.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/views/bookings_history_screen.dart';
+import 'package:timeless_detailing_customer_app/features/bookings/views/upcoming_appointment_details_screen.dart';
 import 'package:timeless_detailing_customer_app/features/tracking/views/live_tracking_screen.dart';
 
 class _AssetServiceImage extends StatefulWidget {
@@ -87,11 +88,7 @@ class DashboardScreen extends StatefulWidget {
   final TabController? tabController;
   final VoidCallback? onMenuTap;
 
-  const DashboardScreen({
-    super.key,
-    this.tabController,
-    this.onMenuTap,
-  });
+  const DashboardScreen({super.key, this.tabController, this.onMenuTap});
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
@@ -250,7 +247,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     letterSpacing: 0.2,
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 12),
 
                 // Main Display Headline: "What are you looking for today?"
                 Text(
@@ -263,24 +260,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     letterSpacing: -0.2,
                   ),
                 ),
-
-                // Upcoming Appointment Card (if any active booking exists)
-                Consumer<BookingsController>(
-                  builder: (context, bookingsController, child) {
-                    final upcoming = bookingsController.bookings;
-                    if (upcoming.isEmpty) return const SizedBox.shrink();
-                    final b = upcoming.first;
-                    return _buildUpcomingAppointmentCard(context, b);
-                  },
-                ),
-
                 const Spacer(),
 
                 // Cue Label: "Swipe to view all services »"
                 Align(
                   alignment: Alignment.bottomRight,
                   child: Padding(
-                    padding: const EdgeInsets.only(right: 8, bottom: 16),
+                    padding: const EdgeInsets.only(right: 8, bottom: 12),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -304,9 +290,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                 ),
 
-                // Horizontal Scrollable Cards View (aligned at screen bottom)
+                // Horizontal Scrollable Cards View
                 SizedBox(
-                  height: 210,
+                  height: 200,
                   child: ListView.separated(
                     scrollDirection: Axis.horizontal,
                     physics: const BouncingScrollPhysics(),
@@ -391,6 +377,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     },
                   ),
                 ),
+
+                const SizedBox(height: 18),
+
+                // Upcoming Appointment Card placed BELOW Services (matching Figma Image 1)
+                Consumer<BookingsController>(
+                  builder: (context, bookingsController, child) {
+                    final upcoming = bookingsController.bookings;
+                    if (upcoming.isEmpty) return const SizedBox.shrink();
+                    final b = upcoming.first;
+                    return _buildUpcomingAppointmentCard(context, b);
+                  },
+                ),
               ],
             ),
           ),
@@ -399,30 +397,32 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildUpcomingAppointmentCard(
-    BuildContext context,
-    Booking booking,
-  ) {
-    final serviceTitle = booking.service.name;
-    final dateStr = DateFormat('d MMMM, yyyy').format(booking.bookingDateTime);
-    final startStr = DateFormat('hh:mm a').format(booking.bookingDateTime);
-    final stopStr = booking.stopDateTime != null
-        ? DateFormat('hh:mm a').format(booking.stopDateTime!)
-        : '01:00 PM';
-    final timeStr = '$startStr - $stopStr';
-    final priceStr = 'R ${booking.totalPrice.toStringAsFixed(0)}';
+  Widget _buildUpcomingAppointmentCard(BuildContext context, Booking booking) {
+    final bool isQuoteReceived =
+        booking.status == BookingStatus.received ||
+        booking.notes.toLowerCase().contains('quote') ||
+        booking.notes.toLowerCase().contains('estimate');
+
+    final dateDayStr = DateFormat('d MMMM').format(booking.bookingDateTime);
+    final timeStr = DateFormat('hh:mm a').format(booking.bookingDateTime);
 
     return Container(
       width: double.infinity,
-      margin: const EdgeInsets.only(top: 14),
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1D1813),
-        borderRadius: BorderRadius.circular(16),
+        gradient: const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Color(0xFF121212),
+            Color(0xFF22190C),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(8), // Figma Radius 8px
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
-            blurRadius: 14,
+            color: Colors.black.withValues(alpha: 0.2),
+            blurRadius: 12,
             offset: const Offset(0, 4),
           ),
         ],
@@ -430,169 +430,83 @@ class _DashboardScreenState extends State<DashboardScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF2E7D32).withValues(alpha: 0.25),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: const Color(0xFF4CAF50),
-                    width: 1,
-                  ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(
-                      Icons.circle,
-                      size: 7,
-                      color: Color(0xFF4CAF50),
-                    ),
-                    const SizedBox(width: 5),
-                    Text(
-                      'UPCOMING APPOINTMENT',
-                      style: GoogleFonts.outfit(
-                        fontSize: 9,
-                        fontWeight: FontWeight.bold,
-                        color: const Color(0xFF81C784),
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Text(
-                priceStr,
-                style: GoogleFonts.outfit(
-                  fontSize: 15,
-                  fontWeight: FontWeight.bold,
-                  color: const Color(0xFFC4913F),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
+          // Title in Gold Serif (Figma)
           Text(
-            serviceTitle,
-            style: GoogleFonts.outfit(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
+            isQuoteReceived ? 'New Quote Received' : 'Upcoming Appointment',
+            style: GoogleFonts.lora(
+              fontSize: 15,
+              fontWeight: FontWeight.w500,
+              color: const Color(0xFFC4913F),
             ),
           ),
-          const SizedBox(height: 4),
-          Row(
-            children: [
-              const Icon(
-                Icons.calendar_today_outlined,
-                size: 13,
-                color: Color(0xFFC5B7A1),
-              ),
-              const SizedBox(width: 6),
-              Text(
-                '$dateStr • $timeStr',
-                style: GoogleFonts.montserrat(
-                  fontSize: 11,
-                  color: const Color(0xFFC5B7A1),
-                ),
-              ),
-            ],
+          const SizedBox(height: 8),
+
+          // Line 4 Divider (Figma)
+          const Divider(
+            color: Color(0xFF332A1F),
+            height: 1,
+            thickness: 1,
           ),
           const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: SizedBox(
-                  height: 36,
-                  child: OutlinedButton.icon(
-                    onPressed: () => _confirmCancelAppointment(context, booking),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFFEF5350),
-                      side: const BorderSide(color: Color(0xFFE57373), width: 1),
-                      padding: const EdgeInsets.symmetric(horizontal: 4),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+
+          // Subtitle (Figma)
+          Text(
+            isQuoteReceived
+                ? 'Based on our inspection, we\'ve share you the updated quote, please have a review.'
+                : 'You have an appointment booked for $dateDayStr, $timeStr',
+            style: GoogleFonts.montserrat(
+              fontSize: 11.5,
+              fontWeight: FontWeight.w400,
+              color: const Color(0xFF9E9384),
+              height: 1.35,
+            ),
+          ),
+          const SizedBox(height: 14),
+
+          // View Details Button at Bottom Right (Figma Filled Gold Button with White Text)
+          Align(
+            alignment: Alignment.centerRight,
+            child: SizedBox(
+              height: 38,
+              child: ElevatedButton(
+                onPressed: () {
+                  if (isQuoteReceived) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            NewEstimateScreen(bookingItem: booking),
                       ),
-                    ),
-                    icon: const Icon(Icons.cancel_outlined, size: 13),
-                    label: Text(
-                      'Cancel',
-                      style: GoogleFonts.outfit(
-                        fontSize: 10.5,
-                        fontWeight: FontWeight.bold,
+                    );
+                  } else {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            UpcomingAppointmentDetailsScreen(booking: booking),
                       ),
-                    ),
+                    );
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFC4913F),
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(horizontal: 18),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: Text(
+                  'View Details',
+                  style: GoogleFonts.outfit(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
                   ),
                 ),
               ),
-              const SizedBox(width: 6),
-              Expanded(
-                child: SizedBox(
-                  height: 36,
-                  child: OutlinedButton.icon(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => LiveTrackingScreen(booking: booking),
-                        ),
-                      );
-                    },
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFFC4913F),
-                      side: const BorderSide(color: Color(0xFFC4913F), width: 1),
-                      padding: const EdgeInsets.symmetric(horizontal: 4),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    icon: const Icon(Icons.radar_outlined, size: 13),
-                    label: Text(
-                      'Track Live',
-                      style: GoogleFonts.outfit(
-                        fontSize: 10.5,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 6),
-              Expanded(
-                child: SizedBox(
-                  height: 36,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => NewEstimateScreen(bookingItem: booking),
-                        ),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFC4913F),
-                      foregroundColor: const Color(0xFF1C1C1E),
-                      elevation: 0,
-                      padding: const EdgeInsets.symmetric(horizontal: 4),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    child: Text(
-                      'Details',
-                      style: GoogleFonts.outfit(
-                        fontSize: 10.5,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
         ],
       ),
@@ -628,7 +542,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFB71C1C),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
             child: Text(
               'Yes, Cancel',
@@ -643,8 +559,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
 
     if (confirm == true && mounted) {
-      final controller = Provider.of<BookingsController>(context, listen: false);
-      final bookingId = booking.odooSaleOrderId ?? int.tryParse(booking.id) ?? 20;
+      final controller = Provider.of<BookingsController>(
+        context,
+        listen: false,
+      );
+      final bookingId =
+          booking.odooSaleOrderId ?? int.tryParse(booking.id) ?? 20;
       final success = await controller.cancelBooking(bookingId);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -654,8 +574,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ? 'Appointment cancelled successfully'
                   : 'Failed to cancel appointment',
             ),
-            backgroundColor:
-                success ? const Color(0xFF1D1813) : const Color(0xFFB71C1C),
+            backgroundColor: success
+                ? const Color(0xFF1D1813)
+                : const Color(0xFFB71C1C),
           ),
         );
       }

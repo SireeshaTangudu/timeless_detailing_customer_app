@@ -11,6 +11,8 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final IconData backIcon;
   final EdgeInsetsGeometry padding;
   final Color? backgroundColor;
+  final TextStyle? titleStyle;
+  final TextStyle? subtitleStyle;
 
   const CustomAppBar({
     super.key,
@@ -22,6 +24,8 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.backIcon = Icons.arrow_back_sharp,
     this.padding = const EdgeInsets.fromLTRB(24, 16, 24, 12),
     this.backgroundColor,
+    this.titleStyle,
+    this.subtitleStyle,
   });
 
   @override
@@ -45,7 +49,13 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                 children: [
                   if (showBackButton)
                     GestureDetector(
-                      onTap: onBackPressed ?? () => Navigator.pop(context),
+                      onTap: () {
+                        if (onBackPressed != null) {
+                          onBackPressed!();
+                        } else if (Navigator.canPop(context)) {
+                          Navigator.pop(context);
+                        }
+                      },
                       child: Container(
                         width: 38,
                         height: 38,
@@ -74,22 +84,24 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
               // Title Below Back Button (Matching Figma Spec)
               Text(
                 title,
-                style: GoogleFonts.inter(
-                  fontSize: 33,
-                  fontWeight: FontWeight.w400,
-                  color: const Color(0xFF3A2F1E),
-                  height: 1.15,
-                ),
+                style: titleStyle ??
+                    GoogleFonts.inter(
+                      fontSize: 33,
+                      fontWeight: FontWeight.w400,
+                      color: const Color(0xFF3A2F1E),
+                      height: 1.15,
+                    ),
               ),
               if (subtitle != null && subtitle!.isNotEmpty) ...[
                 const SizedBox(height: 6),
                 Text(
                   subtitle!,
-                  style: GoogleFonts.inter(
-                    fontSize: 13,
-                    color: const Color(0xFF7A7A7E),
-                    fontWeight: FontWeight.w400,
-                  ),
+                  style: subtitleStyle ??
+                      GoogleFonts.inter(
+                        fontSize: 13,
+                        color: const Color(0xFF7A7A7E),
+                        fontWeight: FontWeight.w400,
+                      ),
                 ),
               ],
             ],

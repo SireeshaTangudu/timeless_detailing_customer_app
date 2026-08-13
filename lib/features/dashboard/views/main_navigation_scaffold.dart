@@ -250,9 +250,9 @@ class _MainNavigationScaffoldState extends State<MainNavigationScaffold>
         physics: const NeverScrollableScrollPhysics(),
         children: [
           DashboardScreen(tabController: _tabController, onMenuTap: _openDrawer),
-          ServicesListScreen(onMenuTap: _openDrawer),
-          BookingsHistoryScreen(onMenuTap: _openDrawer),
-          ProfileScreen(tabController: _tabController, onMenuTap: _openDrawer),
+          ServicesListScreen(onMenuTap: () => _tabController.animateTo(0)),
+          BookingsHistoryScreen(onMenuTap: () => _tabController.animateTo(0)),
+          ProfileScreen(tabController: _tabController, onMenuTap: () => _tabController.animateTo(0)),
           AboutUsScreen(onMenuTap: _openDrawer),
         ],
       ),

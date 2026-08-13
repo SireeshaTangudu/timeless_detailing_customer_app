@@ -47,67 +47,73 @@ class _BookingsHistoryScreenState extends State<BookingsHistoryScreen> {
       color: const Color(0xFFF7F5F0), // Warm light cream matching Figma
       child: SafeArea(
         child: Column(
-        children: [
-          CustomAppBar(
-            title: 'My Orders and Bookings',
-            backIcon: widget.onMenuTap != null ? Icons.menu : Icons.arrow_back,
-            onBackPressed: () {
-              if (widget.onMenuTap != null) {
-                widget.onMenuTap!();
-              } else {
-                Navigator.pop(context);
-              }
-            },
-          ),
-          Expanded(
-            child: RefreshIndicator(
-              onRefresh: () => controller.loadBookings(),
-              color: const Color(0xFFC4913F),
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(
-                  parent: BouncingScrollPhysics(),
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Segmented Pill Tab Bar (Completed Orders / Upcoming Bookings)
-                  Row(
+          children: [
+            CustomAppBar(
+              title: 'My Orders and Bookings',
+              backIcon: Icons.arrow_back_sharp,
+              onBackPressed: () {
+                if (Navigator.canPop(context)) {
+                  Navigator.pop(context);
+                } else if (widget.onMenuTap != null) {
+                  widget.onMenuTap!();
+                }
+              },
+            ),
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: () => controller.loadBookings(),
+                color: const Color(0xFFC4913F),
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(
+                    parent: BouncingScrollPhysics(),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 16,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(child: _buildTabPill(0, 'Completed Orders')),
-                      const SizedBox(width: 10),
-                      Expanded(child: _buildTabPill(1, 'Upcoming Bookings')),
+                      // Segmented Pill Tab Bar (Completed Orders / Upcoming Bookings)
+                      Row(
+                        children: [
+                          Expanded(child: _buildTabPill(0, 'Completed Orders')),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: _buildTabPill(1, 'Upcoming Bookings'),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // Orders / Bookings List View
+                      if (displayList.isEmpty)
+                        _buildEmptyState()
+                      else
+                        ListView.separated(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: displayList.length,
+                          separatorBuilder: (context, index) =>
+                              const SizedBox(height: 14),
+                          itemBuilder: (context, index) {
+                            final item = displayList[index];
+                            return _buildBookingRowCard(context, item);
+                          },
+                        ),
+
+                      const SizedBox(height: 32),
                     ],
                   ),
-
-                  const SizedBox(height: 24),
-
-                  // Orders / Bookings List View
-                  if (displayList.isEmpty)
-                    _buildEmptyState()
-                  else
-                    ListView.separated(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: displayList.length,
-                      separatorBuilder: (context, index) => const SizedBox(height: 14),
-                      itemBuilder: (context, index) {
-                        final item = displayList[index];
-                        return _buildBookingRowCard(context, item);
-                      },
-                    ),
-
-                  const SizedBox(height: 32),
-                ],
+                ),
               ),
             ),
-          ),
+          ],
         ),
-      ],
-    ),
-  ),
-);
-}
+      ),
+    );
+  }
 
   /// Segmented Tab Pill matching Figma
   Widget _buildTabPill(int index, String label) {
@@ -126,7 +132,9 @@ class _BookingsHistoryScreenState extends State<BookingsHistoryScreen> {
           color: isSelected ? const Color(0xFFFAF3E8) : Colors.white,
           borderRadius: BorderRadius.circular(24),
           border: Border.all(
-            color: isSelected ? const Color(0xFFC4913F) : const Color(0xFFE5E0D8),
+            color: isSelected
+                ? const Color(0xFFC4913F)
+                : const Color(0xFFE5E0D8),
             width: isSelected ? 1.5 : 1,
           ),
           boxShadow: isSelected
@@ -147,7 +155,9 @@ class _BookingsHistoryScreenState extends State<BookingsHistoryScreen> {
           style: GoogleFonts.montserrat(
             fontSize: 12,
             fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-            color: isSelected ? const Color(0xFFA17730) : const Color(0xFF8C8273),
+            color: isSelected
+                ? const Color(0xFFA17730)
+                : const Color(0xFF8C8273),
           ),
         ),
       ),
@@ -165,7 +175,9 @@ class _BookingsHistoryScreenState extends State<BookingsHistoryScreen> {
         : item['price'];
     final String? vehicleStr = item is Booking ? item.vehicleName : null;
     final String? apptType = item is Booking ? item.appointmentTypeName : null;
-    final String? resourceName = item is Booking ? item.appointmentResourceName : null;
+    final String? resourceName = item is Booking
+        ? item.appointmentResourceName
+        : null;
 
     return GestureDetector(
       onTap: () {
@@ -182,10 +194,7 @@ class _BookingsHistoryScreenState extends State<BookingsHistoryScreen> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: const Color(0xFFEBE7DF),
-            width: 1,
-          ),
+          border: Border.all(color: const Color(0xFFEBE7DF), width: 1),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.03),
@@ -231,7 +240,9 @@ class _BookingsHistoryScreenState extends State<BookingsHistoryScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    (vehicleStr != null && vehicleStr.isNotEmpty && vehicleStr != 'Client Vehicle')
+                    (vehicleStr != null &&
+                            vehicleStr.isNotEmpty &&
+                            vehicleStr != 'Client Vehicle')
                         ? '$vehicleStr • $dateStr'
                         : dateStr,
                     style: GoogleFonts.montserrat(
@@ -243,7 +254,10 @@ class _BookingsHistoryScreenState extends State<BookingsHistoryScreen> {
                   if (resourceName != null && resourceName.isNotEmpty) ...[
                     const SizedBox(height: 4),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
                       decoration: BoxDecoration(
                         color: const Color(0xFFFAF3E8),
                         borderRadius: BorderRadius.circular(6),
@@ -326,11 +340,7 @@ class NewEstimateScreen extends StatefulWidget {
   final dynamic bookingItem;
   final int? bookingId;
 
-  const NewEstimateScreen({
-    super.key,
-    this.bookingItem,
-    this.bookingId,
-  });
+  const NewEstimateScreen({super.key, this.bookingItem, this.bookingId});
 
   @override
   State<NewEstimateScreen> createState() => _NewEstimateScreenState();
@@ -343,12 +353,13 @@ class _NewEstimateScreenState extends State<NewEstimateScreen> {
   @override
   void initState() {
     super.initState();
-    final int? idToFetch = widget.bookingId ??
+    final int? idToFetch =
+        widget.bookingId ??
         (widget.bookingItem is int
             ? widget.bookingItem as int
             : (widget.bookingItem is Booking
-                ? (widget.bookingItem as Booking).odooSaleOrderId
-                : int.tryParse(widget.bookingItem?.toString() ?? '')));
+                  ? (widget.bookingItem as Booking).odooSaleOrderId
+                  : int.tryParse(widget.bookingItem?.toString() ?? '')));
 
     // If a specific booking ID is available and we haven't received full Endpoint 6 fields, query Endpoint 6 (`calendar.event/web_read`)
     if (idToFetch != null &&
@@ -382,7 +393,10 @@ class _NewEstimateScreenState extends State<NewEstimateScreen> {
         ),
         content: Text(
           'Are you sure you want to cancel your detailing appointment for ${booking.service.name}?',
-          style: GoogleFonts.montserrat(fontSize: 13, color: const Color(0xFF555555)),
+          style: GoogleFonts.montserrat(
+            fontSize: 13,
+            color: const Color(0xFF555555),
+          ),
         ),
         actions: [
           TextButton(
@@ -399,7 +413,9 @@ class _NewEstimateScreenState extends State<NewEstimateScreen> {
             onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFB71C1C),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
             child: Text(
               'Yes, Cancel',
@@ -414,8 +430,12 @@ class _NewEstimateScreenState extends State<NewEstimateScreen> {
     );
 
     if (confirm == true && mounted) {
-      final controller = Provider.of<BookingsController>(context, listen: false);
-      final bookingId = booking.odooSaleOrderId ?? int.tryParse(booking.id) ?? 20;
+      final controller = Provider.of<BookingsController>(
+        context,
+        listen: false,
+      );
+      final bookingId =
+          booking.odooSaleOrderId ?? int.tryParse(booking.id) ?? 20;
       final success = await controller.cancelBooking(bookingId);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -425,8 +445,9 @@ class _NewEstimateScreenState extends State<NewEstimateScreen> {
                   ? 'Appointment cancelled successfully'
                   : 'Failed to cancel appointment',
             ),
-            backgroundColor:
-                success ? const Color(0xFF1D1813) : const Color(0xFFB71C1C),
+            backgroundColor: success
+                ? const Color(0xFF1D1813)
+                : const Color(0xFFB71C1C),
           ),
         );
         if (success) {
@@ -449,9 +470,7 @@ class _NewEstimateScreenState extends State<NewEstimateScreen> {
             ),
             const Expanded(
               child: Center(
-                child: CircularProgressIndicator(
-                  color: Color(0xFFC4913F),
-                ),
+                child: CircularProgressIndicator(color: Color(0xFFC4913F)),
               ),
             ),
           ],
@@ -459,7 +478,8 @@ class _NewEstimateScreenState extends State<NewEstimateScreen> {
       );
     }
 
-    final Booking? b = _fetchedBooking ??
+    final Booking? b =
+        _fetchedBooking ??
         (widget.bookingItem is Booking ? widget.bookingItem as Booking : null);
 
     final String serviceTitle = b != null
@@ -536,7 +556,9 @@ class _NewEstimateScreenState extends State<NewEstimateScreen> {
                                   color: const Color(0xFF2A231C),
                                   shape: BoxShape.circle,
                                   border: Border.all(
-                                    color: const Color(0xFFC4913F).withValues(alpha: 0.4),
+                                    color: const Color(
+                                      0xFFC4913F,
+                                    ).withValues(alpha: 0.4),
                                   ),
                                 ),
                                 child: const Center(
@@ -583,14 +605,22 @@ class _NewEstimateScreenState extends State<NewEstimateScreen> {
                           padding: const EdgeInsets.all(20),
                           child: Column(
                             children: [
-                              _buildDetailRow('Service Name', serviceTitle, isBold: true),
+                              _buildDetailRow(
+                                'Service Name',
+                                serviceTitle,
+                                isBold: true,
+                              ),
                               if (apptType != null && apptType.isNotEmpty) ...[
                                 const SizedBox(height: 12),
                                 _buildDetailRow('Appointment Type', apptType),
                               ],
-                              if (apptResource != null && apptResource.isNotEmpty) ...[
+                              if (apptResource != null &&
+                                  apptResource.isNotEmpty) ...[
                                 const SizedBox(height: 12),
-                                _buildDetailRow('Detailing Resource', apptResource),
+                                _buildDetailRow(
+                                  'Detailing Resource',
+                                  apptResource,
+                                ),
                               ],
                               const SizedBox(height: 12),
                               _buildDetailRow('Selected Vehicle', selectedCar),
@@ -602,17 +632,25 @@ class _NewEstimateScreenState extends State<NewEstimateScreen> {
                               _buildDetailRow('Service Date', serviceDate),
                               const SizedBox(height: 12),
                               _buildDetailRow('Time Slot', serviceTime),
-                              
+
                               if (collectorRequired) ...[
                                 const SizedBox(height: 12),
                                 _buildDetailRow('Collector Required', 'Yes'),
-                                if (collectorName != null && collectorName.isNotEmpty) ...[
+                                if (collectorName != null &&
+                                    collectorName.isNotEmpty) ...[
                                   const SizedBox(height: 12),
-                                  _buildDetailRow('Collector Name', collectorName),
+                                  _buildDetailRow(
+                                    'Collector Name',
+                                    collectorName,
+                                  ),
                                 ],
-                                if (collectorLicense != null && collectorLicense.isNotEmpty) ...[
+                                if (collectorLicense != null &&
+                                    collectorLicense.isNotEmpty) ...[
                                   const SizedBox(height: 12),
-                                  _buildDetailRow('Collector License', collectorLicense),
+                                  _buildDetailRow(
+                                    'Collector License',
+                                    collectorLicense,
+                                  ),
                                 ],
                               ],
 
@@ -625,7 +663,8 @@ class _NewEstimateScreenState extends State<NewEstimateScreen> {
 
                               // Booking Status with Green badge
                               Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
@@ -655,7 +694,9 @@ class _NewEstimateScreenState extends State<NewEstimateScreen> {
                               // Dotted Divider Line
                               CustomPaint(
                                 size: const Size(double.infinity, 1),
-                                painter: DashedLinePainter(color: const Color(0xFFE5DFD5)),
+                                painter: DashedLinePainter(
+                                  color: const Color(0xFFE5DFD5),
+                                ),
                               ),
 
                               const SizedBox(height: 16),
@@ -666,17 +707,24 @@ class _NewEstimateScreenState extends State<NewEstimateScreen> {
 
                               CustomPaint(
                                 size: const Size(double.infinity, 1),
-                                painter: DashedLinePainter(color: const Color(0xFFE5DFD5)),
+                                painter: DashedLinePainter(
+                                  color: const Color(0xFFE5DFD5),
+                                ),
                               ),
 
                               const SizedBox(height: 14),
 
-                              _buildDetailRow('Total Amount', priceStr, isBold: true),
+                              _buildDetailRow(
+                                'Total Amount',
+                                priceStr,
+                                isBold: true,
+                              ),
                               const SizedBox(height: 10),
-                              
+
                               // Payment Status Paid Green
                               Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
@@ -709,10 +757,12 @@ class _NewEstimateScreenState extends State<NewEstimateScreen> {
                                 height: 48,
                                 child: ElevatedButton.icon(
                                   onPressed: () {
-                                    final bookingToTrack = b ??
+                                    final bookingToTrack =
+                                        b ??
                                         Booking(
                                           id: widget.bookingItem is Booking
-                                              ? (widget.bookingItem as Booking).id
+                                              ? (widget.bookingItem as Booking)
+                                                    .id
                                               : '20',
                                           service: DetailService(
                                             id: '1',
@@ -739,7 +789,10 @@ class _NewEstimateScreenState extends State<NewEstimateScreen> {
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
-                                        builder: (context) => LiveTrackingScreen(booking: bookingToTrack),
+                                        builder: (context) =>
+                                            LiveTrackingScreen(
+                                              booking: bookingToTrack,
+                                            ),
                                       ),
                                     );
                                   },
@@ -751,7 +804,11 @@ class _NewEstimateScreenState extends State<NewEstimateScreen> {
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                   ),
-                                  icon: const Icon(Icons.radar_outlined, size: 20, color: Color(0xFF1C1C1E)),
+                                  icon: const Icon(
+                                    Icons.radar_outlined,
+                                    size: 20,
+                                    color: Color(0xFF1C1C1E),
+                                  ),
                                   label: Text(
                                     'Track Live Detailing Status',
                                     style: GoogleFonts.outfit(
@@ -773,19 +830,28 @@ class _NewEstimateScreenState extends State<NewEstimateScreen> {
                                   onPressed: () {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       const SnackBar(
-                                        content: Text('Downloading invoice receipt...'),
+                                        content: Text(
+                                          'Downloading invoice receipt...',
+                                        ),
                                         backgroundColor: Color(0xFF1D1813),
                                       ),
                                     );
                                   },
                                   style: OutlinedButton.styleFrom(
                                     foregroundColor: const Color(0xFF1C1C1E),
-                                    side: const BorderSide(color: Color(0xFFC4913F), width: 1.2),
+                                    side: const BorderSide(
+                                      color: Color(0xFFC4913F),
+                                      width: 1.2,
+                                    ),
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                   ),
-                                  icon: const Icon(Icons.file_download_outlined, size: 18, color: Color(0xFFC4913F)),
+                                  icon: const Icon(
+                                    Icons.file_download_outlined,
+                                    size: 18,
+                                    color: Color(0xFFC4913F),
+                                  ),
                                   label: Text(
                                     'Download Invoice',
                                     style: GoogleFonts.outfit(
@@ -807,12 +873,19 @@ class _NewEstimateScreenState extends State<NewEstimateScreen> {
                                     onPressed: () => _confirmCancel(context, b),
                                     style: OutlinedButton.styleFrom(
                                       foregroundColor: const Color(0xFFB71C1C),
-                                      side: const BorderSide(color: Color(0xFFE57373), width: 1.2),
+                                      side: const BorderSide(
+                                        color: Color(0xFFE57373),
+                                        width: 1.2,
+                                      ),
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(12),
                                       ),
                                     ),
-                                    icon: const Icon(Icons.cancel_outlined, size: 18, color: Color(0xFFB71C1C)),
+                                    icon: const Icon(
+                                      Icons.cancel_outlined,
+                                      size: 18,
+                                      color: Color(0xFFB71C1C),
+                                    ),
                                     label: Text(
                                       'Cancel Appointment',
                                       style: GoogleFonts.outfit(
