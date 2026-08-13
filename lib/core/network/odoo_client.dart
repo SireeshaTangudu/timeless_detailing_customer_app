@@ -174,23 +174,45 @@ class OdooApiService implements BaseOdooService {
     await _ensureInitialized();
     try {
       debugPrint('🔵 [OdooApiService] _callKw $model/$method...');
-      final response = await _dio!.post(
-        '/web/dataset/call_kw',
-        data: {
-          'jsonrpc': '2.0',
-          'method': 'call',
-          'params': {
-            'model': model,
-            'method': method,
-            'args': args,
-            'kwargs': kwargs,
+      Response response;
+      try {
+        response = await _dio!.post(
+          '/web/dataset/call_kw/$model/$method',
+          data: {
+            'jsonrpc': '2.0',
+            'method': 'call',
+            'params': {
+              'model': model,
+              'method': method,
+              'args': args,
+              'kwargs': kwargs,
+            },
           },
-        },
-        options: Options(
-          sendTimeout: const Duration(seconds: 30),
-          receiveTimeout: const Duration(seconds: 30),
-        ),
-      );
+          options: Options(
+            sendTimeout: const Duration(seconds: 30),
+            receiveTimeout: const Duration(seconds: 30),
+          ),
+        );
+      } catch (e) {
+        debugPrint('🔵 Path /web/dataset/call_kw/$model/$method failed ($e). Retrying /web/dataset/call_kw...');
+        response = await _dio!.post(
+          '/web/dataset/call_kw',
+          data: {
+            'jsonrpc': '2.0',
+            'method': 'call',
+            'params': {
+              'model': model,
+              'method': method,
+              'args': args,
+              'kwargs': kwargs,
+            },
+          },
+          options: Options(
+            sendTimeout: const Duration(seconds: 30),
+            receiveTimeout: const Duration(seconds: 30),
+          ),
+        );
+      }
 
       final error = response.data['error'];
       if (error != null) {
@@ -681,21 +703,44 @@ class OdooApiService implements BaseOdooService {
   Future<List<DetailService>> getServicesFromProductTemplate() async {
     debugPrint('🔵 [OdooApiService] Calling product.template/web_search_read...');
     try {
-      final response = await _callKw(
-        model: 'product.template',
-        method: 'web_search_read',
-        args: [],
-        kwargs: {
-          'domain': [],
-          'specification': {
-            'id': {},
-            'name': {},
-            'list_price': {},
-            'currency_id': {},
-            'product_variant_count': {},
+      dynamic response;
+      try {
+        response = await _callKw(
+          model: 'product.template',
+          method: 'web_search_read',
+          args: [],
+          kwargs: {
+            'domain': [
+              ['sale_ok', '=', true],
+              ['timeless_published', '=', true],
+            ],
+            'specification': {
+              'id': {},
+              'name': {},
+              'list_price': {},
+              'currency_id': {},
+              'product_variant_count': {},
+            },
           },
-        },
-      );
+        );
+      } catch (e) {
+        debugPrint('Endpoint 1 custom domain error ($e). Retrying with default domain...');
+        response = await _callKw(
+          model: 'product.template',
+          method: 'web_search_read',
+          args: [],
+          kwargs: {
+            'domain': [],
+            'specification': {
+              'id': {},
+              'name': {},
+              'list_price': {},
+              'currency_id': {},
+              'product_variant_count': {},
+            },
+          },
+        );
+      }
 
       final List records = (response is Map && response.containsKey('records'))
           ? (response['records'] as List)
@@ -725,36 +770,85 @@ class OdooApiService implements BaseOdooService {
   Future<List<ProductVariant>> getServiceDetailsWithVariants(int templateId) async {
     debugPrint('🔵 [OdooApiService] Calling Endpoint 2 (product.product/web_search_read) for templateId=$templateId...');
     try {
-      final response = await _callKw(
-        model: 'product.product',
-        method: 'web_search_read',
-        args: [],
-        kwargs: {
-          'domain': [
-            ['product_tmpl_id', '=', templateId],
-          ],
-          'specification': {
-            'id': {},
-            'name': {},
-            'display_name': {},
-            'lst_price': {},
-            'product_template_variant_value_ids': {
-              'fields': {
-                'id': {},
-                'name': {},
+      dynamic response;
+      try {
+        response = await _callKw(
+          model: 'product.product',
+          method: 'web_search_read',
+          args: [],
+          kwargs: {
+            'domain': [
+              ['product_tmpl_id', '=', templateId],
+              ['appointment_type_id', '!=', false],
+              ['appointment_type_id.is_published', '=', true],
+              ['appointment_type_id.active', '=', true],
+              ['timeless_published', '=', true],
+            ],
+            'specification': {
+              'id': {},
+              'name': {},
+              'display_name': {},
+              'lst_price': {},
+              'product_template_variant_value_ids': {
+                'fields': {
+                  'id': {},
+                  'name': {},
+                },
               },
-            },
-            'appointment_type_id': {
-              'fields': {
-                'id': {},
-                'name': {},
-                'appointment_duration': {},
-                'message_intro': {},
+              'appointment_type_id': {
+                'fields': {
+                  'id': {},
+                  'name': {},
+                  'appointment_duration': {},
+                  'message_intro': {},
+                  'min_schedule_hours': {},
+                  'max_schedule_days': {},
+                  'min_cancellation_hours': {},
+                },
+              },
+              'appointment_resource_id': {
+                'fields': {
+                  'id': {},
+                  'name': {},
+                  'capacity': {},
+                },
               },
             },
           },
-        },
-      );
+        );
+      } catch (e) {
+        debugPrint('Endpoint 2 custom domain/fields error ($e). Retrying with simple domain...');
+        response = await _callKw(
+          model: 'product.product',
+          method: 'web_search_read',
+          args: [],
+          kwargs: {
+            'domain': [
+              ['product_tmpl_id', '=', templateId],
+            ],
+            'specification': {
+              'id': {},
+              'name': {},
+              'display_name': {},
+              'lst_price': {},
+              'product_template_variant_value_ids': {
+                'fields': {
+                  'id': {},
+                  'name': {},
+                },
+              },
+              'appointment_type_id': {
+                'fields': {
+                  'id': {},
+                  'name': {},
+                  'appointment_duration': {},
+                  'message_intro': {},
+                },
+              },
+            },
+          },
+        );
+      }
 
       final List records = (response is Map && response.containsKey('records'))
           ? (response['records'] as List)
@@ -1198,50 +1292,75 @@ class OdooApiService implements BaseOdooService {
   @override
   Future<List<Booking>> getBookings(String customerId) async {
     try {
-      final response = await _callKw(
-        model: 'sale.order',
-        method: 'search_read',
-        args: [
-          [
-            ['partner_id', '=', int.tryParse(customerId) ?? _uid],
+      dynamic response;
+      final partnerId = int.tryParse(customerId) ?? _uid;
+      try {
+        response = await _callKw(
+          model: 'sale.order',
+          method: 'search_read',
+          args: [
+            partnerId != null ? [['partner_id', '=', partnerId]] : [],
           ],
-        ],
-        kwargs: {
-          'fields': [
-            'id',
-            'name',
-            'state',
-            'amount_total',
-            'date_order',
-            'note',
-            'vehicle_name',
-            'vehicle_plate',
-            'technician_name',
-            'technician_avatar',
-            'before_images',
-            'after_images',
+          kwargs: {
+            'fields': [
+              'id',
+              'name',
+              'state',
+              'amount_total',
+              'date_order',
+              'note',
+              'vehicle_name',
+              'vehicle_plate',
+              'technician_name',
+              'technician_avatar',
+              'before_images',
+              'after_images',
+            ],
+            'order': 'date_order desc',
+          },
+        );
+      } catch (e) {
+        debugPrint('sale.order custom search_read failed ($e). Falling back to standard fields.');
+        response = await _callKw(
+          model: 'sale.order',
+          method: 'search_read',
+          args: [
+            partnerId != null ? [['partner_id', '=', partnerId]] : [],
           ],
-          'order': 'date_order desc',
-        },
-      );
+          kwargs: {
+            'fields': [
+              'id',
+              'name',
+              'state',
+              'amount_total',
+              'date_order',
+              'note',
+            ],
+            'order': 'date_order desc',
+          },
+        );
+      }
 
       List<Booking> bookings = [];
-      for (var order in (response as List)) {
-        final serviceJson = {
-          'id': '1',
-          'name': 'Premium Detail',
-          'lst_price': order['amount_total'],
-          'categ_id': [1, 'Full Packages'],
-        };
-        final service = DetailService.fromOdooJson(serviceJson);
-        bookings.add(
-          Booking.fromOdooJson(order as Map<String, dynamic>, service),
-        );
+      if (response is List) {
+        for (var order in response) {
+          final orderMap = Map<String, dynamic>.from(order as Map);
+          final serviceJson = {
+            'id': '1',
+            'name': orderMap['name'] ?? 'Premium Detail',
+            'lst_price': orderMap['amount_total'],
+            'categ_id': [1, 'Full Packages'],
+          };
+          final service = DetailService.fromOdooJson(serviceJson);
+          bookings.add(
+            Booking.fromOdooJson(orderMap, service),
+          );
+        }
       }
       return bookings;
     } catch (e) {
-      print('Odoo getBookings error: $e');
-      rethrow;
+      debugPrint('Odoo getBookings error: $e');
+      return [];
     }
   }
 
@@ -1289,45 +1408,101 @@ class OdooApiService implements BaseOdooService {
   @override
   Future<Booking?> getLiveTrackingBooking(String bookingId) async {
     try {
-      final response = await _callKw(
-        model: 'sale.order',
-        method: 'read',
-        args: [
-          [int.parse(bookingId)],
-        ],
-        kwargs: {
-          'fields': [
-            'id',
-            'name',
-            'state',
-            'amount_total',
-            'date_order',
-            'note',
-            'vehicle_name',
-            'vehicle_plate',
-            'technician_name',
-            'technician_avatar',
-            'before_images',
-            'after_images',
-          ],
-        },
-      );
+      final id = int.tryParse(bookingId);
+      if (id == null) return null;
 
-      if ((response as List).isEmpty) return null;
+      dynamic response;
+      try {
+        response = await _callKw(
+          model: 'sale.order',
+          method: 'read',
+          args: [
+            [id],
+          ],
+          kwargs: {
+            'fields': [
+              'id',
+              'name',
+              'state',
+              'amount_total',
+              'date_order',
+              'note',
+              'vehicle_name',
+              'vehicle_plate',
+              'technician_name',
+              'technician_avatar',
+              'before_images',
+              'after_images',
+            ],
+          },
+        );
+      } catch (e) {
+        debugPrint('sale.order custom read failed ($e). Falling back to standard fields.');
+        response = await _callKw(
+          model: 'sale.order',
+          method: 'read',
+          args: [
+            [id],
+          ],
+          kwargs: {
+            'fields': [
+              'id',
+              'name',
+              'state',
+              'amount_total',
+              'date_order',
+              'note',
+            ],
+          },
+        );
+      }
+
+      if (response == null || (response is List && response.isEmpty)) {
+        // Fallback: search for latest sale.order for the current customer/partner
+        try {
+          final partnerId = _partnerId ?? _uid;
+          final fallbackSearch = await _callKw(
+            model: 'sale.order',
+            method: 'search_read',
+            args: [
+              partnerId != null ? [['partner_id', '=', partnerId]] : [],
+            ],
+            kwargs: {
+              'fields': [
+                'id',
+                'name',
+                'state',
+                'amount_total',
+                'date_order',
+                'note',
+              ],
+              'order': 'date_order desc',
+              'limit': 1,
+            },
+          );
+          if (fallbackSearch is List && fallbackSearch.isNotEmpty) {
+            response = fallbackSearch;
+          }
+        } catch (_) {}
+      }
+
+      if (response == null || (response is List && response.isEmpty)) return null;
+      final orderMap = Map<String, dynamic>.from((response is List ? response[0] : response) as Map);
+
       final service = DetailService(
         id: '1',
-        name: 'Signature Detailing',
+        name: orderMap['name']?.toString() ?? 'Signature Detailing',
         description: 'Multi-stage paint correction & wax protection.',
-        price: (response[0]['amount_total'] as num?)?.toDouble() ?? 299.99,
+        price: (orderMap['amount_total'] as num?)?.toDouble() ?? 299.99,
         durationHours: 4.0,
         imageUrl: '',
         category: 'Signature Packages',
         whatsIncluded: [],
       );
 
-      return Booking.fromOdooJson(response[0] as Map<String, dynamic>, service);
+      return Booking.fromOdooJson(orderMap, service);
     } catch (e) {
-      print('Odoo getLiveTrackingBooking error: $e');
+      debugPrint('Odoo getLiveTrackingBooking error: $e');
       return null;
     }
   }

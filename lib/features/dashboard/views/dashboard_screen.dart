@@ -13,6 +13,7 @@ import 'package:timeless_detailing_customer_app/features/services/views/service_
 import 'package:timeless_detailing_customer_app/features/bookings/controllers/bookings_controller.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/models/booking_model.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/views/bookings_history_screen.dart';
+import 'package:timeless_detailing_customer_app/features/tracking/views/live_tracking_screen.dart';
 
 class _AssetServiceImage extends StatefulWidget {
   final String assetPath;
@@ -511,23 +512,55 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     style: OutlinedButton.styleFrom(
                       foregroundColor: const Color(0xFFEF5350),
                       side: const BorderSide(color: Color(0xFFE57373), width: 1),
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
                     ),
-                    icon: const Icon(Icons.cancel_outlined, size: 14),
+                    icon: const Icon(Icons.cancel_outlined, size: 13),
                     label: Text(
                       'Cancel',
                       style: GoogleFonts.outfit(
-                        fontSize: 11,
+                        fontSize: 10.5,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 6),
+              Expanded(
+                child: SizedBox(
+                  height: 36,
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => LiveTrackingScreen(booking: booking),
+                        ),
+                      );
+                    },
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFFC4913F),
+                      side: const BorderSide(color: Color(0xFFC4913F), width: 1),
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    icon: const Icon(Icons.radar_outlined, size: 13),
+                    label: Text(
+                      'Track Live',
+                      style: GoogleFonts.outfit(
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 6),
               Expanded(
                 child: SizedBox(
                   height: 36,
@@ -544,15 +577,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       backgroundColor: const Color(0xFFC4913F),
                       foregroundColor: const Color(0xFF1C1C1E),
                       elevation: 0,
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
                     ),
                     child: Text(
-                      'View Details',
+                      'Details',
                       style: GoogleFonts.outfit(
-                        fontSize: 11,
+                        fontSize: 10.5,
                         fontWeight: FontWeight.bold,
                       ),
                     ),

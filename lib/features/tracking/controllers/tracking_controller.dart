@@ -3,26 +3,51 @@ import 'package:timeless_detailing_customer_app/core/network/odoo_client.dart';
 import 'package:timeless_detailing_customer_app/core/network/mock_odoo_service.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/models/booking_model.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/controllers/bookings_controller.dart';
+import 'package:timeless_detailing_customer_app/features/tracking/models/project_model.dart';
 
 class TrackingController extends ChangeNotifier {
   final BaseOdooService _odooService;
   final BookingsController _bookingsController;
 
   Booking? _trackedBooking;
+  List<ProjectModel> _projects = [];
+  Map<int, List<ProjectTaskModel>> _projectTasksMap = {};
   bool _isLoading = false;
 
   TrackingController(this._odooService, this._bookingsController);
 
   Booking? get trackedBooking => _trackedBooking;
+  List<ProjectModel> get projects => _projects;
+  Map<int, List<ProjectTaskModel>> get projectTasksMap => _projectTasksMap;
+  List<ProjectTaskModel> get allTasks => _projectTasksMap.values.expand((tasks) => tasks).toList();
   bool get isLoading => _isLoading;
 
+  /// Fetches tracking status including live booking, active projects (Endpoint 8) and project tasks (Endpoint 9)
   Future<void> fetchTrackingStatus(String bookingId) async {
     _isLoading = true;
     notifyListeners();
 
-    _trackedBooking = await _odooService.getLiveTrackingBooking(bookingId);
-    _isLoading = false;
-    notifyListeners();
+    try {
+      final results = await Future.wait([
+        _odooService.getLiveTrackingBooking(bookingId),
+        _odooService.getProjects(),
+      ]);
+      _trackedBooking = results[0] as Booking?;
+      _projects = (results[1] as List<ProjectModel>?) ?? [];
+
+      _projectTasksMap = {};
+      for (final project in _projects) {
+        try {
+          final tasks = await _odooService.getProjectTasks(project.id);
+          _projectTasksMap[project.id] = tasks;
+        } catch (_) {}
+      }
+    } catch (e) {
+      debugPrint('Error fetching tracking status: $e');
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 
   // Simulation method: Advances the status of the booking in mock database

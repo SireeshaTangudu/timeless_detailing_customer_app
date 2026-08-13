@@ -1,30 +1,38 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:timeless_detailing_customer_app/main.dart';
+import 'package:timeless_detailing_customer_app/features/tracking/models/project_model.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  group('Endpoint 8 ProjectModel Tests', () {
+    test('ProjectModel parses Endpoint 8 JSON correctly', () {
+      final json = {
+        'id': 14,
+        'name': 'Detailing Bay Alpha',
+        'task_count': 5,
+        'label_tasks': 'In Progress, To Do',
+      };
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+      final project = ProjectModel.fromJson(json);
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+      expect(project.id, equals(14));
+      expect(project.name, equals('Detailing Bay Alpha'));
+      expect(project.taskCount, equals(5));
+      expect(project.labelTasks, equals('In Progress, To Do'));
+    });
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    test('ProjectModel handles string IDs and task_count fallback', () {
+      final json = {
+        'id': '15',
+        'name': 'Ceramic Shield Workshop',
+        'task_count': 3.0,
+        'label_tasks': 'Done',
+      };
+
+      final project = ProjectModel.fromJson(json);
+
+      expect(project.id, equals(15));
+      expect(project.name, equals('Ceramic Shield Workshop'));
+      expect(project.taskCount, equals(3));
+      expect(project.labelTasks, equals('Done'));
+    });
   });
 }

@@ -6,6 +6,8 @@ import '../../../core/widgets/custom_app_bar.dart';
 import '../controllers/bookings_controller.dart';
 import '../models/booking_model.dart';
 import 'estimation_screen.dart';
+import '../../tracking/views/live_tracking_screen.dart';
+import '../../services/models/service_model.dart';
 
 class BookingsHistoryScreen extends StatefulWidget {
   final VoidCallback? onMenuTap;
@@ -700,6 +702,68 @@ class _NewEstimateScreenState extends State<NewEstimateScreen> {
                               ),
 
                               const SizedBox(height: 24),
+
+                              // Track Live Status Button (Endpoints 8 & 9 + Live Tracking Stepper)
+                              SizedBox(
+                                width: double.infinity,
+                                height: 48,
+                                child: ElevatedButton.icon(
+                                  onPressed: () {
+                                    final bookingToTrack = b ??
+                                        Booking(
+                                          id: widget.bookingItem is Booking
+                                              ? (widget.bookingItem as Booking).id
+                                              : '20',
+                                          service: DetailService(
+                                            id: '1',
+                                            name: serviceTitle,
+                                            description: '',
+                                            price: 0,
+                                            durationHours: 1,
+                                            imageUrl: '',
+                                            category: '',
+                                            whatsIncluded: [],
+                                          ),
+                                          vehicleName: selectedCar,
+                                          vehicleLicensePlate: '',
+                                          bookingDateTime: DateTime.now(),
+                                          status: BookingStatus.inProgress,
+                                          currentStep: 2,
+                                          totalPrice: 0,
+                                          notes: '',
+                                          beforeImages: [],
+                                          afterImages: [],
+                                          technicianName: 'Marcus Vance',
+                                          technicianAvatar: '',
+                                        );
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => LiveTrackingScreen(booking: bookingToTrack),
+                                      ),
+                                    );
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFFC4913F),
+                                    foregroundColor: const Color(0xFF1C1C1E),
+                                    elevation: 0,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                  icon: const Icon(Icons.radar_outlined, size: 20, color: Color(0xFF1C1C1E)),
+                                  label: Text(
+                                    'Track Live Detailing Status',
+                                    style: GoogleFonts.outfit(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                      color: const Color(0xFF1C1C1E),
+                                    ),
+                                  ),
+                                ),
+                              ),
+
+                              const SizedBox(height: 12),
 
                               // Download Invoice Button
                               SizedBox(
