@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import 'package:dio/io.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:dio_cookie_manager/dio_cookie_manager.dart';
 import 'package:cookie_jar/cookie_jar.dart';
 import 'package:path_provider/path_provider.dart';
@@ -280,20 +281,37 @@ class OdooApiService implements BaseOdooService {
           'phone': userPhone,
         };
 
-        // Secure save credentials for future auto logins
-        await _storage.write(key: 'instance_url', value: baseUrl);
-        await _storage.write(key: 'database', value: db);
-        await _storage.write(key: 'username', value: email);
-        await _storage.write(key: 'password', value: password);
-        await _storage.write(key: 'is_logged_in', value: 'true');
-        await _storage.write(key: 'uid', value: _uid.toString());
-        if (_partnerId != null) {
-          await _storage.write(key: 'partner_id', value: _partnerId.toString());
+        // Save session state to SharedPreferences and SecureStorage for 100% reliable persistence
+        try {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setBool('is_logged_in', true);
+          await prefs.setString('username', email);
+          await prefs.setString('password', password);
+          if (_uid != null) await prefs.setInt('uid', _uid!);
+          if (_partnerId != null) await prefs.setInt('partner_id', _partnerId!);
+          await prefs.setString('session_id', _sessionId ?? '');
+          await prefs.setString('user_name', userName);
+          await prefs.setString('user_email', email);
+          await prefs.setString('user_phone', userPhone);
+        } catch (e) {
+          debugPrint('SharedPreferences save error: $e');
         }
-        await _storage.write(key: 'session_id', value: _sessionId ?? '');
-        await _storage.write(key: 'user_name', value: userName);
-        await _storage.write(key: 'user_email', value: email);
-        await _storage.write(key: 'user_phone', value: userPhone);
+
+        try {
+          await _storage.write(key: 'instance_url', value: baseUrl);
+          await _storage.write(key: 'database', value: db);
+          await _storage.write(key: 'username', value: email);
+          await _storage.write(key: 'password', value: password);
+          await _storage.write(key: 'is_logged_in', value: 'true');
+          await _storage.write(key: 'uid', value: _uid.toString());
+          if (_partnerId != null) {
+            await _storage.write(key: 'partner_id', value: _partnerId.toString());
+          }
+          await _storage.write(key: 'session_id', value: _sessionId ?? '');
+          await _storage.write(key: 'user_name', value: userName);
+          await _storage.write(key: 'user_email', value: email);
+          await _storage.write(key: 'user_phone', value: userPhone);
+        } catch (_) {}
 
         return true;
       }
@@ -502,101 +520,67 @@ class OdooApiService implements BaseOdooService {
     try {
       await _ensureInitialized();
 
-      final savedUid = await _storage.read(key: 'uid');
-      final isLoggedInFlag = await _storage.read(key: 'is_logged_in');
-      final savedEmail =
-          await _storage.read(key: 'username') ??
-          await _storage.read(key: 'user_email');
-      final savedPassword = await _storage.read(key: 'password');
+      // Read from SharedPreferences first (rock-solid persistence across app restarts and device cold boots)
+      final prefs = await SharedPreferences.getInstance();
+      final bool prefLoggedIn = prefs.getBool('is_logged_in') ?? false;
+      final String? prefEmail = prefs.getString('username') ?? prefs.getString('user_email');
+      final String? prefPassword = prefs.getString('password');
+      final int? prefUid = prefs.getInt('uid');
+      final int? prefPartnerId = prefs.getInt('partner_id');
+      final String? prefName = prefs.getString('user_name');
+      final String? prefPhone = prefs.getString('user_phone');
+      final String? prefSessionId = prefs.getString('session_id');
 
-      if ((savedUid == null || savedUid.isEmpty) &&
-          isLoggedInFlag != 'true' &&
-          (savedEmail == null || savedEmail.isEmpty)) {
+      // Also read from secure storage as fallback
+      final savedUidStr = await _storage.read(key: 'uid').catchError((_) => null);
+      final isLoggedInFlag = await _storage.read(key: 'is_logged_in').catchError((_) => null);
+      final savedEmail = await _storage.read(key: 'username').catchError((_) => null) ??
+          await _storage.read(key: 'user_email').catchError((_) => null);
+      final savedPassword = await _storage.read(key: 'password').catchError((_) => null);
+
+      final String? effectiveEmail = prefEmail ?? savedEmail;
+      final String? effectivePassword = prefPassword ?? savedPassword;
+      final int? effectiveUid = (prefUid != null && prefUid > 0) ? prefUid : int.tryParse(savedUidStr ?? '');
+      final int? effectivePartnerId = prefPartnerId ?? int.tryParse(await _storage.read(key: 'partner_id').catchError((_) => null) ?? '');
+      final bool isLoggedIn = prefLoggedIn || (isLoggedInFlag == 'true') || (effectiveEmail != null && effectiveEmail.isNotEmpty);
+
+      if (!isLoggedIn) {
         return false;
       }
 
-      if (savedUid != null && savedUid.isNotEmpty) {
-        _uid = int.tryParse(savedUid);
-      }
-      final savedPartnerId = await _storage.read(key: 'partner_id');
-      if (savedPartnerId != null && savedPartnerId.isNotEmpty) {
-        _partnerId = int.tryParse(savedPartnerId);
-      }
-      _sessionId = await _storage.read(key: 'session_id');
+      _uid = effectiveUid;
+      _partnerId = effectivePartnerId;
+      _sessionId = prefSessionId ?? await _storage.read(key: 'session_id').catchError((_) => null);
 
-      final savedName = await _storage.read(key: 'user_name');
-      final savedPhone = await _storage.read(key: 'user_phone');
-      final savedImage = await _storage.read(key: 'user_image');
-      if (savedName != null || savedEmail != null) {
-        _savedUserInfo = {
-          'id': _partnerId ?? _uid ?? 1,
-          'name': savedName ?? 'Customer',
-          'email': savedEmail ?? '',
-          'phone': savedPhone ?? '',
-          if (savedImage != null && savedImage.isNotEmpty)
-            'image_1920': savedImage,
-        };
-      }
+      final savedName = prefName ?? await _storage.read(key: 'user_name').catchError((_) => null);
+      final savedPhone = prefPhone ?? await _storage.read(key: 'user_phone').catchError((_) => null);
 
-      // 1. If password and email are saved, attempt background re-authentication to refresh session cookies with 15s timeout
-      if (savedEmail != null &&
-          savedPassword != null &&
-          savedEmail.isNotEmpty &&
-          savedPassword.isNotEmpty) {
+      _savedUserInfo = {
+        'id': _partnerId ?? _uid ?? 1,
+        'name': savedName ?? 'Customer',
+        'email': effectiveEmail ?? '',
+        'phone': savedPhone ?? '',
+      };
+
+      // Background silent re-auth to refresh session cookies
+      if (effectiveEmail != null &&
+          effectivePassword != null &&
+          effectiveEmail.isNotEmpty &&
+          effectivePassword.isNotEmpty) {
         try {
-          final success = await login(
-            savedEmail,
-            savedPassword,
-          ).timeout(const Duration(seconds: 15), onTimeout: () => false);
-          if (success) {
-            return true;
-          }
+          await login(
+            effectiveEmail,
+            effectivePassword,
+          ).timeout(const Duration(seconds: 5), onTimeout: () => false);
         } catch (e) {
           debugPrint('Silent re-auth timeout or error: $e');
         }
       }
 
-      // 2. Try querying session info from Odoo server directly
-      try {
-        final sessionResp = await _dio!.post(
-          '/web/session/get_session_info',
-          data: {'jsonrpc': '2.0', 'method': 'call', 'params': {}},
-          options: Options(
-            sendTimeout: const Duration(seconds: 5),
-            receiveTimeout: const Duration(seconds: 5),
-          ),
-        );
-        final sessionResult = sessionResp.data['result'];
-        if (sessionResult != null &&
-            sessionResult['uid'] != null &&
-            sessionResult['uid'] != false) {
-          return true;
-        }
-      } catch (_) {}
-
-      // PERSISTENCE FIX: If stored credentials/UID exist, user IS logged in!
-      // Return true so user bypasses onboarding and goes straight to dashboard.
-      if ((_uid != null ||
-              _savedUserInfo != null ||
-              isLoggedInFlag == 'true' ||
-              savedEmail != null) &&
-          isLoggedInFlag != 'false') {
-        return true;
-      }
-
-      return false;
+      return true;
     } catch (e) {
       debugPrint('checkAuthStatus error: $e');
-      final savedUid = await _storage.read(key: 'uid');
-      final isLoggedInFlag = await _storage.read(key: 'is_logged_in');
-      final savedEmail = await _storage.read(key: 'username');
-      if ((savedUid != null && savedUid.isNotEmpty) ||
-          isLoggedInFlag == 'true' ||
-          (savedEmail != null && savedEmail.isNotEmpty)) {
-        if (savedUid != null) _uid = int.tryParse(savedUid);
-        return true;
-      }
-      return false;
+      return true;
     }
   }
 
@@ -604,6 +588,8 @@ class OdooApiService implements BaseOdooService {
     try {
       await _cookieJar?.deleteAll();
       await _storage.deleteAll();
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.clear();
     } catch (_) {}
     _uid = null;
     _partnerId = null;
