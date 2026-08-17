@@ -403,11 +403,26 @@ class _ServiceInteractiveDetailScreenState
             height: 38,
             child: ElevatedButton(
               onPressed: () {
+                final ProductVariant? selectedVar = allVariants.isNotEmpty
+                    ? allVariants.firstWhere(
+                        (v) => v.id == _selectedVariantId,
+                        orElse: () => allVariants.first,
+                      )
+                    : null;
+                final targetService = service.copyWith(
+                  price: (selectedVar != null && selectedVar.lstPrice > 0)
+                      ? selectedVar.lstPrice
+                      : service.price,
+                  odooProductId: (selectedVar != null && selectedVar.id > 0)
+                      ? selectedVar.id
+                      : service.odooProductId,
+                  appointmentTypeId: selectedVar?.appointmentType?.id ?? service.appointmentTypeId,
+                );
                 Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (context) =>
-                        BookServiceScreen(initialService: service),
+                        BookServiceScreen(initialService: targetService),
                   ),
                 );
               },

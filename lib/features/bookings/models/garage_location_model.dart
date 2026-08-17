@@ -20,15 +20,53 @@ class GarageLocation {
   });
 
   factory GarageLocation.fromJson(Map<String, dynamic> json) {
+    String address = json['address']?.toString() ?? '';
+    if (address.isEmpty) {
+      final street = (json['street'] != null && json['street'] != false)
+          ? json['street'].toString()
+          : '';
+      final street2 = (json['street2'] != null && json['street2'] != false)
+          ? json['street2'].toString()
+          : '';
+      final city = (json['city'] != null && json['city'] != false)
+          ? json['city'].toString()
+          : '';
+      final state = (json['state_id'] is Map && json['state_id']['name'] != null)
+          ? json['state_id']['name'].toString()
+          : '';
+      final zip = (json['zip'] != null && json['zip'] != false)
+          ? json['zip'].toString()
+          : '';
+      final country = (json['country_id'] is Map && json['country_id']['name'] != null)
+          ? json['country_id']['name'].toString()
+          : '';
+
+      address = [street, street2, city, state, zip, country]
+          .where((s) => s.isNotEmpty && s != 'false')
+          .join(', ');
+    }
+
+    final rawName = (json['name'] != null && json['name'] != false)
+        ? json['name'].toString()
+        : 'Timeless Detailing';
+
     return GarageLocation(
-      id: json['id']?.toString() ?? '',
-      name: json['name'] ?? '',
-      address: json['address'] ?? json['street'] ?? '',
-      phone: json['phone'] ?? '',
-      latitude: (json['partner_latitude'] ?? json['latitude'] ?? 0.0).toDouble(),
-      longitude: (json['partner_longitude'] ?? json['longitude'] ?? 0.0).toDouble(),
-      googlePlaceId: json['google_place_id'],
-      isDefault: json['is_default'] ?? false,
+      id: json['id']?.toString() ?? '1',
+      name: rawName,
+      address: address.isNotEmpty
+          ? address
+          : '7 Crystal Crescent, Golden Crest Country Estate, Parkrand, Boksburg, 1459',
+      phone: (json['phone'] != null && json['phone'] != false)
+          ? json['phone'].toString()
+          : '',
+      latitude: (json['latitude'] is num)
+          ? (json['latitude'] as num).toDouble()
+          : -25.933578,
+      longitude: (json['longitude'] is num)
+          ? (json['longitude'] as num).toDouble()
+          : 28.18122,
+      googlePlaceId: json['google_place_id']?.toString(),
+      isDefault: json['is_default'] == true || json['id'] == 1,
     );
   }
 

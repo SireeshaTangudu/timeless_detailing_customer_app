@@ -23,6 +23,7 @@ class BookingsController extends ChangeNotifier {
   bool get isLoading => _isLoading;
   bool get isLoadingSlots => _isLoadingSlots;
   String? get errorMessage => _errorMessage;
+  int? get currentPartnerId => _odooService.currentPartnerId ?? _odooService.currentUid;
 
   /// Endpoint 5: Get User Bookings (`calendar.event/web_search_read`)
   Future<void> loadBookings({int? partnerId}) async {
@@ -30,61 +31,60 @@ class BookingsController extends ChangeNotifier {
     _errorMessage = null;
     notifyListeners();
 
-    final id = partnerId ?? _odooService.currentPartnerId ?? _odooService.currentUid ?? 26;
+    final id = partnerId ?? _odooService.currentPartnerId ?? _odooService.currentUid;
+    if (id == null) {
+      _bookings = [];
+      _isLoading = false;
+      notifyListeners();
+      return;
+    }
 
     try {
       final res = await _odooService.getUserBookings(id);
       final List records = res['records'] is List ? res['records'] as List : [];
 
-      if (records.isNotEmpty) {
-        final List<Booking> fetchedBookings = [];
-        for (var rec in records) {
-          final map = Map<String, dynamic>.from(rec as Map);
-          final apptType = map['appointment_type_id'];
-          final apptResources = map['appointment_resource_ids'];
-          String serviceName = 'Car Detailing';
-          int apptTypeId = 1;
+      final List<Booking> fetchedBookings = [];
+      for (var rec in records) {
+        final map = Map<String, dynamic>.from(rec as Map);
+        final apptType = map['appointment_type_id'];
+        final apptResources = map['appointment_resource_ids'];
+        String serviceName = map['name']?.toString() ?? 'Car Detailing';
+        int apptTypeId = 1;
 
-          if (apptResources is List && apptResources.isNotEmpty) {
-            final firstRes = apptResources.first;
-            if (firstRes is Map && firstRes['name'] != null) {
-              serviceName = firstRes['name'].toString();
-            } else if (firstRes is List && firstRes.length >= 2) {
-              serviceName = firstRes[1].toString();
-            }
+        if (apptResources is List && apptResources.isNotEmpty) {
+          final firstRes = apptResources.first;
+          if (firstRes is Map && firstRes['name'] != null) {
+            serviceName = firstRes['name'].toString();
+          } else if (firstRes is List && firstRes.length >= 2) {
+            serviceName = firstRes[1].toString();
           }
-
-          if (serviceName == 'Car Detailing') {
-            if (apptType is Map && apptType['name'] != null) {
-              serviceName = apptType['name'].toString();
-              if (apptType['id'] is int) apptTypeId = apptType['id'];
-            } else if (apptType is List && apptType.length >= 2) {
-              if (apptType[0] is int) apptTypeId = apptType[0];
-              serviceName = apptType[1].toString();
-            } else if (map['name'] != null) {
-              serviceName = map['name'].toString();
-            }
-          }
-
-          final detailService = DetailService(
-            id: apptTypeId.toString(),
-            name: serviceName,
-            description: 'Scheduled detailing service',
-            price: 150.0,
-            durationHours: (map['duration'] as num?)?.toDouble() ?? 1.0,
-            imageUrl: '',
-            category: 'Detailing',
-            whatsIncluded: [],
-          );
-          fetchedBookings.add(Booking.fromOdooJson(map, detailService));
+        } else if (apptType is Map && apptType['name'] != null) {
+          serviceName = apptType['name'].toString();
+          if (apptType['id'] is int) apptTypeId = apptType['id'];
+        } else if (apptType is List && apptType.length >= 2) {
+          if (apptType[0] is int) apptTypeId = apptType[0];
+          serviceName = apptType[1].toString();
         }
-        _bookings = fetchedBookings;
+
+        final detailService = DetailService(
+          id: apptTypeId.toString(),
+          name: serviceName,
+          description: '',
+          price: 0.0,
+          durationHours: (map['duration'] as num?)?.toDouble() ?? 1.0,
+          imageUrl: '',
+          category: 'Detailing',
+          whatsIncluded: [],
+        );
+        fetchedBookings.add(Booking.fromOdooJson(map, detailService));
       }
+      _bookings = fetchedBookings;
       _isLoading = false;
       notifyListeners();
     } catch (e) {
       debugPrint('loadBookings error: $e');
       _errorMessage = 'Failed to load bookings.';
+      _bookings = [];
       _isLoading = false;
       notifyListeners();
     }

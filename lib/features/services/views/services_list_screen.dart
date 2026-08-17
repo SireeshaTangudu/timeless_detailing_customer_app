@@ -7,10 +7,26 @@ import 'package:timeless_detailing_customer_app/features/services/controllers/se
 import 'package:timeless_detailing_customer_app/features/services/models/service_model.dart';
 import 'package:timeless_detailing_customer_app/features/services/views/service_interactive_detail_screen.dart';
 
-class ServicesListScreen extends StatelessWidget {
+class ServicesListScreen extends StatefulWidget {
   final VoidCallback? onMenuTap;
 
   const ServicesListScreen({super.key, this.onMenuTap});
+
+  @override
+  State<ServicesListScreen> createState() => _ServicesListScreenState();
+}
+
+class _ServicesListScreenState extends State<ServicesListScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final controller = Provider.of<ServicesController>(context, listen: false);
+      if (controller.services.isEmpty && !controller.isLoading) {
+        controller.loadServices(categoryId: controller.selectedCategoryId);
+      }
+    });
+  }
 
   Widget _buildChildServiceIcon(DetailService service) {
     const baseUrl =
@@ -116,8 +132,8 @@ class ServicesListScreen extends StatelessWidget {
                     onTap: () {
                       if (Navigator.canPop(context)) {
                         Navigator.pop(context);
-                      } else if (onMenuTap != null) {
-                        onMenuTap!();
+                      } else if (widget.onMenuTap != null) {
+                        widget.onMenuTap!();
                       }
                     },
                     child: Container(

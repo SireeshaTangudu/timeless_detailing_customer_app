@@ -2,38 +2,43 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../features/bookings/models/garage_location_model.dart';
 
 class MapLauncherUtil {
-  /// Launches Google Maps to show directions and place pin for a given garage branch
+  /// Launches Google Maps to show directions and Start navigation to garage location
   static Future<void> openGoogleMapsDirections(GarageLocation garage) async {
-    // Construct Google Maps Place Search URL
-    // If googlePlaceId exists, include query_place_id for exact profile page
-    String webUrl;
-    if (garage.googlePlaceId != null && garage.googlePlaceId!.isNotEmpty) {
-      webUrl =
-          'https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(garage.name)}&query_place_id=${garage.googlePlaceId}';
-    } else {
-      webUrl =
-          'https://www.google.com/maps/search/?api=1&query=${garage.latitude},${garage.longitude}';
-    }
+    // Determine target location label (e.g. "Timeless Detailing, 7 Crystal Crescent, Boksburg")
+    final String locationLabel = garage.address.isNotEmpty
+        ? '${garage.name}, ${garage.address}'
+        : garage.name;
 
-    final Uri googleMapsUri = Uri.parse(webUrl);
+    // 1. Google Maps Directions API URL (opens directions mode from current location with Start button)
+    final String directionsUrl =
+        'https://www.google.com/maps/dir/?api=1&destination=${Uri.encodeComponent(locationLabel)}';
 
-    // Native intent URI for Android & iOS maps app fallback
-    final Uri nativeGeoUri = Uri.parse(
-      'geo:${garage.latitude},${garage.longitude}?q=${garage.latitude},${garage.longitude}(${Uri.encodeComponent(garage.name)})',
+    // 2. Android Navigation Intent (opens Turn-by-Turn Navigation mode directly)
+    final Uri navIntentUri = Uri.parse(
+      'google.navigation:q=${Uri.encodeComponent(locationLabel)}',
     );
 
+    // 3. Fallback Search URL with location name label & coordinates
+    final String searchUrl =
+        'https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(locationLabel)}';
+
+    final Uri directionsUri = Uri.parse(directionsUrl);
+    final Uri searchUri = Uri.parse(searchUrl);
+
     try {
-      if (await canLaunchUrl(googleMapsUri)) {
-        await launchUrl(googleMapsUri, mode: LaunchMode.externalApplication);
-      } else if (await canLaunchUrl(nativeGeoUri)) {
-        await launchUrl(nativeGeoUri, mode: LaunchMode.externalApplication);
+      if (await canLaunchUrl(navIntentUri)) {
+        // Launches native Android Google Maps navigation directly with Start button
+        await launchUrl(navIntentUri, mode: LaunchMode.externalApplication);
+      } else if (await canLaunchUrl(directionsUri)) {
+        // Launches Google Maps directions web/app mode
+        await launchUrl(directionsUri, mode: LaunchMode.externalApplication);
+      } else if (await canLaunchUrl(searchUri)) {
+        await launchUrl(searchUri, mode: LaunchMode.externalApplication);
       } else {
-        // Fallback to web browser URL
-        await launchUrl(googleMapsUri, mode: LaunchMode.platformDefault);
+        await launchUrl(directionsUri, mode: LaunchMode.platformDefault);
       }
     } catch (e) {
-      // Fallback
-      await launchUrl(googleMapsUri, mode: LaunchMode.externalApplication);
+      await launchUrl(directionsUri, mode: LaunchMode.externalApplication);
     }
   }
 }

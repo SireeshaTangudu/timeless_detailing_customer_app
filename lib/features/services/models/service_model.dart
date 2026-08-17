@@ -94,6 +94,44 @@ class DetailService {
     this.variants = const [],
   });
 
+  DetailService copyWith({
+    String? id,
+    String? name,
+    String? description,
+    double? price,
+    double? durationHours,
+    String? imageUrl,
+    String? category,
+    List<String>? whatsIncluded,
+    int? odooProductId,
+    int? appointmentTypeId,
+    String? assetImagePath,
+    int? mobileCategoryId,
+    String? mobileCategoryName,
+    String? mobileImage,
+    List<TimelessCoverageLine>? coverageLines,
+    List<ProductVariant>? variants,
+  }) {
+    return DetailService(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      description: description ?? this.description,
+      price: price ?? this.price,
+      durationHours: durationHours ?? this.durationHours,
+      imageUrl: imageUrl ?? this.imageUrl,
+      category: category ?? this.category,
+      whatsIncluded: whatsIncluded ?? this.whatsIncluded,
+      odooProductId: odooProductId ?? this.odooProductId,
+      appointmentTypeId: appointmentTypeId ?? this.appointmentTypeId,
+      assetImagePath: assetImagePath ?? this.assetImagePath,
+      mobileCategoryId: mobileCategoryId ?? this.mobileCategoryId,
+      mobileCategoryName: mobileCategoryName ?? this.mobileCategoryName,
+      mobileImage: mobileImage ?? this.mobileImage,
+      coverageLines: coverageLines ?? this.coverageLines,
+      variants: variants ?? this.variants,
+    );
+  }
+
   factory DetailService.fromOdooJson(Map<String, dynamic> json) {
     List<String> parseIncluded(dynamic included) {
       if (included == null) return [];

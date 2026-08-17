@@ -124,13 +124,48 @@ class ProductVariant {
     }
 
     AppointmentType? apptType;
-    if (json['appointment_type_id'] is Map<String, dynamic>) {
-      apptType = AppointmentType.fromJson(json['appointment_type_id'] as Map<String, dynamic>);
+    if (json['appointment_type_id'] is Map) {
+      apptType = AppointmentType.fromJson(Map<String, dynamic>.from(json['appointment_type_id'] as Map));
+    } else if (json['appointment_type_id'] is List && (json['appointment_type_id'] as List).isNotEmpty) {
+      final list = json['appointment_type_id'] as List;
+      final id = list[0] is int ? list[0] as int : int.tryParse(list[0].toString()) ?? 0;
+      final name = list.length > 1 ? list[1].toString() : '';
+      apptType = AppointmentType(
+        id: id,
+        name: name,
+        appointmentDuration: 60,
+        messageIntro: '',
+        minScheduleHours: 24,
+        maxScheduleDays: 30,
+        minCancellationHours: 4,
+      );
+    } else if (json['appointment_type_id'] is int) {
+      apptType = AppointmentType(
+        id: json['appointment_type_id'] as int,
+        name: '',
+        appointmentDuration: 60,
+        messageIntro: '',
+        minScheduleHours: 24,
+        maxScheduleDays: 30,
+        minCancellationHours: 4,
+      );
     }
 
     AppointmentResource? apptResource;
-    if (json['appointment_resource_id'] is Map<String, dynamic>) {
-      apptResource = AppointmentResource.fromJson(json['appointment_resource_id'] as Map<String, dynamic>);
+    final rawRes = json['appointment_resource_id'] ?? json['appointment_resource_ids'];
+    if (rawRes is Map) {
+      apptResource = AppointmentResource.fromJson(Map<String, dynamic>.from(rawRes as Map));
+    } else if (rawRes is List && rawRes.isNotEmpty) {
+      final first = rawRes[0];
+      if (first is Map) {
+        apptResource = AppointmentResource.fromJson(Map<String, dynamic>.from(first as Map));
+      } else {
+        final id = first is int ? first : int.tryParse(first.toString()) ?? 0;
+        final name = rawRes.length > 1 ? rawRes[1].toString() : '';
+        apptResource = AppointmentResource(id: id, name: name, capacity: 1);
+      }
+    } else if (rawRes is int) {
+      apptResource = AppointmentResource(id: rawRes, name: '', capacity: 1);
     }
 
     List<String> features = [];

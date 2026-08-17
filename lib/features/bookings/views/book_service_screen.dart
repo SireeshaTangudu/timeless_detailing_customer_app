@@ -10,7 +10,6 @@ import 'package:timeless_detailing_customer_app/core/widgets/custom_button.dart'
 import 'package:timeless_detailing_customer_app/core/widgets/custom_textfield.dart';
 import 'package:timeless_detailing_customer_app/core/widgets/custom_app_bar.dart';
 import 'package:timeless_detailing_customer_app/features/services/models/service_model.dart';
-import 'package:timeless_detailing_customer_app/features/dashboard/controllers/dashboard_controller.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/controllers/bookings_controller.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/models/estimation_model.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/views/estimation_screen.dart';
@@ -26,9 +25,9 @@ class BookServiceScreen extends StatefulWidget {
 
 class _BookServiceScreenState extends State<BookServiceScreen> {
   final _notesController = TextEditingController();
-  final _vehicleMakeController = TextEditingController(text: 'Toyota');
-  final _vehicleModelController = TextEditingController(text: 'Hilux');
-  final _vehiclePlateController = TextEditingController(text: 'ND 123 456');
+  final _vehicleMakeController = TextEditingController();
+  final _vehicleModelController = TextEditingController();
+  final _vehiclePlateController = TextEditingController();
   final _collectorNameController = TextEditingController();
   final _collectorLicenseController = TextEditingController();
 
@@ -39,11 +38,13 @@ class _BookServiceScreenState extends State<BookServiceScreen> {
   final List<XFile> _attachedImages = [];
 
   void _fetchOdooBookableSlots(DateTime date) {
-    final appointmentTypeId = widget.initialService.appointmentTypeId ?? 1;
+    final controller = Provider.of<BookingsController>(context, listen: false);
+    final partnerId = controller.currentPartnerId ?? 26;
+    final appointmentTypeId = widget.initialService.appointmentTypeId ?? partnerId;
     debugPrint(
-      '🔵 [BookServiceScreen] Calling Endpoint 3 (appointment.type/get_bookable_slots) for appointmentTypeId=$appointmentTypeId, date=${DateFormat('yyyy-MM-dd').format(date)}...',
+      '🔵 [BookServiceScreen] Calling Endpoint 3 (appointment.type/get_bookable_slots) for appointmentTypeId=$appointmentTypeId (partnerId=$partnerId), date=${DateFormat('yyyy-MM-dd').format(date)}...',
     );
-    Provider.of<BookingsController>(context, listen: false).fetchBookableSlots(
+    controller.fetchBookableSlots(
       appointmentTypeId: appointmentTypeId,
       timezone: 'UTC',
       resourceId: 1,
@@ -154,20 +155,6 @@ class _BookServiceScreenState extends State<BookServiceScreen> {
   @override
   void initState() {
     super.initState();
-    final garage = Provider.of<DashboardController>(context, listen: false);
-    if (garage.vehicles.isNotEmpty) {
-      final v = garage.vehicles.first;
-      final parts = v.makeModel.split(' ');
-      if (parts.isNotEmpty) {
-        _vehicleMakeController.text = parts.first;
-      }
-      if (parts.length > 1) {
-        _vehicleModelController.text = parts.sublist(1).join(' ');
-      }
-      if (v.licensePlate.isNotEmpty) {
-        _vehiclePlateController.text = v.licensePlate;
-      }
-    }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         _fetchOdooBookableSlots(_selectedDate);
@@ -233,7 +220,8 @@ class _BookServiceScreenState extends State<BookServiceScreen> {
       listen: false,
     );
 
-    final appointmentTypeId = widget.initialService.appointmentTypeId ?? 1;
+    final partnerId = bookingsController.currentPartnerId ?? 26;
+    final appointmentTypeId = widget.initialService.appointmentTypeId ?? partnerId;
     final productId = widget.initialService.odooProductId;
 
     List<String> base64Images = [];
@@ -266,9 +254,7 @@ class _BookServiceScreenState extends State<BookServiceScreen> {
       ),
       vehicleMake: vehicleMake,
       vehicleModel: vehicleModel,
-      vehiclePlate: _vehiclePlateController.text.trim().isNotEmpty
-          ? _vehiclePlateController.text.trim()
-          : 'ND 123 456',
+      vehiclePlate: _vehiclePlateController.text.trim(),
       phone: '+27821234567',
       collectorName: _collectorNameController.text.trim().isNotEmpty
           ? _collectorNameController.text.trim()
@@ -375,7 +361,6 @@ class _BookServiceScreenState extends State<BookServiceScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final garage = Provider.of<DashboardController>(context);
     final bookingsController = Provider.of<BookingsController>(context);
 
     return Scaffold(
@@ -437,21 +422,6 @@ class _BookServiceScreenState extends State<BookServiceScreen> {
                         ),
                       ),
                     ],
-                  ),
-                  const SizedBox(height: 14),
-
-                  Text(
-                    'Vehicle License Plate (Optional)',
-                    style: GoogleFonts.inter(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                      color: const Color(0xFF3A2F1E),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  CustomTextField(
-                    hintText: 'e.g. ND 123 456',
-                    controller: _vehiclePlateController,
                   ),
                   const SizedBox(height: 20),
 

@@ -2,13 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import 'package:url_launcher/url_launcher.dart';
-import 'package:timeless_detailing_customer_app/core/theme/app_theme.dart';
 import 'package:timeless_detailing_customer_app/core/widgets/custom_app_bar.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/controllers/bookings_controller.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/models/booking_model.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/views/widgets/sawtooth_ticket_painter.dart';
 import 'package:timeless_detailing_customer_app/features/tracking/views/live_tracking_screen.dart';
+import 'package:timeless_detailing_customer_app/core/utils/map_launcher_util.dart';
+import 'package:timeless_detailing_customer_app/features/bookings/models/garage_location_model.dart';
+
+import 'package:timeless_detailing_customer_app/core/network/odoo_client.dart';
 
 class UpcomingAppointmentDetailsScreen extends StatefulWidget {
   final Booking booking;
@@ -23,31 +25,33 @@ class UpcomingAppointmentDetailsScreen extends StatefulWidget {
 class _UpcomingAppointmentDetailsScreenState
     extends State<UpcomingAppointmentDetailsScreen> {
   Future<void> _openDirections() async {
-    final Uri googleMapsUri = Uri.parse(
-      'https://www.google.com/maps/search/?api=1&query=Timeless+Detailing+Garage',
-    );
     try {
-      if (await canLaunchUrl(googleMapsUri)) {
-        await launchUrl(googleMapsUri, mode: LaunchMode.externalApplication);
+      final odooService = Provider.of<BaseOdooService>(context, listen: false);
+      final compMap = await odooService.getCompanyLocationDetails();
+      GarageLocation garage;
+      if (compMap != null) {
+        garage = GarageLocation.fromJson(compMap);
       } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Opening Timeless Detailing garage location...'),
-              backgroundColor: AppTheme.primary,
-            ),
-          );
-        }
-      }
-    } catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Timeless Detailing Garage Location'),
-            backgroundColor: AppTheme.primary,
-          ),
+        garage = const GarageLocation(
+          id: '1',
+          name: 'Timeless Detailing',
+          address: '7 Crystal Crescent, Golden Crest Country Estate, Parkrand, Boksburg, 1459',
+          phone: '',
+          latitude: -25.933578,
+          longitude: 28.18122,
         );
       }
+      await MapLauncherUtil.openGoogleMapsDirections(garage);
+    } catch (_) {
+      const fallbackGarage = GarageLocation(
+        id: '1',
+        name: 'Timeless Detailing',
+        address: '7 Crystal Crescent, Golden Crest Country Estate, Parkrand, Boksburg, 1459',
+        phone: '',
+        latitude: -25.933578,
+        longitude: 28.18122,
+      );
+      await MapLauncherUtil.openGoogleMapsDirections(fallbackGarage);
     }
   }
 

@@ -185,7 +185,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget build(BuildContext context) {
     final auth = Provider.of<AuthController>(context);
     final servicesController = Provider.of<ServicesController>(context);
-    final displayServices = servicesController.filteredServices;
     final media = MediaQuery.of(context);
     final safeBottom = media.padding.bottom;
 
@@ -329,33 +328,29 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 // Horizontal Scrollable Cards View for Product Categories
                 SizedBox(
                   height: 200,
-                  child: servicesController.isLoading
+                  child: (servicesController.isLoading &&
+                          servicesController.productCategories.isEmpty)
                       ? const Center(
-                          child: CircularProgressIndicator(color: Color(0xFFC4913F)),
+                          child: CircularProgressIndicator(
+                            color: Color(0xFFC4913F),
+                          ),
                         )
-                      : servicesController.productCategories.isNotEmpty
-                          ? ListView.separated(
-                              scrollDirection: Axis.horizontal,
-                              physics: const BouncingScrollPhysics(),
-                              itemCount: servicesController.productCategories.length,
-                              separatorBuilder: (context, index) =>
-                                  const SizedBox(width: 16),
-                              itemBuilder: (context, index) {
-                                final category = servicesController.productCategories[index];
-                                return _buildProductCategoryCard(context, category, servicesController);
-                              },
-                            )
-                          : ListView.separated(
-                              scrollDirection: Axis.horizontal,
-                              physics: const BouncingScrollPhysics(),
-                              itemCount: displayServices.length,
-                              separatorBuilder: (context, index) =>
-                                  const SizedBox(width: 16),
-                              itemBuilder: (context, index) {
-                                final item = displayServices[index];
-                                return _buildServiceCard(context, item);
-                              },
-                            ),
+                      : ListView.separated(
+                          scrollDirection: Axis.horizontal,
+                          physics: const BouncingScrollPhysics(),
+                          itemCount: servicesController.productCategories.length,
+                          separatorBuilder: (context, index) =>
+                              const SizedBox(width: 16),
+                          itemBuilder: (context, index) {
+                            final category =
+                                servicesController.productCategories[index];
+                            return _buildProductCategoryCard(
+                              context,
+                              category,
+                              servicesController,
+                            );
+                          },
+                        ),
                 ),
 
                 const SizedBox(height: 18),

@@ -579,4 +579,47 @@ class MockOdooService implements BaseOdooService {
       ),
     ];
   }
+
+  @override
+  Future<List<Map<String, dynamic>>> getSentQuotations({int? partnerId}) async {
+    return [
+      {
+        'id': 1,
+        'name': 'SO001 - Paint Protection Quote',
+        'state': 'sent',
+        'amount_total': 1950.0,
+        'date_order': '2026-08-16 14:00:00',
+        'note': 'Full ceramic protection quote.',
+      }
+    ];
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> getSaleOrders({int? partnerId}) async {
+    return [
+      {
+        'id': 10,
+        'name': 'SO010 - Ceramic Coating Package',
+        'state': 'sale',
+        'amount_total': 1950.0,
+        'date_order': '2026-08-16 15:30:00',
+        'note': 'Confirmed sale order.',
+      }
+    ];
+  }
+
+  @override
+  Future<Map<String, dynamic>?> getCompanyLocationDetails() async {
+    return {
+      'id': 1,
+      'name': 'Timeless Detailing Studio',
+      'street': '123 Automotive Way',
+      'city': 'Durban',
+      'zip': '4001',
+      'phone': '+27 31 555 0199',
+      'email': 'info@timelessdetailing.co.za',
+      'latitude': -29.8587,
+      'longitude': 31.0218,
+    };
+  }
 }

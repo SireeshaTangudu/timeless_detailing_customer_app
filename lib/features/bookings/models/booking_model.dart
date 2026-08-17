@@ -63,8 +63,8 @@ class Booking {
     this.opportunityName,
   });
 
-  String get vehicleMake => bookingVehicleMake ?? (vehicleName.contains(' ') ? vehicleName.split(' ').first : 'Sedan');
-  String get vehicleModel => bookingVehicleModel ?? (vehicleName.contains(' ') ? vehicleName.split(' ').sublist(1).join(' ') : 'Hatch Back');
+  String get vehicleMake => bookingVehicleMake ?? (vehicleName.contains(' ') ? vehicleName.split(' ').first : vehicleName);
+  String get vehicleModel => bookingVehicleModel ?? (vehicleName.contains(' ') ? vehicleName.split(' ').sublist(1).join(' ') : '');
 
   // Returns human readable status title
   String get statusTitle {
@@ -183,31 +183,36 @@ class Booking {
 
     BookingStatus parseStatus(String? odooStatus, bool? active) {
       if (active == false || odooStatus == 'cancelled') {
-        return BookingStatus.completed; // or cancelled state
+        return BookingStatus.completed;
       }
-      switch (odooStatus) {
-        case 'draft':
-        case 'sent':
-        case 'sale':
-          return BookingStatus.confirmed;
-        case 'received':
-        case 'checked_in':
-          return BookingStatus.received;
-        case 'in_progress':
-        case 'detailing':
-          return BookingStatus.inProgress;
-        case 'ready':
-        case 'done':
-          return BookingStatus.ready;
-        case 'completed':
-        case 'done_picked_up':
-          return BookingStatus.completed;
-        default:
-          if (bookingTime.isBefore(DateTime.now())) {
+      if (odooStatus != null && odooStatus.isNotEmpty && odooStatus != 'false') {
+        switch (odooStatus) {
+          case 'draft':
+          case 'sent':
+          case 'sale':
+            return BookingStatus.confirmed;
+          case 'received':
+          case 'checked_in':
+            return BookingStatus.received;
+          case 'in_progress':
+          case 'detailing':
+            return BookingStatus.inProgress;
+          case 'ready':
+          case 'done':
+            return BookingStatus.ready;
+          case 'completed':
+          case 'done_picked_up':
             return BookingStatus.completed;
-          }
-          return BookingStatus.confirmed;
+        }
       }
+      // Odoo calendar.event does not return a state field.
+      // Classify by booking start date:
+      // Past start date -> Completed Orders
+      // Future start date -> Upcoming / Confirmed Bookings
+      if (bookingTime.isBefore(DateTime.now())) {
+        return BookingStatus.completed;
+      }
+      return BookingStatus.confirmed;
     }
 
     final status = parseStatus(json['state']?.toString() ?? json['appointment_status']?.toString(), json['active'] as bool?);

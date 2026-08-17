@@ -81,6 +81,9 @@ abstract class BaseOdooService {
   });
   Future<List<ProjectModel>> getProjects();
   Future<List<ProjectTaskModel>> getProjectTasks(int projectId);
+  Future<List<Map<String, dynamic>>> getSentQuotations({int? partnerId});
+  Future<List<Map<String, dynamic>>> getSaleOrders({int? partnerId});
+  Future<Map<String, dynamic>?> getCompanyLocationDetails();
 }
 
 class OdooApiService implements BaseOdooService {
@@ -197,7 +200,9 @@ class OdooApiService implements BaseOdooService {
           ),
         );
       } catch (e) {
-        debugPrint('🔵 Path /web/dataset/call_kw/$model/$method failed ($e). Retrying /web/dataset/call_kw...');
+        debugPrint(
+          '🔵 Path /web/dataset/call_kw/$model/$method failed ($e). Retrying /web/dataset/call_kw...',
+        );
         response = await _dio!.post(
           '/web/dataset/call_kw',
           data: {
@@ -307,7 +312,10 @@ class OdooApiService implements BaseOdooService {
           await _storage.write(key: 'is_logged_in', value: 'true');
           await _storage.write(key: 'uid', value: _uid.toString());
           if (_partnerId != null) {
-            await _storage.write(key: 'partner_id', value: _partnerId.toString());
+            await _storage.write(
+              key: 'partner_id',
+              value: _partnerId.toString(),
+            );
           }
           await _storage.write(key: 'session_id', value: _sessionId ?? '');
           await _storage.write(key: 'user_name', value: userName);
@@ -525,7 +533,8 @@ class OdooApiService implements BaseOdooService {
       // Read from SharedPreferences first (rock-solid persistence across app restarts and device cold boots)
       final prefs = await SharedPreferences.getInstance();
       final bool prefLoggedIn = prefs.getBool('is_logged_in') ?? false;
-      final String? prefEmail = prefs.getString('username') ?? prefs.getString('user_email');
+      final String? prefEmail =
+          prefs.getString('username') ?? prefs.getString('user_email');
       final String? prefPassword = prefs.getString('password');
       final int? prefUid = prefs.getInt('uid');
       final int? prefPartnerId = prefs.getInt('partner_id');
@@ -534,17 +543,34 @@ class OdooApiService implements BaseOdooService {
       final String? prefSessionId = prefs.getString('session_id');
 
       // Also read from secure storage as fallback
-      final savedUidStr = await _storage.read(key: 'uid').catchError((_) => null);
-      final isLoggedInFlag = await _storage.read(key: 'is_logged_in').catchError((_) => null);
-      final savedEmail = await _storage.read(key: 'username').catchError((_) => null) ??
+      final savedUidStr = await _storage
+          .read(key: 'uid')
+          .catchError((_) => null);
+      final isLoggedInFlag = await _storage
+          .read(key: 'is_logged_in')
+          .catchError((_) => null);
+      final savedEmail =
+          await _storage.read(key: 'username').catchError((_) => null) ??
           await _storage.read(key: 'user_email').catchError((_) => null);
-      final savedPassword = await _storage.read(key: 'password').catchError((_) => null);
+      final savedPassword = await _storage
+          .read(key: 'password')
+          .catchError((_) => null);
 
       final String? effectiveEmail = prefEmail ?? savedEmail;
       final String? effectivePassword = prefPassword ?? savedPassword;
-      final int? effectiveUid = (prefUid != null && prefUid > 0) ? prefUid : int.tryParse(savedUidStr ?? '');
-      final int? effectivePartnerId = prefPartnerId ?? int.tryParse(await _storage.read(key: 'partner_id').catchError((_) => null) ?? '');
-      final bool isLoggedIn = prefLoggedIn || (isLoggedInFlag == 'true') || (effectiveEmail != null && effectiveEmail.isNotEmpty);
+      final int? effectiveUid = (prefUid != null && prefUid > 0)
+          ? prefUid
+          : int.tryParse(savedUidStr ?? '');
+      final int? effectivePartnerId =
+          prefPartnerId ??
+          int.tryParse(
+            await _storage.read(key: 'partner_id').catchError((_) => null) ??
+                '',
+          );
+      final bool isLoggedIn =
+          prefLoggedIn ||
+          (isLoggedInFlag == 'true') ||
+          (effectiveEmail != null && effectiveEmail.isNotEmpty);
 
       if (!isLoggedIn) {
         return false;
@@ -552,10 +578,16 @@ class OdooApiService implements BaseOdooService {
 
       _uid = effectiveUid;
       _partnerId = effectivePartnerId;
-      _sessionId = prefSessionId ?? await _storage.read(key: 'session_id').catchError((_) => null);
+      _sessionId =
+          prefSessionId ??
+          await _storage.read(key: 'session_id').catchError((_) => null);
 
-      final savedName = prefName ?? await _storage.read(key: 'user_name').catchError((_) => null);
-      final savedPhone = prefPhone ?? await _storage.read(key: 'user_phone').catchError((_) => null);
+      final savedName =
+          prefName ??
+          await _storage.read(key: 'user_name').catchError((_) => null);
+      final savedPhone =
+          prefPhone ??
+          await _storage.read(key: 'user_phone').catchError((_) => null);
 
       _savedUserInfo = {
         'id': _partnerId ?? _uid ?? 1,
@@ -613,9 +645,7 @@ class OdooApiService implements BaseOdooService {
         final response = await _callKw(
           model: 'product.template',
           method: 'search_read',
-          args: [
-            [],
-          ],
+          args: [[]],
           kwargs: {
             'fields': [
               'id',
@@ -647,9 +677,7 @@ class OdooApiService implements BaseOdooService {
         final response = await _callKw(
           model: 'product.product',
           method: 'search_read',
-          args: [
-            [],
-          ],
+          args: [[]],
           kwargs: {
             'fields': [
               'id',
@@ -689,7 +717,9 @@ class OdooApiService implements BaseOdooService {
   /// Get Product Categories (`timeless.product.category/web_search_read`)
   @override
   Future<List<ProductCategory>> getProductCategories() async {
-    debugPrint('🔵 [OdooApiService] Calling timeless.product.category/web_search_read...');
+    debugPrint(
+      '🔵 [OdooApiService] Calling timeless.product.category/web_search_read...',
+    );
     try {
       final response = await _callKw(
         model: 'timeless.product.category',
@@ -712,9 +742,13 @@ class OdooApiService implements BaseOdooService {
           : (response is List ? response : []);
 
       if (records.isNotEmpty) {
-        debugPrint('🟢 [OdooApiService] getProductCategories returned ${records.length} categories');
+        debugPrint(
+          '🟢 [OdooApiService] getProductCategories returned ${records.length} categories',
+        );
         return records.map((item) {
-          return ProductCategory.fromJson(Map<String, dynamic>.from(item as Map));
+          return ProductCategory.fromJson(
+            Map<String, dynamic>.from(item as Map),
+          );
         }).toList();
       }
       return [];
@@ -726,8 +760,12 @@ class OdooApiService implements BaseOdooService {
 
   /// ENDPOINT 1: Get Main Services (`product.template/web_search_read`)
   @override
-  Future<List<DetailService>> getServicesFromProductTemplate({int? categoryId}) async {
-    debugPrint('🔵 [OdooApiService] Calling product.template/web_search_read (categoryId=$categoryId)...');
+  Future<List<DetailService>> getServicesFromProductTemplate({
+    int? categoryId,
+  }) async {
+    debugPrint(
+      '🔵 [OdooApiService] Calling product.template/web_search_read (categoryId=$categoryId)...',
+    );
     try {
       dynamic response;
       final List<dynamic> domain = [
@@ -745,10 +783,7 @@ class OdooApiService implements BaseOdooService {
         'write_date': {},
         'mobile_image': {},
         'mobile_categ_id': {
-          'fields': {
-            'id': {},
-            'name': {},
-          },
+          'fields': {'id': {}, 'name': {}},
         },
         'timeless_coverage_line_ids': {
           'fields': {
@@ -763,10 +798,7 @@ class OdooApiService implements BaseOdooService {
             'y_percent': {},
             'description': {},
             'product_id': {
-              'fields': {
-                'id': {},
-                'display_name': {},
-              },
+              'fields': {'id': {}, 'display_name': {}},
             },
           },
         },
@@ -782,17 +814,10 @@ class OdooApiService implements BaseOdooService {
             'timeless_hide_price': {},
             'timeless_cta_label': {},
             'timeless_feature_line_ids': {
-              'fields': {
-                'sequence': {},
-                'text': {},
-              },
+              'fields': {'sequence': {}, 'text': {}},
             },
             'timeless_faq_line_ids': {
-              'fields': {
-                'sequence': {},
-                'question': {},
-                'answer': {},
-              },
+              'fields': {'sequence': {}, 'question': {}, 'answer': {}},
             },
           },
         },
@@ -803,19 +828,22 @@ class OdooApiService implements BaseOdooService {
           model: 'product.template',
           method: 'web_search_read',
           args: [],
-          kwargs: {
-            'domain': domain,
-            'specification': specification,
-          },
+          kwargs: {'domain': domain, 'specification': specification},
         );
       } catch (e) {
-        debugPrint('Endpoint 1 custom domain/specification error ($e). Retrying with simple domain...');
+        debugPrint(
+          'Endpoint 1 custom domain/specification error ($e). Retrying with simple domain...',
+        );
         response = await _callKw(
           model: 'product.template',
           method: 'web_search_read',
           args: [],
           kwargs: {
-            'domain': categoryId != null ? [['mobile_categ_id', '=', categoryId]] : [],
+            'domain': categoryId != null
+                ? [
+                    ['mobile_categ_id', '=', categoryId],
+                  ]
+                : [],
             'specification': {
               'id': {},
               'name': {},
@@ -832,28 +860,40 @@ class OdooApiService implements BaseOdooService {
           : (response is List ? response : []);
 
       if (records.isNotEmpty) {
-        debugPrint('🟢 [OdooApiService] web_search_read returned ${records.length} records');
+        debugPrint(
+          '🟢 [OdooApiService] web_search_read returned ${records.length} records',
+        );
         return records.map((item) {
-          return DetailService.fromOdooJson(Map<String, dynamic>.from(item as Map));
+          return DetailService.fromOdooJson(
+            Map<String, dynamic>.from(item as Map),
+          );
         }).toList();
       }
 
-      debugPrint('🟡 [OdooApiService] web_search_read returned 0 records. Trying getServices()...');
+      debugPrint(
+        '🟡 [OdooApiService] web_search_read returned 0 records. Trying getServices()...',
+      );
       final fallbackServices = await getServices();
       if (fallbackServices.isNotEmpty) {
         return fallbackServices;
       }
       return _getFallbackServices();
     } catch (e) {
-      debugPrint('🔴 [OdooApiService] Endpoint 1 error: $e. Using fallback services');
+      debugPrint(
+        '🔴 [OdooApiService] Endpoint 1 error: $e. Using fallback services',
+      );
       return getServices();
     }
   }
 
   /// ENDPOINT 2: Get Service Details with Variants (`product.product/web_search_read`)
   @override
-  Future<List<ProductVariant>> getServiceDetailsWithVariants(int templateId) async {
-    debugPrint('🔵 [OdooApiService] Calling Endpoint 2 (product.product/web_search_read) for templateId=$templateId...');
+  Future<List<ProductVariant>> getServiceDetailsWithVariants(
+    int templateId,
+  ) async {
+    debugPrint(
+      '🔵 [OdooApiService] Calling Endpoint 2 (product.product/web_search_read) for templateId=$templateId...',
+    );
     try {
       dynamic response;
       try {
@@ -875,10 +915,7 @@ class OdooApiService implements BaseOdooService {
               'display_name': {},
               'lst_price': {},
               'product_template_variant_value_ids': {
-                'fields': {
-                  'id': {},
-                  'name': {},
-                },
+                'fields': {'id': {}, 'name': {}},
               },
               'appointment_type_id': {
                 'fields': {
@@ -892,17 +929,15 @@ class OdooApiService implements BaseOdooService {
                 },
               },
               'appointment_resource_id': {
-                'fields': {
-                  'id': {},
-                  'name': {},
-                  'capacity': {},
-                },
+                'fields': {'id': {}, 'name': {}, 'capacity': {}},
               },
             },
           },
         );
       } catch (e) {
-        debugPrint('Endpoint 2 custom domain/fields error ($e). Retrying with simple domain...');
+        debugPrint(
+          'Endpoint 2 custom domain/fields error ($e). Retrying with simple domain...',
+        );
         response = await _callKw(
           model: 'product.product',
           method: 'web_search_read',
@@ -917,10 +952,7 @@ class OdooApiService implements BaseOdooService {
               'display_name': {},
               'lst_price': {},
               'product_template_variant_value_ids': {
-                'fields': {
-                  'id': {},
-                  'name': {},
-                },
+                'fields': {'id': {}, 'name': {}},
               },
               'appointment_type_id': {
                 'fields': {
@@ -929,6 +961,9 @@ class OdooApiService implements BaseOdooService {
                   'appointment_duration': {},
                   'message_intro': {},
                 },
+              },
+              'appointment_resource_id': {
+                'fields': {'id': {}, 'name': {}},
               },
             },
           },
@@ -940,9 +975,13 @@ class OdooApiService implements BaseOdooService {
           : (response is List ? response : []);
 
       if (records.isNotEmpty) {
-        debugPrint('🟢 [OdooApiService] Endpoint 2 returned ${records.length} variants');
+        debugPrint(
+          '🟢 [OdooApiService] Endpoint 2 returned ${records.length} variants',
+        );
         return records.map((item) {
-          return ProductVariant.fromJson(Map<String, dynamic>.from(item as Map));
+          return ProductVariant.fromJson(
+            Map<String, dynamic>.from(item as Map),
+          );
         }).toList();
       }
 
@@ -956,21 +995,35 @@ class OdooApiService implements BaseOdooService {
           ],
         ],
         kwargs: {
-          'fields': ['id', 'name', 'display_name', 'lst_price'],
+          'fields': [
+            'id',
+            'name',
+            'display_name',
+            'lst_price',
+            'appointment_type_id',
+            'appointment_resource_id',
+            'product_template_variant_value_ids',
+          ],
           'limit': 50,
         },
       );
 
       if (fallbackResponse is List && fallbackResponse.isNotEmpty) {
-        debugPrint('🟢 [OdooApiService] Endpoint 2 fallback search_read returned ${fallbackResponse.length} variants');
+        debugPrint(
+          '🟢 [OdooApiService] Endpoint 2 fallback search_read returned ${fallbackResponse.length} variants',
+        );
         return fallbackResponse.map((item) {
-          return ProductVariant.fromJson(Map<String, dynamic>.from(item as Map));
+          return ProductVariant.fromJson(
+            Map<String, dynamic>.from(item as Map),
+          );
         }).toList();
       }
 
       return [];
     } catch (e) {
-      debugPrint('🔴 [OdooApiService] Endpoint 2 error for templateId=$templateId: $e');
+      debugPrint(
+        '🔴 [OdooApiService] Endpoint 2 error for templateId=$templateId: $e',
+      );
       return [];
     }
   }
@@ -1003,7 +1056,9 @@ class OdooApiService implements BaseOdooService {
         return BookableSlotsResult.fromJson(response);
       }
       if (response is Map) {
-        return BookableSlotsResult.fromJson(Map<String, dynamic>.from(response));
+        return BookableSlotsResult.fromJson(
+          Map<String, dynamic>.from(response),
+        );
       }
       return null;
     } catch (e) {
@@ -1032,25 +1087,147 @@ class OdooApiService implements BaseOdooService {
     List<String>? vehicleImagesBase64,
   }) async {
     try {
-      final formattedPartnerIds = partnerIds.map((id) => [6, 0, [id]]).toList();
-      final bookingLines = resourceId != null
+      final formattedPartnerIds = partnerIds
+          .map(
+            (id) => [
+              6,
+              0,
+              [id],
+            ],
+          )
+          .toList();
+      int? effectiveProductId = productId;
+      int effectiveAppointmentTypeId = appointmentTypeId;
+      int? effectiveResourceId = resourceId;
+
+      debugPrint(
+        '🔵 [OdooApiService] bookAppointment start with productId=$productId, appointmentTypeId=$appointmentTypeId, resourceId=$resourceId',
+      );
+
+      if (effectiveProductId != null) {
+        try {
+          final prodResp = await _callKw(
+            model: 'product.product',
+            method: 'search_read',
+            args: [
+              [
+                ['id', '=', effectiveProductId],
+              ],
+            ],
+            kwargs: {
+              'fields': [
+                'id',
+                'name',
+                'appointment_type_id',
+                'appointment_resource_id',
+                'appointment_resource_ids',
+              ],
+              'limit': 1,
+            },
+          );
+          debugPrint('🔵 [OdooApiService] product.product search_read by ID result: $prodResp');
+
+          Map<String, dynamic>? prodMap;
+          if (prodResp is List && prodResp.isNotEmpty) {
+            prodMap = Map<String, dynamic>.from(prodResp.first as Map);
+          } else {
+            final tmplSearch = await _callKw(
+              model: 'product.product',
+              method: 'search_read',
+              args: [
+                [
+                  ['product_tmpl_id', '=', effectiveProductId],
+                ],
+              ],
+              kwargs: {
+                'fields': [
+                  'id',
+                  'name',
+                  'appointment_type_id',
+                  'appointment_resource_id',
+                  'appointment_resource_ids',
+                ],
+                'limit': 1,
+              },
+            );
+            debugPrint('🔵 [OdooApiService] product.product search_read by tmpl_id result: $tmplSearch');
+            if (tmplSearch is List && tmplSearch.isNotEmpty) {
+              prodMap = Map<String, dynamic>.from(tmplSearch.first as Map);
+              effectiveProductId = prodMap['id'] as int;
+              debugPrint(
+                '🟢 [OdooApiService] Mapped product template ID $productId -> variant ID $effectiveProductId',
+              );
+            }
+          }
+
+          if (prodMap != null) {
+            final rawAppt = prodMap['appointment_type_id'];
+            debugPrint(
+              '🟢 [OdooApiService] Raw appointment_type_id from prodMap: $rawAppt (type: ${rawAppt.runtimeType})',
+            );
+            if (rawAppt is Map && rawAppt['id'] is int) {
+              effectiveAppointmentTypeId = rawAppt['id'] as int;
+            } else if (rawAppt is List && rawAppt.isNotEmpty) {
+              final id = rawAppt[0] is int
+                  ? rawAppt[0] as int
+                  : int.tryParse(rawAppt[0].toString());
+              if (id != null) effectiveAppointmentTypeId = id;
+            } else if (rawAppt is int) {
+              effectiveAppointmentTypeId = rawAppt;
+            }
+
+            final rawRes =
+                prodMap['appointment_resource_id'] ??
+                prodMap['appointment_resource_ids'];
+            debugPrint(
+              '🟢 [OdooApiService] Raw appointment_resource_id from prodMap: $rawRes (type: ${rawRes.runtimeType})',
+            );
+            if (rawRes is Map && rawRes['id'] is int) {
+              effectiveResourceId = rawRes['id'] as int;
+            } else if (rawRes is List && rawRes.isNotEmpty) {
+              final first = rawRes[0];
+              if (first is int) {
+                effectiveResourceId = first;
+              } else if (first is Map && first['id'] is int) {
+                effectiveResourceId = first['id'] as int;
+              }
+            } else if (rawRes is int) {
+              effectiveResourceId = rawRes;
+            }
+            debugPrint(
+              '🟢 [OdooApiService] Effective ApptType ID=$effectiveAppointmentTypeId, Resource ID=$effectiveResourceId, Product ID=$effectiveProductId',
+            );
+          } else {
+            debugPrint('🟡 [OdooApiService] prodMap is NULL after variant search for productId=$productId');
+          }
+        } catch (checkErr, stack) {
+          debugPrint(
+            '🔴 [OdooApiService] Variant/ApptType lookup check error: $checkErr\n$stack',
+          );
+        }
+      }
+
+      final bookingLines = effectiveResourceId != null
           ? [
               [
                 0,
                 0,
                 {
-                  'appointment_resource_id': resourceId,
+                  'appointment_resource_id': effectiveResourceId,
                   'capacity_reserved': 1,
-                }
-              ]
+                },
+              ],
             ]
           : [];
 
-      final formattedImages = (vehicleImagesBase64 != null && vehicleImagesBase64.isNotEmpty)
+      final formattedImages =
+          (vehicleImagesBase64 != null && vehicleImagesBase64.isNotEmpty)
           ? vehicleImagesBase64.asMap().entries.map((entry) {
               final idx = entry.key + 1;
               final rawB64 = entry.value;
-              final b64 = rawB64.contains(',') ? rawB64.split(',').last : rawB64;
+              final b64 = rawB64.contains(',')
+                  ? rawB64.split(',').last
+                  : rawB64;
               return [
                 0,
                 0,
@@ -1059,15 +1236,15 @@ class OdooApiService implements BaseOdooService {
                   'type': 'binary',
                   'datas': b64,
                   'mimetype': 'image/jpeg',
-                }
+                },
               ];
             }).toList()
           : [];
 
       final payload = {
         'name': name,
-        'appointment_type_id': appointmentTypeId,
-        if (productId != null) 'product_id': productId,
+        'appointment_type_id': effectiveAppointmentTypeId,
+        if (effectiveProductId != null) 'product_id': effectiveProductId,
         'appointment_booker_id': appointmentBookerId,
         'partner_ids': formattedPartnerIds,
         'start': start,
@@ -1085,10 +1262,7 @@ class OdooApiService implements BaseOdooService {
       final response = await _callKw(
         model: 'calendar.event',
         method: 'web_save',
-        args: [
-          [],
-          payload,
-        ],
+        args: [[], payload],
         kwargs: {
           'specification': {
             'id': {},
@@ -1101,10 +1275,7 @@ class OdooApiService implements BaseOdooService {
             'booking_collector_name': {},
             'booking_collector_license': {},
             'opportunity_id': {
-              'fields': {
-                'id': {},
-                'name': {},
-              },
+              'fields': {'id': {}, 'name': {}},
             },
           },
         },
@@ -1116,9 +1287,62 @@ class OdooApiService implements BaseOdooService {
       return null;
     } catch (e) {
       final errStr = e.toString();
-      debugPrint('🔴 [OdooApiService] Endpoint 4 (calendar.event/web_save) error: $errStr');
+      debugPrint(
+        '🔴 [OdooApiService] Endpoint 4 (calendar.event/web_save) error: $errStr',
+      );
+      if ((errStr.contains('Record does not exist') ||
+              errStr.contains('product.product')) &&
+          productId != null) {
+        debugPrint(
+          '🟡 [OdooApiService] Record does not exist for product.product($productId). Searching variant ID for template $productId...',
+        );
+        try {
+          final tmplSearch = await _callKw(
+            model: 'product.product',
+            method: 'search_read',
+            args: [
+              [
+                ['product_tmpl_id', '=', productId],
+              ],
+            ],
+            kwargs: {
+              'fields': ['id'],
+              'limit': 1,
+            },
+          );
+          if (tmplSearch is List && tmplSearch.isNotEmpty) {
+            final realVariantId = tmplSearch[0]['id'] as int;
+            debugPrint(
+              '🟢 [OdooApiService] Found real product.product ID=$realVariantId. Retrying bookAppointment...',
+            );
+            return bookAppointment(
+              name: name,
+              appointmentTypeId: appointmentTypeId,
+              productId: realVariantId,
+              appointmentBookerId: appointmentBookerId,
+              partnerIds: partnerIds,
+              start: start,
+              stop: stop,
+              duration: duration,
+              resourceId: resourceId,
+              phone: phone,
+              collectorName: collectorName,
+              collectorLicense: collectorLicense,
+              vehicleMake: vehicleMake,
+              vehicleModel: vehicleModel,
+              vehicleImagesBase64: vehicleImagesBase64,
+            );
+          }
+        } catch (varErr) {
+          debugPrint(
+            '🔴 [OdooApiService] Variant lookup retry failed: $varErr',
+          );
+        }
+      }
       if (errStr.contains('cannot be used for') && appointmentTypeId != 2) {
-        debugPrint('🟡 [OdooApiService] Retrying Endpoint 4 with appointmentTypeId=2...');
+        debugPrint(
+          '🟡 [OdooApiService] Retrying Endpoint 4 with appointmentTypeId=2...',
+        );
         return bookAppointment(
           name: name,
           appointmentTypeId: 2,
@@ -1151,8 +1375,9 @@ class OdooApiService implements BaseOdooService {
         args: [],
         kwargs: {
           'domain': [
+            '|',
+            ['partner_ids', 'in', [partnerId]],
             ['appointment_booker_id', '=', partnerId],
-            ['appointment_type_id', '!=', false],
           ],
           'specification': {
             'id': {},
@@ -1162,16 +1387,10 @@ class OdooApiService implements BaseOdooService {
             'duration': {},
             'active': {},
             'appointment_type_id': {
-              'fields': {
-                'id': {},
-                'name': {},
-              },
+              'fields': {'id': {}, 'name': {}},
             },
             'appointment_resource_ids': {
-              'fields': {
-                'id': {},
-                'name': {},
-              },
+              'fields': {'id': {}, 'name': {}},
             },
             'booking_phone': {},
             'booking_vehicle_make': {},
@@ -1180,10 +1399,7 @@ class OdooApiService implements BaseOdooService {
             'booking_collector_name': {},
             'booking_collector_license': {},
             'opportunity_id': {
-              'fields': {
-                'id': {},
-                'name': {},
-              },
+              'fields': {'id': {}, 'name': {}},
             },
           },
           'order': 'start desc',
@@ -1222,16 +1438,10 @@ class OdooApiService implements BaseOdooService {
             'duration': {},
             'active': {},
             'appointment_type_id': {
-              'fields': {
-                'id': {},
-                'name': {},
-              },
+              'fields': {'id': {}, 'name': {}},
             },
             'appointment_resource_ids': {
-              'fields': {
-                'id': {},
-                'name': {},
-              },
+              'fields': {'id': {}, 'name': {}},
             },
             'booking_phone': {},
             'booking_vehicle_make': {},
@@ -1240,10 +1450,7 @@ class OdooApiService implements BaseOdooService {
             'booking_collector_name': {},
             'booking_collector_license': {},
             'opportunity_id': {
-              'fields': {
-                'id': {},
-                'name': {},
-              },
+              'fields': {'id': {}, 'name': {}},
             },
           },
         },
@@ -1275,9 +1482,7 @@ class OdooApiService implements BaseOdooService {
         args: [
           [bookingId],
         ],
-        kwargs: {
-          'partner_ids': partnerIds,
-        },
+        kwargs: {'partner_ids': partnerIds},
       );
 
       if (response is Map) {
@@ -1345,16 +1550,10 @@ class OdooApiService implements BaseOdooService {
             'portal_user_names': {},
             'state': {},
             'stage_id': {
-              'fields': {
-                'id': {},
-                'name': {},
-              },
+              'fields': {'id': {}, 'name': {}},
             },
             'project_id': {
-              'fields': {
-                'id': {},
-                'name': {},
-              },
+              'fields': {'id': {}, 'name': {}},
             },
           },
           'order': 'id desc',
@@ -1366,11 +1565,150 @@ class OdooApiService implements BaseOdooService {
           : (response is List ? response : []);
 
       return records.map((item) {
-        return ProjectTaskModel.fromJson(Map<String, dynamic>.from(item as Map));
+        return ProjectTaskModel.fromJson(
+          Map<String, dynamic>.from(item as Map),
+        );
       }).toList();
     } catch (e) {
       print('Endpoint 9 (project.task/web_search_read) error: $e');
       return [];
+    }
+  }
+
+  /// STEP 13: Get Sent Quotations (`sale.order/web_search_read`)
+  @override
+  Future<List<Map<String, dynamic>>> getSentQuotations({int? partnerId}) async {
+    try {
+      final pid = partnerId ?? _partnerId ?? _uid;
+      final response = await _callKw(
+        model: 'sale.order',
+        method: 'web_search_read',
+        args: [],
+        kwargs: {
+          'domain': [
+            if (pid != null) ['partner_id', '=', pid],
+            [
+              'state',
+              'in',
+              ['sent', 'draft'],
+            ],
+          ],
+          'specification': {
+            'id': {},
+            'name': {},
+            'state': {},
+            'amount_total': {},
+            'date_order': {},
+            'note': {},
+          },
+          'order': 'date_order desc',
+        },
+      );
+      final List records = (response is Map && response.containsKey('records'))
+          ? (response['records'] as List)
+          : (response is List ? response : []);
+      return records.map((r) => Map<String, dynamic>.from(r as Map)).toList();
+    } catch (e) {
+      debugPrint('getSentQuotations error: $e');
+      return [];
+    }
+  }
+
+  /// STEP 14: Get Sale Orders (`sale.order/web_search_read`)
+  @override
+  Future<List<Map<String, dynamic>>> getSaleOrders({int? partnerId}) async {
+    try {
+      final pid = partnerId ?? _partnerId ?? _uid;
+      final response = await _callKw(
+        model: 'sale.order',
+        method: 'web_search_read',
+        args: [],
+        kwargs: {
+          'domain': pid != null
+              ? [
+                  ['partner_id', '=', pid],
+                ]
+              : [],
+          'specification': {
+            'id': {},
+            'name': {},
+            'state': {},
+            'amount_total': {},
+            'date_order': {},
+            'note': {},
+            'order_line': {
+              'fields': {
+                'id': {},
+                'name': {},
+                'product_id': {
+                  'fields': {'id': {}, 'display_name': {}},
+                },
+                'price_unit': {},
+                'product_uom_qty': {},
+              },
+            },
+          },
+          'order': 'date_order desc',
+        },
+      );
+      final List records = (response is Map && response.containsKey('records'))
+          ? (response['records'] as List)
+          : (response is List ? response : []);
+      return records.map((r) => Map<String, dynamic>.from(r as Map)).toList();
+    } catch (e) {
+      debugPrint('getSaleOrders error: $e');
+      return [];
+    }
+  }
+
+  /// STEP 15: Get Company Location Details (`res.company/web_read`)
+  @override
+  Future<Map<String, dynamic>?> getCompanyLocationDetails() async {
+    try {
+      final response = await _callKw(
+        model: 'res.company',
+        method: 'web_read',
+        args: [
+          [1]
+        ],
+        kwargs: {
+          'specification': {
+            'id': {},
+            'name': {},
+            'phone': {},
+            'email': {},
+            'website': {},
+            'street': {},
+            'street2': {},
+            'city': {},
+            'zip': {},
+            'state_id': {
+              'fields': {
+                'id': {},
+                'name': {},
+              },
+            },
+            'country_id': {
+              'fields': {
+                'id': {},
+                'name': {},
+              },
+            },
+            'latitude': {},
+            'longitude': {},
+          },
+        },
+      );
+      final List records = response is List ? response : [];
+      if (records.isNotEmpty) {
+        final comp = Map<String, dynamic>.from(records.first as Map);
+        debugPrint('🟢 [OdooApiService] Company location details: name=${comp['name']}, lat=${comp['latitude']}, lng=${comp['longitude']}');
+        return comp;
+      }
+      return null;
+    } catch (e) {
+      debugPrint('🔴 [OdooApiService] getCompanyLocationDetails error: $e');
+      return null;
     }
   }
 
@@ -1384,7 +1722,11 @@ class OdooApiService implements BaseOdooService {
           model: 'sale.order',
           method: 'search_read',
           args: [
-            partnerId != null ? [['partner_id', '=', partnerId]] : [],
+            partnerId != null
+                ? [
+                    ['partner_id', '=', partnerId],
+                  ]
+                : [],
           ],
           kwargs: {
             'fields': [
@@ -1405,12 +1747,18 @@ class OdooApiService implements BaseOdooService {
           },
         );
       } catch (e) {
-        debugPrint('sale.order custom search_read failed ($e). Falling back to standard fields.');
+        debugPrint(
+          'sale.order custom search_read failed ($e). Falling back to standard fields.',
+        );
         response = await _callKw(
           model: 'sale.order',
           method: 'search_read',
           args: [
-            partnerId != null ? [['partner_id', '=', partnerId]] : [],
+            partnerId != null
+                ? [
+                    ['partner_id', '=', partnerId],
+                  ]
+                : [],
           ],
           kwargs: {
             'fields': [
@@ -1437,9 +1785,7 @@ class OdooApiService implements BaseOdooService {
             'categ_id': [1, 'Full Packages'],
           };
           final service = DetailService.fromOdooJson(serviceJson);
-          bookings.add(
-            Booking.fromOdooJson(orderMap, service),
-          );
+          bookings.add(Booking.fromOdooJson(orderMap, service));
         }
       }
       return bookings;
@@ -1522,7 +1868,9 @@ class OdooApiService implements BaseOdooService {
           },
         );
       } catch (e) {
-        debugPrint('sale.order custom read failed ($e). Falling back to standard fields.');
+        debugPrint(
+          'sale.order custom read failed ($e). Falling back to standard fields.',
+        );
         response = await _callKw(
           model: 'sale.order',
           method: 'read',
@@ -1550,7 +1898,11 @@ class OdooApiService implements BaseOdooService {
             model: 'sale.order',
             method: 'search_read',
             args: [
-              partnerId != null ? [['partner_id', '=', partnerId]] : [],
+              partnerId != null
+                  ? [
+                      ['partner_id', '=', partnerId],
+                    ]
+                  : [],
             ],
             kwargs: {
               'fields': [
@@ -1571,8 +1923,11 @@ class OdooApiService implements BaseOdooService {
         } catch (_) {}
       }
 
-      if (response == null || (response is List && response.isEmpty)) return null;
-      final orderMap = Map<String, dynamic>.from((response is List ? response[0] : response) as Map);
+      if (response == null || (response is List && response.isEmpty))
+        return null;
+      final orderMap = Map<String, dynamic>.from(
+        (response is List ? response[0] : response) as Map,
+      );
 
       final service = DetailService(
         id: '1',

@@ -50,8 +50,8 @@ class ServicesController extends ChangeNotifier {
   }
 
   Future<void> initData() async {
+    // Home Page only calls product categories API (Endpoint 1: getProductCategories)
     await fetchProductCategories();
-    await loadServices();
   }
 
   /// Fetch Categories from timeless.product.category
