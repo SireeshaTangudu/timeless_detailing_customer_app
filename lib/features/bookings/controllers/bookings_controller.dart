@@ -138,8 +138,8 @@ class BookingsController extends ChangeNotifier {
 
     final bookerId = _odooService.currentUid ?? 65;
     final partnerId = _odooService.currentPartnerId ?? 14;
-    final effectiveResourceId = resourceId ?? service.appointmentResourceId ?? 21;
-    final effectiveProductId = productId ?? service.odooProductId ?? 57;
+    final effectiveResourceId = resourceId ?? service.appointmentResourceId;
+    final effectiveProductId = productId ?? service.odooProductId;
 
     final startStr = DateFormat('yyyy-MM-dd HH:mm:ss').format(startDateTime);
     final stopStr = DateFormat('yyyy-MM-dd HH:mm:ss').format(stopDateTime);

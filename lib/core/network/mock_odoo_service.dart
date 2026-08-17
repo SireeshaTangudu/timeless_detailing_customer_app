@@ -622,4 +622,29 @@ class MockOdooService implements BaseOdooService {
       'longitude': 31.0218,
     };
   }
+
+  @override
+  Future<ProductVariant?> getVariantById(int productId) async {
+    return ProductVariant(
+      id: productId,
+      name: 'Service Variant',
+      displayName: 'Service Variant ($productId)',
+      lstPrice: 0.0,
+      variantValues: const [],
+      appointmentType: const AppointmentType(
+        id: 2,
+        name: 'Car Detailing Interior',
+        appointmentDuration: 1,
+        messageIntro: '',
+        minScheduleHours: 1,
+        maxScheduleDays: 45,
+        minCancellationHours: 1,
+      ),
+      appointmentResource: const AppointmentResource(
+        id: 9,
+        name: 'Interior Detailing',
+        capacity: 1,
+      ),
+    );
+  }
 }

@@ -137,5 +137,26 @@ class ServicesController extends ChangeNotifier {
   List<ProductVariant> getVariantsForTemplate(int templateId) {
     return _serviceVariants[templateId] ?? [];
   }
+
+  ProductVariant? findVariantByProductId(int? productId) {
+    if (productId == null) return null;
+    for (final varList in _serviceVariants.values) {
+      for (final v in varList) {
+        if (v.id == productId) return v;
+      }
+    }
+    return null;
+  }
+
+  Future<ProductVariant?> fetchVariantById(int productId) async {
+    final existing = findVariantByProductId(productId);
+    if (existing != null) return existing;
+    try {
+      final variant = await _odooService.getVariantById(productId);
+      return variant;
+    } catch (e) {
+      return null;
+    }
+  }
 }
 

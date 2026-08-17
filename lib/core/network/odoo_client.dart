@@ -49,6 +49,7 @@ abstract class BaseOdooService {
   Future<List<ProductCategory>> getProductCategories();
   Future<List<DetailService>> getServicesFromProductTemplate({int? categoryId});
   Future<List<ProductVariant>> getServiceDetailsWithVariants(int templateId);
+  Future<ProductVariant?> getVariantById(int productId);
   Future<BookableSlotsResult?> getBookableSlots({
     required int appointmentTypeId,
     required String timezone,
@@ -808,6 +809,20 @@ class OdooApiService implements BaseOdooService {
             'name': {},
             'display_name': {},
             'lst_price': {},
+            'appointment_type_id': {
+              'fields': {
+                'id': {},
+                'name': {},
+                'appointment_duration': {},
+                'message_intro': {},
+                'min_schedule_hours': {},
+                'max_schedule_days': {},
+                'min_cancellation_hours': {},
+              },
+            },
+            'appointment_resource_id': {
+              'fields': {'id': {}, 'name': {}, 'capacity': {}},
+            },
             'timeless_page_tagline': {},
             'timeless_page_intro': {},
             'timeless_page_conclusion': {},
@@ -1026,6 +1041,59 @@ class OdooApiService implements BaseOdooService {
       );
       return [];
     }
+  }
+
+  @override
+  Future<ProductVariant?> getVariantById(int productId) async {
+    debugPrint(
+      '🔵 [OdooApiService] Fetching product.product details for productId=$productId...',
+    );
+    try {
+      final response = await _callKw(
+        model: 'product.product',
+        method: 'web_search_read',
+        args: [],
+        kwargs: {
+          'domain': [
+            ['id', '=', productId],
+          ],
+          'specification': {
+            'id': {},
+            'name': {},
+            'display_name': {},
+            'lst_price': {},
+            'product_template_variant_value_ids': {
+              'fields': {'id': {}, 'name': {}},
+            },
+            'appointment_type_id': {
+              'fields': {
+                'id': {},
+                'name': {},
+                'appointment_duration': {},
+                'message_intro': {},
+                'min_schedule_hours': {},
+                'max_schedule_days': {},
+                'min_cancellation_hours': {},
+              },
+            },
+            'appointment_resource_id': {
+              'fields': {'id': {}, 'name': {}, 'capacity': {}},
+            },
+          },
+        },
+      );
+      final List records = (response is Map && response.containsKey('records'))
+          ? (response['records'] as List)
+          : (response is List ? response : []);
+      if (records.isNotEmpty) {
+        return ProductVariant.fromJson(
+          Map<String, dynamic>.from(records.first as Map),
+        );
+      }
+    } catch (e) {
+      debugPrint('🔴 [OdooApiService] Error fetching variant by id $productId: $e');
+    }
+    return null;
   }
 
   /// ENDPOINT 3: Get Bookable Slots (`appointment.type/get_bookable_slots`)

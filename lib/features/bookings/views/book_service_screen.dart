@@ -40,7 +40,7 @@ class _BookServiceScreenState extends State<BookServiceScreen> {
   final ImagePicker _picker = ImagePicker();
   final List<XFile> _attachedImages = [];
 
-  void _fetchOdooBookableSlots(DateTime date) {
+  Future<void> _fetchOdooBookableSlots(DateTime date) async {
     final controller = Provider.of<BookingsController>(context, listen: false);
     final servicesController = Provider.of<ServicesController>(
       context,
@@ -49,30 +49,46 @@ class _BookServiceScreenState extends State<BookServiceScreen> {
 
     int? apptTypeId = widget.initialService.appointmentTypeId;
     int? resId = widget.initialService.appointmentResourceId;
+    final prodId = widget.initialService.odooProductId;
+
+    if ((apptTypeId == null || resId == null) && prodId != null) {
+      final matchedVar =
+          servicesController.findVariantByProductId(prodId) ??
+          await servicesController.fetchVariantById(prodId);
+      if (matchedVar != null) {
+        apptTypeId ??= matchedVar.appointmentType?.id;
+        resId ??= matchedVar.appointmentResource?.id;
+      }
+    }
 
     if (apptTypeId == null || resId == null) {
       final templateId =
           widget.initialService.odooProductId ??
-          int.tryParse(widget.initialService.id) ??
-          4;
-      final variants = servicesController.getVariantsForTemplate(templateId);
-      if (variants.isNotEmpty) {
-        final firstVar = variants.first;
-        apptTypeId ??= firstVar.appointmentType?.id;
-        resId ??= firstVar.appointmentResource?.id;
+          int.tryParse(widget.initialService.id);
+      if (templateId != null) {
+        final variants = servicesController.getVariantsForTemplate(templateId);
+        if (variants.isNotEmpty) {
+          final firstVar = variants.first;
+          apptTypeId ??= firstVar.appointmentType?.id;
+          resId ??= firstVar.appointmentResource?.id;
+        }
       }
     }
 
-    final finalApptTypeId = apptTypeId ?? 3;
-    final finalResId = resId ?? 8;
+    if (apptTypeId == null || resId == null) {
+      debugPrint(
+        '⚠️ [BookServiceScreen] Unable to resolve appointmentTypeId or resourceId from Odoo API',
+      );
+      return;
+    }
 
     debugPrint(
-      '🔵 [BookServiceScreen] Calling Endpoint 3 (appointment.type/get_bookable_slots) for appointmentTypeId=$finalApptTypeId, resourceId=$finalResId, date=${DateFormat('yyyy-MM-dd').format(date)}...',
+      '🔵 [BookServiceScreen] Calling Endpoint 3 (appointment.type/get_bookable_slots) for appointmentTypeId=$apptTypeId, resourceId=$resId, date=${DateFormat('yyyy-MM-dd').format(date)}...',
     );
     controller.fetchBookableSlots(
-      appointmentTypeId: finalApptTypeId,
+      appointmentTypeId: apptTypeId,
       timezone: 'UTC',
-      resourceId: finalResId,
+      resourceId: resId,
       date: date,
     );
   }
@@ -247,27 +263,51 @@ class _BookServiceScreenState extends State<BookServiceScreen> {
     int? resId = widget.initialService.appointmentResourceId;
     int? prodId = widget.initialService.odooProductId;
 
-    if (apptTypeId == null || resId == null || prodId == null) {
-      final templateId =
-          widget.initialService.odooProductId ??
-          int.tryParse(widget.initialService.id) ??
-          4;
-      final servicesController = Provider.of<ServicesController>(
-        context,
-        listen: false,
-      );
-      final variants = servicesController.getVariantsForTemplate(templateId);
-      if (variants.isNotEmpty) {
-        final firstVar = variants.first;
-        prodId ??= firstVar.id;
-        apptTypeId ??= firstVar.appointmentType?.id;
-        resId ??= firstVar.appointmentResource?.id;
+    final servicesController = Provider.of<ServicesController>(
+      context,
+      listen: false,
+    );
+
+    if ((apptTypeId == null || resId == null) && prodId != null) {
+      final matchedVar =
+          servicesController.findVariantByProductId(prodId) ??
+          await servicesController.fetchVariantById(prodId);
+      if (matchedVar != null) {
+        apptTypeId ??= matchedVar.appointmentType?.id;
+        resId ??= matchedVar.appointmentResource?.id;
       }
     }
 
-    final appointmentTypeId = apptTypeId ?? 3;
-    final productId = prodId ?? 9;
-    final resourceId = resId ?? 8;
+    if (apptTypeId == null || resId == null || prodId == null) {
+      final templateId =
+          widget.initialService.odooProductId ??
+          int.tryParse(widget.initialService.id);
+      if (templateId != null) {
+        final variants = servicesController.getVariantsForTemplate(templateId);
+        if (variants.isNotEmpty) {
+          final firstVar = variants.first;
+          prodId ??= firstVar.id;
+          apptTypeId ??= firstVar.appointmentType?.id;
+          resId ??= firstVar.appointmentResource?.id;
+        }
+      }
+    }
+
+    if (apptTypeId == null || resId == null || prodId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Could not fetch appointment service details from server. Please try again.',
+          ),
+          backgroundColor: AppTheme.error,
+        ),
+      );
+      return;
+    }
+
+    final appointmentTypeId = apptTypeId;
+    final productId = prodId;
+    final resourceId = resId;
 
     List<String> base64Images = [];
     if (_attachedImages.isNotEmpty) {
@@ -416,443 +456,459 @@ class _BookServiceScreenState extends State<BookServiceScreen> {
       children: [
         Scaffold(
           backgroundColor: const Color(0xFFF9F7F4),
-      body: Column(
-        children: [
-          CustomAppBar(
-            title: 'Book slot for ${widget.initialService.name.toLowerCase()}',
-            onBackPressed: () => Navigator.pop(context),
-          ),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Vehicle Make & Vehicle Model Textfields (in place of select car)
-                  Row(
+          body: Column(
+            children: [
+              CustomAppBar(
+                title:
+                    'Book slot for ${widget.initialService.name.toLowerCase()}',
+                onBackPressed: () => Navigator.pop(context),
+              ),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 12,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Vehicle Make',
-                              style: GoogleFonts.inter(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w500,
-                                color: const Color(0xFF3A2F1E),
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            CustomTextField(
-                              hintText: 'e.g. Toyota',
-                              controller: _vehicleMakeController,
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Vehicle Model',
-                              style: GoogleFonts.inter(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w500,
-                                color: const Color(0xFF3A2F1E),
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            CustomTextField(
-                              hintText: 'e.g. Hilux',
-                              controller: _vehicleModelController,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-
-                  // Select Date Label & Picker
-                  Text(
-                    'Select Date',
-                    style: GoogleFonts.inter(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                      color: const Color(0xFF3A2F1E),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  InkWell(
-                    onTap: () async {
-                      final date = await showDatePicker(
-                        context: context,
-                        initialDate: _selectedDate,
-                        firstDate: DateTime.now(),
-                        lastDate: DateTime.now().add(const Duration(days: 60)),
-                        builder: (context, child) {
-                          return Theme(
-                            data: Theme.of(context).copyWith(
-                              colorScheme: const ColorScheme.light(
-                                primary: Color(0xFFC4913F),
-                                onPrimary: Colors.white,
-                                surface: Colors.white,
-                                onSurface: Color(0xFF3A2F1E),
-                              ),
-                            ),
-                            child: child!,
-                          );
-                        },
-                      );
-                      if (date != null) {
-                        setState(() {
-                          _selectedDate = date;
-                        });
-                        _fetchOdooBookableSlots(date);
-                      }
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 14,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0xFFEBE7DF)),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      // Vehicle Make & Vehicle Model Textfields (in place of select car)
+                      Row(
                         children: [
-                          Text(
-                            DateFormat('dd-MM-yyyy').format(_selectedDate),
-                            style: GoogleFonts.inter(
-                              fontSize: 14,
-                              color: const Color(0xFF3A2F1E),
-                              fontWeight: FontWeight.w500,
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Vehicle Make',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                    color: const Color(0xFF3A2F1E),
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                CustomTextField(
+                                  hintText: 'e.g. Toyota',
+                                  controller: _vehicleMakeController,
+                                ),
+                              ],
                             ),
                           ),
-                          const Icon(
-                            Icons.calendar_today_outlined,
-                            size: 18,
-                            color: Color(0xFFC4913F),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Vehicle Model',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                    color: const Color(0xFF3A2F1E),
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                CustomTextField(
+                                  hintText: 'e.g. Hilux',
+                                  controller: _vehicleModelController,
+                                ),
+                              ],
+                            ),
                           ),
                         ],
                       ),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
+                      const SizedBox(height: 20),
 
-                  // Select Time Label & Grid Chips
-                  Text(
-                    'Select Time',
-                    style: GoogleFonts.inter(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                      color: const Color(0xFF3A2F1E),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Builder(
-                    builder: (context) {
-                      final slotsResult =
-                          bookingsController.currentBookableSlots;
-                      final isLoadingSlots = bookingsController.isLoadingSlots;
-
-                      List<String> dynamicSlots = [
-                        '9:00 AM',
-                        '10:00 AM',
-                        '11:00 AM',
-                        '12:00 PM',
-                        '2:00 PM',
-                        '3:00 PM',
-                        '4:00 PM',
-                      ];
-
-                      if (slotsResult != null && slotsResult.slots.isNotEmpty) {
-                        dynamicSlots = slotsResult.slots
-                            .map((s) => s.formattedTime)
-                            .toList();
-                      }
-
-                      if (isLoadingSlots) {
-                        return const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 24),
-                          child: FourRotatingDotsLoader(),
-                        );
-                      }
-
-                      return Wrap(
-                        spacing: 12,
-                        runSpacing: 12,
-                        children: dynamicSlots.map((slot) {
-                          final isSelected =
-                              _selectedTimeSlot == slot ||
-                              _selectedTimeSlot.replaceAll('0', '') ==
-                                  slot.replaceAll('0', '');
-                          return SizedBox(
-                            width: (MediaQuery.of(context).size.width - 64) / 3,
-                            height: 48,
-                            child: OutlinedButton(
-                              onPressed: () {
-                                setState(() {
-                                  _selectedTimeSlot = slot;
-                                });
-                              },
-                              style: OutlinedButton.styleFrom(
-                                backgroundColor: isSelected
-                                    ? const Color(
-                                        0xFFC4913F,
-                                      ).withValues(alpha: 0.08)
-                                    : Colors.white,
-                                side: BorderSide(
-                                  color: isSelected
-                                      ? const Color(0xFFC4913F)
-                                      : const Color(0xFFEBE7DF),
-                                  width: isSelected ? 1.5 : 1,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                              ),
-                              child: Text(
-                                slot,
-                                style: GoogleFonts.inter(
-                                  fontSize: 13,
-                                  fontWeight: isSelected
-                                      ? FontWeight.bold
-                                      : FontWeight.w500,
-                                  color: const Color(0xFF3A2F1E),
-                                ),
-                              ),
-                            ),
-                          );
-                        }).toList(),
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Attach Vehicle / Condition Photos Section (Up to 5 Photos)
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
+                      // Select Date Label & Picker
                       Text(
-                        'Attach Photos (Optional)',
+                        'Select Date',
                         style: GoogleFonts.inter(
                           fontSize: 13,
                           fontWeight: FontWeight.w500,
                           color: const Color(0xFF3A2F1E),
                         ),
                       ),
-                      Text(
-                        '${_attachedImages.length}/5',
-                        style: GoogleFonts.inter(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: const Color(0xFFC4913F),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Attach up to 5 photos of your car or specific areas needing attention.',
-                    style: GoogleFonts.inter(
-                      fontSize: 11.5,
-                      color: const Color(0xFF8A8275),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    height: 84,
-                    child: ListView.separated(
-                      scrollDirection: Axis.horizontal,
-                      itemCount:
-                          _attachedImages.length +
-                          (_attachedImages.length < 5 ? 1 : 0),
-                      separatorBuilder: (context, index) =>
-                          const SizedBox(width: 10),
-                      itemBuilder: (context, index) {
-                        if (index < _attachedImages.length) {
-                          final file = _attachedImages[index];
-                          return Stack(
-                            children: [
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(12),
-                                child: Image.file(
-                                  File(file.path),
-                                  width: 84,
-                                  height: 84,
-                                  fit: BoxFit.cover,
-                                ),
-                              ),
-                              Positioned(
-                                top: 4,
-                                right: 4,
-                                child: GestureDetector(
-                                  onTap: () => _removeImage(index),
-                                  child: Container(
-                                    padding: const EdgeInsets.all(3),
-                                    decoration: BoxDecoration(
-                                      color: Colors.black.withValues(
-                                        alpha: 0.7,
-                                      ),
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: const Icon(
-                                      Icons.close,
-                                      size: 13,
-                                      color: Colors.white,
-                                    ),
+                      const SizedBox(height: 8),
+                      InkWell(
+                        onTap: () async {
+                          final date = await showDatePicker(
+                            context: context,
+                            initialDate: _selectedDate,
+                            firstDate: DateTime.now(),
+                            lastDate: DateTime.now().add(
+                              const Duration(days: 60),
+                            ),
+                            builder: (context, child) {
+                              return Theme(
+                                data: Theme.of(context).copyWith(
+                                  colorScheme: const ColorScheme.light(
+                                    primary: Color(0xFFC4913F),
+                                    onPrimary: Colors.white,
+                                    surface: Colors.white,
+                                    onSurface: Color(0xFF3A2F1E),
                                   ),
                                 ),
+                                child: child!,
+                              );
+                            },
+                          );
+                          if (date != null) {
+                            setState(() {
+                              _selectedDate = date;
+                            });
+                            _fetchOdooBookableSlots(date);
+                          }
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 14,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: const Color(0xFFEBE7DF)),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                DateFormat('dd-MM-yyyy').format(_selectedDate),
+                                style: GoogleFonts.inter(
+                                  fontSize: 14,
+                                  color: const Color(0xFF3A2F1E),
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              const Icon(
+                                Icons.calendar_today_outlined,
+                                size: 18,
+                                color: Color(0xFFC4913F),
                               ),
                             ],
-                          );
-                        } else {
-                          return GestureDetector(
-                            onTap: _showImageSourcePicker,
-                            child: Container(
-                              width: 84,
-                              height: 84,
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: const Color(0xFFC4913F),
-                                  width: 1.2,
-                                ),
-                              ),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  const Icon(
-                                    Icons.add_a_photo_outlined,
-                                    color: Color(0xFFC4913F),
-                                    size: 20,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Select Time Label & Grid Chips
+                      Text(
+                        'Select Time',
+                        style: GoogleFonts.inter(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: const Color(0xFF3A2F1E),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Builder(
+                        builder: (context) {
+                          final slotsResult =
+                              bookingsController.currentBookableSlots;
+                          final isLoadingSlots =
+                              bookingsController.isLoadingSlots;
+
+                          List<String> dynamicSlots = [
+                            '9:00 AM',
+                            '10:00 AM',
+                            '11:00 AM',
+                            '12:00 PM',
+                            '2:00 PM',
+                            '3:00 PM',
+                            '4:00 PM',
+                          ];
+
+                          if (slotsResult != null &&
+                              slotsResult.slots.isNotEmpty) {
+                            dynamicSlots = slotsResult.slots
+                                .map((s) => s.formattedTime)
+                                .toList();
+                          }
+
+                          if (isLoadingSlots) {
+                            return const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 24),
+                              child: FourRotatingDotsLoader(),
+                            );
+                          }
+
+                          return Wrap(
+                            spacing: 12,
+                            runSpacing: 12,
+                            children: dynamicSlots.map((slot) {
+                              final isSelected =
+                                  _selectedTimeSlot == slot ||
+                                  _selectedTimeSlot.replaceAll('0', '') ==
+                                      slot.replaceAll('0', '');
+                              return SizedBox(
+                                width:
+                                    (MediaQuery.of(context).size.width - 64) /
+                                    3,
+                                height: 48,
+                                child: OutlinedButton(
+                                  onPressed: () {
+                                    setState(() {
+                                      _selectedTimeSlot = slot;
+                                    });
+                                  },
+                                  style: OutlinedButton.styleFrom(
+                                    backgroundColor: isSelected
+                                        ? const Color(
+                                            0xFFC4913F,
+                                          ).withValues(alpha: 0.08)
+                                        : Colors.white,
+                                    side: BorderSide(
+                                      color: isSelected
+                                          ? const Color(0xFFC4913F)
+                                          : const Color(0xFFEBE7DF),
+                                      width: isSelected ? 1.5 : 1,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
                                   ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    'Add Photo',
+                                  child: Text(
+                                    slot,
                                     style: GoogleFonts.inter(
-                                      fontSize: 10.5,
-                                      fontWeight: FontWeight.w600,
-                                      color: const Color(0xFFC4913F),
+                                      fontSize: 13,
+                                      fontWeight: isSelected
+                                          ? FontWeight.bold
+                                          : FontWeight.w500,
+                                      color: const Color(0xFF3A2F1E),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Attach Vehicle / Condition Photos Section (Up to 5 Photos)
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Attach Photos (Optional)',
+                            style: GoogleFonts.inter(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              color: const Color(0xFF3A2F1E),
+                            ),
+                          ),
+                          Text(
+                            '${_attachedImages.length}/5',
+                            style: GoogleFonts.inter(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: const Color(0xFFC4913F),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Attach up to 5 photos of your car or specific areas needing attention.',
+                        style: GoogleFonts.inter(
+                          fontSize: 11.5,
+                          color: const Color(0xFF8A8275),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        height: 84,
+                        child: ListView.separated(
+                          scrollDirection: Axis.horizontal,
+                          itemCount:
+                              _attachedImages.length +
+                              (_attachedImages.length < 5 ? 1 : 0),
+                          separatorBuilder: (context, index) =>
+                              const SizedBox(width: 10),
+                          itemBuilder: (context, index) {
+                            if (index < _attachedImages.length) {
+                              final file = _attachedImages[index];
+                              return Stack(
+                                children: [
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: Image.file(
+                                      File(file.path),
+                                      width: 84,
+                                      height: 84,
+                                      fit: BoxFit.cover,
+                                    ),
+                                  ),
+                                  Positioned(
+                                    top: 4,
+                                    right: 4,
+                                    child: GestureDetector(
+                                      onTap: () => _removeImage(index),
+                                      child: Container(
+                                        padding: const EdgeInsets.all(3),
+                                        decoration: BoxDecoration(
+                                          color: Colors.black.withValues(
+                                            alpha: 0.7,
+                                          ),
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: const Icon(
+                                          Icons.close,
+                                          size: 13,
+                                          color: Colors.white,
+                                        ),
+                                      ),
                                     ),
                                   ),
                                 ],
-                              ),
-                            ),
-                          );
-                        }
-                      },
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Authorized Vehicle Collector Section
-                  Text(
-                    'Authorized Vehicle Collector',
-                    style: GoogleFonts.inter(
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold,
-                      color: const Color(0xFF3A2F1E),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'If you are unavailable to collect your vehicle after the service, you may authorize another person to collect it on your behalf. Please provide their name and driver\'s license number.',
-                    style: GoogleFonts.inter(
-                      fontSize: 11.5,
-                      color: const Color(0xFF8A8275),
-                      height: 1.35,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'Collector Name',
-                    style: GoogleFonts.inter(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: const Color(0xFF3A2F1E),
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  CustomTextField(
-                    controller: _collectorNameController,
-                    hintText: 'e.g. Jane Smith',
-                    onChanged: (val) {
-                      setState(() {});
-                    },
-                  ),
-                  if (_collectorNameController.text.trim().isNotEmpty) ...[
-                    const SizedBox(height: 12),
-                    Text(
-                      'Driver License Number *',
-                      style: GoogleFonts.inter(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                        color: const Color(0xFF3A2F1E),
+                              );
+                            } else {
+                              return GestureDetector(
+                                onTap: _showImageSourcePicker,
+                                child: Container(
+                                  width: 84,
+                                  height: 84,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: const Color(0xFFC4913F),
+                                      width: 1.2,
+                                    ),
+                                  ),
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      const Icon(
+                                        Icons.add_a_photo_outlined,
+                                        color: Color(0xFFC4913F),
+                                        size: 20,
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        'Add Photo',
+                                        style: GoogleFonts.inter(
+                                          fontSize: 10.5,
+                                          fontWeight: FontWeight.w600,
+                                          color: const Color(0xFFC4913F),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            }
+                          },
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 6),
-                    CustomTextField(
-                      controller: _collectorLicenseController,
-                      hintText: 'e.g. D1234567',
-                    ),
-                  ],
-                  const SizedBox(height: 24),
-                ],
-              ),
-            ),
-          ),
+                      const SizedBox(height: 24),
 
-          // Bottom Action Button Sticky Footer
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              border: Border(
-                top: BorderSide(color: Color(0xFFEBE7DF), width: 1),
-              ),
-            ),
-            child: SafeArea(
-              child: SizedBox(
-                width: double.infinity,
-                height: 52,
-                child: ElevatedButton(
-                  onPressed: bookingsController.isLoading
-                      ? null
-                      : _handleConfirmBooking,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFAB8C5A),
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: bookingsController.isLoading
-                      ? const FourRotatingDotsLoader(size: 22, color: Colors.white)
-                      : Text(
-                          'Book and Get Quotation',
+                      // Authorized Vehicle Collector Section
+                      Text(
+                        'Authorized Vehicle Collector',
+                        style: GoogleFonts.inter(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFF3A2F1E),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'If you are unavailable to collect your vehicle after the service, you may authorize another person to collect it on your behalf. Please provide their name and driver\'s license number.',
+                        style: GoogleFonts.inter(
+                          fontSize: 11.5,
+                          color: const Color(0xFF8A8275),
+                          height: 1.35,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        'Collector Name',
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: const Color(0xFF3A2F1E),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      CustomTextField(
+                        controller: _collectorNameController,
+                        hintText: 'e.g. Jane Smith',
+                        onChanged: (val) {
+                          setState(() {});
+                        },
+                      ),
+                      if (_collectorNameController.text.trim().isNotEmpty) ...[
+                        const SizedBox(height: 12),
+                        Text(
+                          'Driver License Number *',
                           style: GoogleFonts.inter(
-                            fontSize: 15,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                            letterSpacing: 0.3,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: const Color(0xFF3A2F1E),
                           ),
                         ),
+                        const SizedBox(height: 6),
+                        CustomTextField(
+                          controller: _collectorLicenseController,
+                          hintText: 'e.g. D1234567',
+                        ),
+                      ],
+                      const SizedBox(height: 24),
+                    ],
+                  ),
                 ),
               ),
-            ),
+
+              // Bottom Action Button Sticky Footer
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 16,
+                ),
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  border: Border(
+                    top: BorderSide(color: Color(0xFFEBE7DF), width: 1),
+                  ),
+                ),
+                child: SafeArea(
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: ElevatedButton(
+                      onPressed: bookingsController.isLoading
+                          ? null
+                          : _handleConfirmBooking,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFAB8C5A),
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: bookingsController.isLoading
+                          ? const FourRotatingDotsLoader(
+                              size: 22,
+                              color: Colors.white,
+                            )
+                          : Text(
+                              'Book and Get Quotation',
+                              style: GoogleFonts.inter(
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                                letterSpacing: 0.3,
+                              ),
+                            ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
-    ),
+        ),
         if (bookingsController.isLoading)
           Container(
             color: Colors.transparent,

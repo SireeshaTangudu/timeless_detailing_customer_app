@@ -235,6 +235,11 @@ class DetailService {
           .toList();
     }
 
+    if (parsedVariants.isNotEmpty) {
+      apptTypeId ??= parsedVariants.first.appointmentType?.id;
+      apptResId ??= parsedVariants.first.appointmentResource?.id;
+    }
+
     final mobileImgStr = json['mobile_image'] is String ? json['mobile_image'] as String : null;
 
     return DetailService(
