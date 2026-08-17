@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:timeless_detailing_customer_app/core/network/odoo_client.dart';
 import 'package:timeless_detailing_customer_app/features/services/models/service_model.dart';
 import 'package:timeless_detailing_customer_app/features/services/models/service_variant_model.dart';
+import 'package:timeless_detailing_customer_app/features/services/models/product_category_model.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/models/booking_model.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/models/bookable_slot_model.dart';
 import 'package:timeless_detailing_customer_app/features/tracking/models/project_model.dart';
@@ -366,8 +367,19 @@ class MockOdooService implements BaseOdooService {
   }
 
   @override
-  Future<List<DetailService>> getServicesFromProductTemplate() async {
-    return _mockServices;
+  Future<List<ProductCategory>> getProductCategories() async {
+    return const [
+      ProductCategory(id: 1, name: 'Protection', sequence: 10, writeDate: '2026-08-16 13:31:33'),
+      ProductCategory(id: 2, name: 'Paint Care', sequence: 10, writeDate: '2026-08-16 13:33:21'),
+      ProductCategory(id: 3, name: 'Maintenance', sequence: 10, writeDate: '2026-08-16 13:34:03'),
+      ProductCategory(id: 4, name: 'Interior', sequence: 10, writeDate: '2026-08-16 13:34:39'),
+    ];
+  }
+
+  @override
+  Future<List<DetailService>> getServicesFromProductTemplate({int? categoryId}) async {
+    if (categoryId == null) return _mockServices;
+    return _mockServices.where((s) => s.mobileCategoryId == categoryId).toList();
   }
 
   @override

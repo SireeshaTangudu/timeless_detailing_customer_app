@@ -12,6 +12,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:intl/intl.dart';
 import 'package:timeless_detailing_customer_app/features/services/models/service_model.dart';
 import 'package:timeless_detailing_customer_app/features/services/models/service_variant_model.dart';
+import 'package:timeless_detailing_customer_app/features/services/models/product_category_model.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/models/booking_model.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/models/bookable_slot_model.dart';
 import 'package:timeless_detailing_customer_app/features/tracking/models/project_model.dart';
@@ -44,8 +45,9 @@ abstract class BaseOdooService {
   int? get currentPartnerId;
   int? get currentUid;
 
-  // Mobile API Guide Endpoints (1-9)
-  Future<List<DetailService>> getServicesFromProductTemplate();
+  // Mobile API Integration Endpoints
+  Future<List<ProductCategory>> getProductCategories();
+  Future<List<DetailService>> getServicesFromProductTemplate({int? categoryId});
   Future<List<ProductVariant>> getServiceDetailsWithVariants(int templateId);
   Future<BookableSlotsResult?> getBookableSlots({
     required int appointmentTypeId,
@@ -681,42 +683,139 @@ class OdooApiService implements BaseOdooService {
   }
 
   // =========================================================================
-  // MOBILE API INTEGRATION GUIDE ENDPOINTS (1 to 9)
+  // MOBILE API INTEGRATION ENDPOINTS
   // =========================================================================
+
+  /// Get Product Categories (`timeless.product.category/web_search_read`)
+  @override
+  Future<List<ProductCategory>> getProductCategories() async {
+    debugPrint('🔵 [OdooApiService] Calling timeless.product.category/web_search_read...');
+    try {
+      final response = await _callKw(
+        model: 'timeless.product.category',
+        method: 'web_search_read',
+        args: [],
+        kwargs: {
+          'domain': [],
+          'specification': {
+            'id': {},
+            'name': {},
+            'sequence': {},
+            'image': {},
+            'write_date': {},
+          },
+        },
+      );
+
+      final List records = (response is Map && response.containsKey('records'))
+          ? (response['records'] as List)
+          : (response is List ? response : []);
+
+      if (records.isNotEmpty) {
+        debugPrint('🟢 [OdooApiService] getProductCategories returned ${records.length} categories');
+        return records.map((item) {
+          return ProductCategory.fromJson(Map<String, dynamic>.from(item as Map));
+        }).toList();
+      }
+      return [];
+    } catch (e) {
+      debugPrint('🔴 [OdooApiService] getProductCategories error: $e');
+      return [];
+    }
+  }
 
   /// ENDPOINT 1: Get Main Services (`product.template/web_search_read`)
   @override
-  Future<List<DetailService>> getServicesFromProductTemplate() async {
-    debugPrint('🔵 [OdooApiService] Calling product.template/web_search_read...');
+  Future<List<DetailService>> getServicesFromProductTemplate({int? categoryId}) async {
+    debugPrint('🔵 [OdooApiService] Calling product.template/web_search_read (categoryId=$categoryId)...');
     try {
       dynamic response;
+      final List<dynamic> domain = [
+        ['sale_ok', '=', true],
+        ['timeless_published', '=', true],
+        if (categoryId != null) ['mobile_categ_id', '=', categoryId],
+      ];
+
+      final Map<String, dynamic> specification = {
+        'id': {},
+        'name': {},
+        'list_price': {},
+        'currency_id': {},
+        'product_variant_count': {},
+        'write_date': {},
+        'mobile_image': {},
+        'mobile_categ_id': {
+          'fields': {
+            'id': {},
+            'name': {},
+          },
+        },
+        'timeless_coverage_line_ids': {
+          'fields': {
+            'id': {},
+            'sequence': {},
+            'view': {},
+            'view_image_url': {},
+            'panel_key': {},
+            'title': {},
+            'icon': {},
+            'x_percent': {},
+            'y_percent': {},
+            'description': {},
+            'product_id': {
+              'fields': {
+                'id': {},
+                'display_name': {},
+              },
+            },
+          },
+        },
+        'product_variant_ids': {
+          'fields': {
+            'id': {},
+            'name': {},
+            'display_name': {},
+            'lst_price': {},
+            'timeless_page_tagline': {},
+            'timeless_page_intro': {},
+            'timeless_page_conclusion': {},
+            'timeless_hide_price': {},
+            'timeless_cta_label': {},
+            'timeless_feature_line_ids': {
+              'fields': {
+                'sequence': {},
+                'text': {},
+              },
+            },
+            'timeless_faq_line_ids': {
+              'fields': {
+                'sequence': {},
+                'question': {},
+                'answer': {},
+              },
+            },
+          },
+        },
+      };
+
       try {
         response = await _callKw(
           model: 'product.template',
           method: 'web_search_read',
           args: [],
           kwargs: {
-            'domain': [
-              ['sale_ok', '=', true],
-              ['timeless_published', '=', true],
-            ],
-            'specification': {
-              'id': {},
-              'name': {},
-              'list_price': {},
-              'currency_id': {},
-              'product_variant_count': {},
-            },
+            'domain': domain,
+            'specification': specification,
           },
         );
       } catch (e) {
-        debugPrint('Endpoint 1 custom domain error ($e). Retrying with default domain...');
+        debugPrint('Endpoint 1 custom domain/specification error ($e). Retrying with simple domain...');
         response = await _callKw(
           model: 'product.template',
           method: 'web_search_read',
           args: [],
           kwargs: {
-            'domain': [],
+            'domain': categoryId != null ? [['mobile_categ_id', '=', categoryId]] : [],
             'specification': {
               'id': {},
               'name': {},

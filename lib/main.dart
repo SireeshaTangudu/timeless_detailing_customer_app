@@ -30,8 +30,8 @@ void main() {
   // =========================================================================
   final odooService = OdooApiService(
     baseUrl:
-        'https://keerthan-lfi-lfi-timeless-detailing-uat-36279192.dev.odoo.com/odoo',
-    db: 'keerthan-lfi-lfi-timeless-detailing-uat-36279192',
+        'https://keerthan-lfi-lfi-timeless-detailing-uat-36441944.dev.odoo.com',
+    db: 'keerthan-lfi-lfi-timeless-detailing-uat-36441944',
   );
 
   runApp(

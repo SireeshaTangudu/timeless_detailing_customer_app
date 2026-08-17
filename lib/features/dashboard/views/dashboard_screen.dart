@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -8,6 +9,8 @@ import 'package:timeless_detailing_customer_app/features/auth/controllers/auth_c
 import 'package:timeless_detailing_customer_app/features/services/controllers/services_controller.dart';
 import 'package:timeless_detailing_customer_app/features/services/models/service_model.dart';
 import 'package:intl/intl.dart';
+import 'package:timeless_detailing_customer_app/features/services/models/product_category_model.dart';
+import 'package:timeless_detailing_customer_app/features/services/views/services_list_screen.dart';
 import 'package:timeless_detailing_customer_app/features/services/views/interior_detailing_screen.dart';
 import 'package:timeless_detailing_customer_app/features/services/views/service_detail_screen.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/controllers/bookings_controller.dart';
@@ -110,23 +113,56 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildServiceImage(DetailService service) {
+    const baseUrl = 'https://keerthan-lfi-lfi-timeless-detailing-uat-36441944.dev.odoo.com';
+
+    // 1. Base64 mobileImage
+    if (service.mobileImage != null &&
+        service.mobileImage!.length > 100 &&
+        !service.mobileImage!.startsWith('http')) {
+      try {
+        final bytes = base64Decode(service.mobileImage!);
+        return Image.memory(bytes, fit: BoxFit.contain);
+      } catch (_) {}
+    }
+
+    // 2. Relative / Absolute image URL from API response
+    final rawImgUrl = (service.mobileImage != null && service.mobileImage!.isNotEmpty)
+        ? service.mobileImage
+        : (service.imageUrl.isNotEmpty ? service.imageUrl : null);
+
+    if (rawImgUrl != null && rawImgUrl.isNotEmpty) {
+      final fullUrl = rawImgUrl.startsWith('http') ? rawImgUrl : '$baseUrl$rawImgUrl';
+      return Image.network(
+        fullUrl,
+        fit: BoxFit.contain,
+        filterQuality: FilterQuality.high,
+        isAntiAlias: true,
+        errorBuilder: (context, error, stackTrace) => _buildFallbackServiceAsset(service),
+      );
+    }
+
+    // 3. Odoo REST image endpoint for product template
+    if (service.odooProductId != null) {
+      final odooImgUrl = '$baseUrl/web/image?model=product.template&id=${service.odooProductId}&field=mobile_image';
+      return Image.network(
+        odooImgUrl,
+        fit: BoxFit.contain,
+        filterQuality: FilterQuality.high,
+        isAntiAlias: true,
+        errorBuilder: (context, error, stackTrace) => _buildFallbackServiceAsset(service),
+      );
+    }
+
+    return _buildFallbackServiceAsset(service);
+  }
+
+  Widget _buildFallbackServiceAsset(DetailService service) {
     final assetPath = service.assetImagePath;
     if (assetPath != null && assetPath.isNotEmpty) {
       return _AssetServiceImage(
         assetPath: assetPath,
         fallback: _buildFallbackIcon(service),
         backgroundColor: Colors.transparent,
-      );
-    }
-    if (service.imageUrl.startsWith('http')) {
-      return Image.network(
-        service.imageUrl,
-        fit: BoxFit.contain,
-        filterQuality: FilterQuality.high,
-        isAntiAlias: true,
-        width: double.infinity,
-        errorBuilder: (context, error, stackTrace) =>
-            _buildFallbackIcon(service),
       );
     }
     return _buildFallbackIcon(service);
@@ -149,7 +185,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget build(BuildContext context) {
     final auth = Provider.of<AuthController>(context);
     final servicesController = Provider.of<ServicesController>(context);
-    final displayServices = servicesController.services;
+    final displayServices = servicesController.filteredServices;
     final media = MediaQuery.of(context);
     final safeBottom = media.padding.bottom;
 
@@ -235,7 +271,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 32),
+                const SizedBox(height: 24),
 
                 // Welcome Subheading
                 Text(
@@ -247,7 +283,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     letterSpacing: 0.2,
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 8),
 
                 // Main Display Headline: "What are you looking for today?"
                 Text(
@@ -262,7 +298,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
                 const Spacer(),
 
-                // Cue Label: "Swipe to view all services »"
+                // Cue Label: "Swipe to view all categories »"
                 Align(
                   alignment: Alignment.bottomRight,
                   child: Padding(
@@ -271,7 +307,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          'Swipe to view all services',
+                          'Swipe to view all categories',
                           style: GoogleFonts.lora(
                             fontSize: 12,
                             fontStyle: FontStyle.italic,
@@ -290,92 +326,36 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                 ),
 
-                // Horizontal Scrollable Cards View
+                // Horizontal Scrollable Cards View for Product Categories
                 SizedBox(
                   height: 200,
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    physics: const BouncingScrollPhysics(),
-                    itemCount: displayServices.length,
-                    separatorBuilder: (context, index) =>
-                        const SizedBox(width: 16),
-                    itemBuilder: (context, index) {
-                      final item = displayServices[index];
-
-                      return GestureDetector(
-                        onTap: () {
-                          if (item.name.toLowerCase().contains('interior')) {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    const InteriorDetailingScreen(),
-                              ),
-                            );
-                          } else {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    ServiceDetailScreen(service: item),
-                              ),
-                            );
-                          }
-                        },
-                        child: Container(
-                          width: 160,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 14,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: const Color(0xFFEBE7DF),
-                              width: 1,
+                  child: servicesController.isLoading
+                      ? const Center(
+                          child: CircularProgressIndicator(color: Color(0xFFC4913F)),
+                        )
+                      : servicesController.productCategories.isNotEmpty
+                          ? ListView.separated(
+                              scrollDirection: Axis.horizontal,
+                              physics: const BouncingScrollPhysics(),
+                              itemCount: servicesController.productCategories.length,
+                              separatorBuilder: (context, index) =>
+                                  const SizedBox(width: 16),
+                              itemBuilder: (context, index) {
+                                final category = servicesController.productCategories[index];
+                                return _buildProductCategoryCard(context, category, servicesController);
+                              },
+                            )
+                          : ListView.separated(
+                              scrollDirection: Axis.horizontal,
+                              physics: const BouncingScrollPhysics(),
+                              itemCount: displayServices.length,
+                              separatorBuilder: (context, index) =>
+                                  const SizedBox(width: 16),
+                              itemBuilder: (context, index) {
+                                final item = displayServices[index];
+                                return _buildServiceCard(context, item);
+                              },
                             ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.04),
-                                blurRadius: 12,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Service PNG image / icon placed at TOP of card (matching Figma 100x86)
-                              Align(
-                                alignment: Alignment.topRight,
-                                child: SizedBox(
-                                  width: 100,
-                                  height: 86,
-                                  child: _buildServiceImage(item),
-                                ),
-                              ),
-                              const Spacer(),
-
-                              // Service Title at the BOTTOM of the card (matching Figma)
-                              Text(
-                                item.name,
-                                style: GoogleFonts.lora(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.w400,
-                                  color: const Color(0xFF3A2F1E),
-                                  height: 1.2,
-                                ),
-                                textAlign: TextAlign.left,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
-                  ),
                 ),
 
                 const SizedBox(height: 18),
@@ -581,5 +561,224 @@ class _DashboardScreenState extends State<DashboardScreen> {
         );
       }
     }
+  }
+
+  Widget _buildCategoryImage(ProductCategory category, String? assetImg, IconData iconData) {
+    const baseUrl = 'https://keerthan-lfi-lfi-timeless-detailing-uat-36441944.dev.odoo.com';
+
+    // 1. Base64 image string
+    if (category.image != null &&
+        category.image!.length > 100 &&
+        !category.image!.startsWith('http')) {
+      try {
+        final bytes = base64Decode(category.image!);
+        return Image.memory(bytes, fit: BoxFit.contain);
+      } catch (_) {}
+    }
+
+    // 2. Relative or absolute image URL
+    if (category.image != null && category.image!.isNotEmpty) {
+      final fullUrl = category.image!.startsWith('http')
+          ? category.image!
+          : '$baseUrl${category.image}';
+      return Image.network(
+        fullUrl,
+        fit: BoxFit.contain,
+        errorBuilder: (context, error, stackTrace) =>
+            _buildFallbackCategoryAsset(assetImg, iconData),
+      );
+    }
+
+    // 3. Odoo web image REST endpoint for category model
+    final odooCategoryUrl =
+        '$baseUrl/web/image?model=timeless.product.category&id=${category.id}&field=image';
+    return Image.network(
+      odooCategoryUrl,
+      fit: BoxFit.contain,
+      errorBuilder: (context, error, stackTrace) =>
+          _buildFallbackCategoryAsset(assetImg, iconData),
+    );
+  }
+
+  Widget _buildFallbackCategoryAsset(String? assetImg, IconData iconData) {
+    if (assetImg != null && assetImg.isNotEmpty) {
+      return _AssetServiceImage(
+        assetPath: assetImg,
+        fallback: Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFFFBF9F5),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(iconData, size: 28, color: AppTheme.primary),
+        ),
+        backgroundColor: Colors.transparent,
+      );
+    }
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFFFBF9F5),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Icon(iconData, size: 28, color: AppTheme.primary),
+    );
+  }
+
+  Widget _buildProductCategoryCard(
+    BuildContext context,
+    ProductCategory category,
+    ServicesController controller,
+  ) {
+    final lowerName = category.name.toLowerCase();
+    String? assetImg;
+    IconData iconData = Icons.auto_awesome_outlined;
+
+    if (lowerName.contains('protection') || lowerName.contains('ppf')) {
+      assetImg = 'assets/services/paint_care/paint_care.png';
+      iconData = Icons.shield_outlined;
+    } else if (lowerName.contains('paint') || lowerName.contains('care')) {
+      assetImg = 'assets/services/paint_care/paint_care.png';
+      iconData = Icons.directions_car_outlined;
+    } else if (lowerName.contains('interior')) {
+      assetImg = 'assets/services/interior/interior_detailing.png';
+      iconData = Icons.airline_seat_recline_extra_outlined;
+    } else if (lowerName.contains('maintenance')) {
+      iconData = Icons.calendar_month_outlined;
+    }
+
+    return GestureDetector(
+      onTap: () {
+        controller.selectCategoryById(category.id, category.name);
+        if (lowerName.contains('interior')) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const InteriorDetailingScreen(),
+            ),
+          );
+        } else {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const ServicesListScreen(),
+            ),
+          );
+        }
+      },
+      child: Container(
+        width: 160,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: const Color(0xFFEBE7DF),
+            width: 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Category Image or Icon at top right (API response image with fallback)
+            Align(
+              alignment: Alignment.topRight,
+              child: SizedBox(
+                width: 100,
+                height: 86,
+                child: _buildCategoryImage(category, assetImg, iconData),
+              ),
+            ),
+            const Spacer(),
+
+            // Category Name
+            Text(
+              category.name,
+              style: GoogleFonts.lora(
+                fontSize: 20,
+                fontWeight: FontWeight.w400,
+                color: const Color(0xFF3A2F1E),
+                height: 1.2,
+              ),
+              textAlign: TextAlign.left,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildServiceCard(BuildContext context, DetailService item) {
+    return GestureDetector(
+      onTap: () {
+        if (item.name.toLowerCase().contains('interior')) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const InteriorDetailingScreen(),
+            ),
+          );
+        } else {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ServiceDetailScreen(service: item),
+            ),
+          );
+        }
+      },
+      child: Container(
+        width: 160,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: const Color(0xFFEBE7DF),
+            width: 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Align(
+              alignment: Alignment.topRight,
+              child: SizedBox(
+                width: 100,
+                height: 86,
+                child: _buildServiceImage(item),
+              ),
+            ),
+            const Spacer(),
+            Text(
+              item.name,
+              style: GoogleFonts.lora(
+                fontSize: 20,
+                fontWeight: FontWeight.w400,
+                color: const Color(0xFF3A2F1E),
+                height: 1.2,
+              ),
+              textAlign: TextAlign.left,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

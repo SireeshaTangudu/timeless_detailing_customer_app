@@ -1,3 +1,62 @@
+import 'package:timeless_detailing_customer_app/features/services/models/service_variant_model.dart';
+
+class TimelessCoverageLine {
+  final int id;
+  final int sequence;
+  final String? view;
+  final String? viewImageUrl;
+  final String? panelKey;
+  final String title;
+  final String? icon;
+  final double xPercent;
+  final double yPercent;
+  final String? description;
+  final int? productId;
+  final String? productDisplayName;
+
+  const TimelessCoverageLine({
+    required this.id,
+    required this.sequence,
+    this.view,
+    this.viewImageUrl,
+    this.panelKey,
+    required this.title,
+    this.icon,
+    this.xPercent = 0.0,
+    this.yPercent = 0.0,
+    this.description,
+    this.productId,
+    this.productDisplayName,
+  });
+
+  factory TimelessCoverageLine.fromJson(Map<String, dynamic> json) {
+    int? pId;
+    String? pName;
+    if (json['product_id'] is Map) {
+      pId = json['product_id']['id'] as int?;
+      pName = json['product_id']['display_name']?.toString();
+    } else if (json['product_id'] is List && (json['product_id'] as List).length >= 2) {
+      pId = (json['product_id'] as List)[0] as int?;
+      pName = (json['product_id'] as List)[1]?.toString();
+    }
+
+    return TimelessCoverageLine(
+      id: json['id'] is int ? json['id'] as int : 0,
+      sequence: json['sequence'] is int ? json['sequence'] as int : 0,
+      view: json['view']?.toString(),
+      viewImageUrl: json['view_image_url']?.toString(),
+      panelKey: json['panel_key']?.toString(),
+      title: json['title']?.toString() ?? '',
+      icon: json['icon']?.toString(),
+      xPercent: (json['x_percent'] as num?)?.toDouble() ?? 0.0,
+      yPercent: (json['y_percent'] as num?)?.toDouble() ?? 0.0,
+      description: json['description']?.toString(),
+      productId: pId,
+      productDisplayName: pName,
+    );
+  }
+}
+
 class DetailService {
   final String id;
   final String name;
@@ -10,6 +69,11 @@ class DetailService {
   final int? odooProductId;
   final int? appointmentTypeId;
   final String? assetImagePath;
+  final int? mobileCategoryId;
+  final String? mobileCategoryName;
+  final String? mobileImage;
+  final List<TimelessCoverageLine> coverageLines;
+  final List<ProductVariant> variants;
 
   const DetailService({
     required this.id,
@@ -23,6 +87,11 @@ class DetailService {
     this.odooProductId,
     this.appointmentTypeId,
     this.assetImagePath,
+    this.mobileCategoryId,
+    this.mobileCategoryName,
+    this.mobileImage,
+    this.coverageLines = const [],
+    this.variants = const [],
   });
 
   factory DetailService.fromOdooJson(Map<String, dynamic> json) {
@@ -46,9 +115,23 @@ class DetailService {
     final serviceName = json['name']?.toString() ?? 'Unknown Service';
     final lowerName = serviceName.toLowerCase();
 
-    String derivedCategory = json['categ_id'] is List
-        ? (json['categ_id'] as List)[1].toString()
-        : (json['categ_id']?.toString() ?? 'General');
+    int? mobileCatId;
+    String? mobileCatName;
+
+    if (json['mobile_categ_id'] is Map) {
+      final m = json['mobile_categ_id'] as Map;
+      mobileCatId = m['id'] as int?;
+      mobileCatName = m['name']?.toString();
+    } else if (json['mobile_categ_id'] is List && (json['mobile_categ_id'] as List).isNotEmpty) {
+      final list = json['mobile_categ_id'] as List;
+      mobileCatId = list[0] is int ? list[0] as int : int.tryParse(list[0].toString());
+      if (list.length > 1) mobileCatName = list[1].toString();
+    }
+
+    String derivedCategory = mobileCatName ??
+        (json['categ_id'] is List
+            ? (json['categ_id'] as List)[1].toString()
+            : (json['categ_id']?.toString() ?? 'General'));
 
     String? assetImg;
     if (lowerName.contains('ppf') || lowerName.contains('protect')) {
@@ -79,6 +162,24 @@ class DetailService {
       apptTypeId = json['appointment_type_id'] as int;
     }
 
+    List<TimelessCoverageLine> parsedCoverage = [];
+    if (json['timeless_coverage_line_ids'] is List) {
+      parsedCoverage = (json['timeless_coverage_line_ids'] as List)
+          .whereType<Map<String, dynamic>>()
+          .map((c) => TimelessCoverageLine.fromJson(c))
+          .toList();
+    }
+
+    List<ProductVariant> parsedVariants = [];
+    if (json['product_variant_ids'] is List) {
+      parsedVariants = (json['product_variant_ids'] as List)
+          .whereType<Map<String, dynamic>>()
+          .map((v) => ProductVariant.fromJson(v))
+          .toList();
+    }
+
+    final mobileImgStr = json['mobile_image'] is String ? json['mobile_image'] as String : null;
+
     return DetailService(
       id: json['id']?.toString() ?? json['id'].toString(),
       name: serviceName,
@@ -95,6 +196,11 @@ class DetailService {
           : int.tryParse(json['id']?.toString() ?? ''),
       appointmentTypeId: apptTypeId,
       assetImagePath: assetImg,
+      mobileCategoryId: mobileCatId,
+      mobileCategoryName: mobileCatName,
+      mobileImage: mobileImgStr,
+      coverageLines: parsedCoverage,
+      variants: parsedVariants,
     );
   }
 
@@ -110,6 +216,10 @@ class DetailService {
       'whatsIncluded': whatsIncluded,
       'odooProductId': odooProductId,
       'assetImagePath': assetImagePath,
+      'mobileCategoryId': mobileCategoryId,
+      'mobileCategoryName': mobileCategoryName,
+      'mobileImage': mobileImage,
     };
   }
 }
+

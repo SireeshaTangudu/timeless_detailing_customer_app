@@ -1,276 +1,277 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:timeless_detailing_customer_app/core/theme/app_theme.dart';
-import 'package:timeless_detailing_customer_app/core/widgets/custom_app_bar.dart';
 import 'package:timeless_detailing_customer_app/features/services/controllers/services_controller.dart';
-import 'package:timeless_detailing_customer_app/features/services/views/service_variants_screen.dart';
+import 'package:timeless_detailing_customer_app/features/services/models/service_model.dart';
+import 'package:timeless_detailing_customer_app/features/services/views/service_interactive_detail_screen.dart';
 
 class ServicesListScreen extends StatelessWidget {
   final VoidCallback? onMenuTap;
 
   const ServicesListScreen({super.key, this.onMenuTap});
 
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final controller = Provider.of<ServicesController>(context);
+  Widget _buildChildServiceIcon(DetailService service) {
+    const baseUrl =
+        'https://keerthan-lfi-lfi-timeless-detailing-uat-36441944.dev.odoo.com';
+
+    // 1. Base64 mobileImage string from Odoo API
+    if (service.mobileImage != null &&
+        service.mobileImage!.length > 100 &&
+        !service.mobileImage!.startsWith('http')) {
+      try {
+        final bytes = base64Decode(service.mobileImage!);
+        return Image.memory(bytes, fit: BoxFit.contain);
+      } catch (_) {}
+    }
+
+    // 2. Relative or absolute image URL from API response
+    final rawImgUrl =
+        (service.mobileImage != null && service.mobileImage!.isNotEmpty)
+        ? service.mobileImage
+        : (service.imageUrl.isNotEmpty ? service.imageUrl : null);
+
+    if (rawImgUrl != null && rawImgUrl.isNotEmpty) {
+      final fullUrl = rawImgUrl.startsWith('http')
+          ? rawImgUrl
+          : '$baseUrl$rawImgUrl';
+      return Image.network(
+        fullUrl,
+        fit: BoxFit.contain,
+        errorBuilder: (context, error, stackTrace) =>
+            _buildFallbackChildServiceAsset(service),
+      );
+    }
+
+    // 3. Odoo product.template REST endpoint
+    if (service.odooProductId != null) {
+      final odooImgUrl =
+          '$baseUrl/web/image?model=product.template&id=${service.odooProductId}&field=mobile_image';
+      return Image.network(
+        odooImgUrl,
+        fit: BoxFit.contain,
+        errorBuilder: (context, error, stackTrace) =>
+            _buildFallbackChildServiceAsset(service),
+      );
+    }
+
+    return _buildFallbackChildServiceAsset(service);
+  }
+
+  Widget _buildFallbackChildServiceAsset(DetailService service) {
+    if (service.assetImagePath != null && service.assetImagePath!.isNotEmpty) {
+      return Image.asset(
+        service.assetImagePath!,
+        fit: BoxFit.contain,
+        errorBuilder: (context, error, stackTrace) =>
+            _buildFallbackIcon(service.name),
+      );
+    }
+    return _buildFallbackIcon(service.name);
+  }
+
+  Widget _buildFallbackIcon(String serviceName) {
+    final lower = serviceName.toLowerCase();
+    IconData iconData = Icons.auto_awesome_outlined;
+    if (lower.contains('enhancement') || lower.contains('paint')) {
+      iconData = Icons.directions_car_outlined;
+    } else if (lower.contains('correction')) {
+      iconData = Icons.auto_fix_high_outlined;
+    } else if (lower.contains('interior') || lower.contains('seat')) {
+      iconData = Icons.airline_seat_recline_extra_outlined;
+    } else if (lower.contains('coat') || lower.contains('shield')) {
+      iconData = Icons.shield_outlined;
+    }
 
     return Container(
-      color: const Color(0xFFF9F7F4),
-      child: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            CustomAppBar(
-              title: 'Services',
-              subtitle: 'Explore our premium detailing packages',
-              showBackButton: true,
-              backIcon: Icons.arrow_back_sharp,
-              onBackPressed: () {
-                if (Navigator.canPop(context)) {
-                  Navigator.pop(context);
-                } else if (onMenuTap != null) {
-                  onMenuTap!();
-                }
-              },
-            ),
-            const SizedBox(height: 10),
-            // Category chips
-            if (controller.services.isNotEmpty)
-              SizedBox(
-                height: 40,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  itemCount: controller.categories.length,
-                  separatorBuilder: (context, index) =>
-                      const SizedBox(width: 8),
-                  itemBuilder: (context, index) {
-                    final cat = controller.categories[index];
-                    final isSelected = controller.selectedCategory == cat;
+      decoration: BoxDecoration(
+        color: const Color(0xFFFBF9F5),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Icon(iconData, size: 30, color: const Color(0xFFC4913F)),
+    );
+  }
 
-                    return GestureDetector(
-                      onTap: () => controller.selectCategory(cat),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
+  @override
+  Widget build(BuildContext context) {
+    final controller = Provider.of<ServicesController>(context);
+    final selectedCategoryName = controller.selectedCategory;
+    final displayServices = controller.filteredServices;
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFF9F7F4),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header Row: Circular Back Button matching Figma
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () {
+                      if (Navigator.canPop(context)) {
+                        Navigator.pop(context);
+                      } else if (onMenuTap != null) {
+                        onMenuTap!();
+                      }
+                    },
+                    child: Container(
+                      width: 38,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: const Color(0xFFAB8C5A),
+                          width: 1.2,
                         ),
-                        decoration: BoxDecoration(
-                          color: isSelected
-                              ? AppTheme.primary
-                              : AppTheme.surface,
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: isSelected
-                                ? AppTheme.primary
-                                : AppTheme.cardBorder,
-                          ),
-                        ),
-                        child: Center(
-                          child: Text(
-                            cat,
-                            style: GoogleFonts.outfit(
-                              fontSize: 13,
-                              fontWeight: FontWeight.bold,
-                              color: isSelected
-                                  ? AppTheme.background
-                                  : AppTheme.textPrimary,
-                            ),
-                          ),
-                        ),
+                        color: Colors.white,
                       ),
-                    );
-                  },
+                      child: const Icon(
+                        Icons.arrow_back,
+                        size: 20,
+                        color: Color(0xFFAB8C5A),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+
+              // Parent Service / Category Title in Elegant Serif (matching Figma)
+              Text(
+                selectedCategoryName == 'All'
+                    ? 'Services'
+                    : selectedCategoryName,
+                style: GoogleFonts.lora(
+                  fontSize: 32,
+                  fontWeight: FontWeight.w500,
+                  color: const Color(0xFF3A2F1E),
+                  height: 1.15,
                 ),
               ),
-            const SizedBox(height: 16),
+              const SizedBox(height: 24),
 
-            // Catalog Listing
-            Expanded(
-              child: controller.isLoading
-                  ? const Center(
-                      child: CircularProgressIndicator(color: AppTheme.primary),
-                    )
-                  : controller.errorMessage != null
-                  ? Center(
-                      child: Text(
-                        controller.errorMessage!,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: AppTheme.error,
+              // 2-Column Child Services Grid (Matching Figma Layout)
+              Expanded(
+                child: controller.isLoading
+                    ? const Center(
+                        child: CircularProgressIndicator(
+                          color: Color(0xFFC4913F),
                         ),
-                      ),
-                    )
-                  : controller.filteredServices.isEmpty
-                  ? const Center(
-                      child: Text(
-                        'No detailing services found in this category.',
-                      ),
-                    )
-                  : ListView.separated(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 10,
-                      ),
-                      itemCount: controller.filteredServices.length,
-                      separatorBuilder: (context, index) =>
-                          const SizedBox(height: 16),
-                      itemBuilder: (context, index) {
-                        final service = controller.filteredServices[index];
-                        return GestureDetector(
-                          onTap: () {
-                            final templateId =
-                                service.odooProductId ??
-                                int.tryParse(service.id) ??
-                                4;
-                            debugPrint(
-                              '🔵 [ServicesListScreen] Tapped service "${service.name}", opening ServiceVariantsScreen for templateId=$templateId',
-                            );
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => ServiceVariantsScreen(
-                                  parentService: service,
-                                ),
-                              ),
-                            );
-                          },
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: AppTheme.surface,
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: AppTheme.cardBorder),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                // Image top border rounded
-                                ClipRRect(
-                                  borderRadius: const BorderRadius.vertical(
-                                    top: Radius.circular(15),
-                                  ),
-                                  child:
-                                      service.assetImagePath != null &&
-                                          service.assetImagePath!.isNotEmpty
-                                      ? Image.asset(
-                                          service.assetImagePath!,
-                                          height: 160,
-                                          fit: BoxFit.cover,
-                                        )
-                                      : (service.imageUrl.startsWith('http')
-                                            ? Image.network(
-                                                service.imageUrl,
-                                                height: 160,
-                                                fit: BoxFit.cover,
-                                                errorBuilder:
-                                                    (
-                                                      context,
-                                                      error,
-                                                      stackTrace,
-                                                    ) => Container(
-                                                      height: 160,
-                                                      color:
-                                                          AppTheme.surfaceLight,
-                                                      child: const Icon(
-                                                        Icons
-                                                            .broken_image_outlined,
-                                                        color: AppTheme.primary,
-                                                      ),
-                                                    ),
-                                              )
-                                            : Container(
-                                                height: 160,
-                                                color: AppTheme.surfaceLight,
-                                                child: const Icon(
-                                                  Icons
-                                                      .cleaning_services_rounded,
-                                                  color: AppTheme.primary,
-                                                  size: 40,
-                                                ),
-                                              )),
-                                ),
-                                Padding(
-                                  padding: const EdgeInsets.all(16.0),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Expanded(
-                                            child: Text(
-                                              service.name,
-                                              style:
-                                                  theme.textTheme.titleMedium,
-                                            ),
-                                          ),
-                                          Text(
-                                            '\$${service.price.toStringAsFixed(2)}',
-                                            style: theme.textTheme.titleMedium
-                                                ?.copyWith(
-                                                  color: AppTheme.primary,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 6),
-                                      Text(
-                                        service.description,
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: theme.textTheme.bodyMedium,
-                                      ),
-                                      const SizedBox(height: 14),
-                                      Row(
-                                        children: [
-                                          const Icon(
-                                            Icons.access_time_filled,
-                                            size: 16,
-                                            color: AppTheme.primary,
-                                          ),
-                                          const SizedBox(width: 6),
-                                          Text(
-                                            'Est: ${service.durationHours} hrs',
-                                            style: theme.textTheme.bodySmall
-                                                ?.copyWith(
-                                                  color: AppTheme.textSecondary,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                          ),
-                                          const Spacer(),
-                                          Row(
-                                            children: [
-                                              Text(
-                                                'Details',
-                                                style: theme
-                                                    .textTheme
-                                                    .labelLarge
-                                                    ?.copyWith(fontSize: 12),
-                                              ),
-                                              const SizedBox(width: 4),
-                                              const Icon(
-                                                Icons.arrow_forward_ios,
-                                                size: 10,
-                                                color: AppTheme.primary,
-                                              ),
-                                            ],
-                                          ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
+                      )
+                    : controller.errorMessage != null
+                    ? Center(
+                        child: Text(
+                          controller.errorMessage!,
+                          style: GoogleFonts.outfit(
+                            color: AppTheme.error,
+                            fontSize: 14,
                           ),
-                        );
-                      },
-                    ),
+                        ),
+                      )
+                    : displayServices.isEmpty
+                    ? Center(
+                        child: Text(
+                          'No services available in this category.',
+                          style: GoogleFonts.lora(
+                            fontSize: 15,
+                            color: const Color(0xFF7A6F5D),
+                          ),
+                        ),
+                      )
+                    : GridView.builder(
+                        physics: const BouncingScrollPhysics(),
+                        itemCount: displayServices.length,
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 2,
+                              mainAxisSpacing: 16,
+                              crossAxisSpacing: 16,
+                              childAspectRatio: 0.85,
+                            ),
+                        itemBuilder: (context, index) {
+                          final childService = displayServices[index];
+                          return _buildChildServiceCard(context, childService);
+                        },
+                      ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildChildServiceCard(BuildContext context, DetailService service) {
+    return GestureDetector(
+      onTap: () {
+        debugPrint(
+          '🔵 [ServicesListScreen] Tapped child service "${service.name}", opening ServiceInteractiveDetailScreen...',
+        );
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) =>
+                ServiceInteractiveDetailScreen(service: service),
+          ),
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFEBE7DF), width: 1),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
             ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Top Right Illustration / Icon (Matching Figma)
+            Align(
+              alignment: Alignment.topRight,
+              child: SizedBox(
+                width: 89,
+                height: 67,
+                child: _buildChildServiceIcon(service),
+              ),
+            ),
+            const Spacer(),
+
+            // Service Title at Bottom Left in Elegant Serif
+            Text(
+              service.name,
+              style: GoogleFonts.lora(
+                fontSize: 18,
+                fontWeight: FontWeight.w400,
+                color: const Color(0xFF3A2F1E),
+                height: 1.2,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            if (service.price > 0) ...[
+              const SizedBox(height: 4),
+              Text(
+                '\$${service.price.toStringAsFixed(0)}',
+                style: GoogleFonts.outfit(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFFC4913F),
+                ),
+              ),
+            ],
           ],
         ),
       ),

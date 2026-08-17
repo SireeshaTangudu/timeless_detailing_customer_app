@@ -96,6 +96,10 @@ class ProductVariant {
   final List<ProductVariantValue> variantValues;
   final AppointmentType? appointmentType;
   final AppointmentResource? appointmentResource;
+  final String? pageTagline;
+  final String? pageIntro;
+  final String? pageConclusion;
+  final List<String> featureLines;
 
   const ProductVariant({
     required this.id,
@@ -105,6 +109,10 @@ class ProductVariant {
     required this.variantValues,
     this.appointmentType,
     this.appointmentResource,
+    this.pageTagline,
+    this.pageIntro,
+    this.pageConclusion,
+    this.featureLines = const [],
   });
 
   factory ProductVariant.fromJson(Map<String, dynamic> json) {
@@ -125,6 +133,29 @@ class ProductVariant {
       apptResource = AppointmentResource.fromJson(json['appointment_resource_id'] as Map<String, dynamic>);
     }
 
+    List<String> features = [];
+    if (json['timeless_feature_line_ids'] is List) {
+      for (final item in json['timeless_feature_line_ids']) {
+        if (item is Map && item['text'] != null) {
+          features.add(item['text'].toString());
+        } else if (item is String) {
+          features.add(item);
+        }
+      }
+    }
+
+    final tagline = (json['timeless_page_tagline'] != false && json['timeless_page_tagline'] != null)
+        ? json['timeless_page_tagline'].toString()
+        : null;
+
+    final intro = (json['timeless_page_intro'] != false && json['timeless_page_intro'] != null)
+        ? json['timeless_page_intro'].toString()
+        : null;
+
+    final conclusion = (json['timeless_page_conclusion'] != false && json['timeless_page_conclusion'] != null)
+        ? json['timeless_page_conclusion'].toString()
+        : null;
+
     return ProductVariant(
       id: json['id'] is int ? json['id'] as int : int.tryParse(json['id']?.toString() ?? '0') ?? 0,
       name: json['name']?.toString() ?? '',
@@ -133,6 +164,10 @@ class ProductVariant {
       variantValues: values,
       appointmentType: apptType,
       appointmentResource: apptResource,
+      pageTagline: tagline,
+      pageIntro: intro,
+      pageConclusion: conclusion,
+      featureLines: features,
     );
   }
 }
