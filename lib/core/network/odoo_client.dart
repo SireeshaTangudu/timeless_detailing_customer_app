@@ -1125,7 +1125,9 @@ class OdooApiService implements BaseOdooService {
               'limit': 1,
             },
           );
-          debugPrint('🔵 [OdooApiService] product.product search_read by ID result: $prodResp');
+          debugPrint(
+            '🔵 [OdooApiService] product.product search_read by ID result: $prodResp',
+          );
 
           Map<String, dynamic>? prodMap;
           if (prodResp is List && prodResp.isNotEmpty) {
@@ -1150,7 +1152,9 @@ class OdooApiService implements BaseOdooService {
                 'limit': 1,
               },
             );
-            debugPrint('🔵 [OdooApiService] product.product search_read by tmpl_id result: $tmplSearch');
+            debugPrint(
+              '🔵 [OdooApiService] product.product search_read by tmpl_id result: $tmplSearch',
+            );
             if (tmplSearch is List && tmplSearch.isNotEmpty) {
               prodMap = Map<String, dynamic>.from(tmplSearch.first as Map);
               effectiveProductId = prodMap['id'] as int;
@@ -1165,15 +1169,17 @@ class OdooApiService implements BaseOdooService {
             debugPrint(
               '🟢 [OdooApiService] Raw appointment_type_id from prodMap: $rawAppt (type: ${rawAppt.runtimeType})',
             );
-            if (rawAppt is Map && rawAppt['id'] is int) {
-              effectiveAppointmentTypeId = rawAppt['id'] as int;
-            } else if (rawAppt is List && rawAppt.isNotEmpty) {
-              final id = rawAppt[0] is int
-                  ? rawAppt[0] as int
-                  : int.tryParse(rawAppt[0].toString());
-              if (id != null) effectiveAppointmentTypeId = id;
-            } else if (rawAppt is int) {
-              effectiveAppointmentTypeId = rawAppt;
+            if (effectiveAppointmentTypeId <= 0) {
+              if (rawAppt is Map && rawAppt['id'] is int) {
+                effectiveAppointmentTypeId = rawAppt['id'] as int;
+              } else if (rawAppt is List && rawAppt.isNotEmpty) {
+                final id = rawAppt[0] is int
+                    ? rawAppt[0] as int
+                    : int.tryParse(rawAppt[0].toString());
+                if (id != null) effectiveAppointmentTypeId = id;
+              } else if (rawAppt is int) {
+                effectiveAppointmentTypeId = rawAppt;
+              }
             }
 
             final rawRes =
@@ -1182,23 +1188,27 @@ class OdooApiService implements BaseOdooService {
             debugPrint(
               '🟢 [OdooApiService] Raw appointment_resource_id from prodMap: $rawRes (type: ${rawRes.runtimeType})',
             );
-            if (rawRes is Map && rawRes['id'] is int) {
-              effectiveResourceId = rawRes['id'] as int;
-            } else if (rawRes is List && rawRes.isNotEmpty) {
-              final first = rawRes[0];
-              if (first is int) {
-                effectiveResourceId = first;
-              } else if (first is Map && first['id'] is int) {
-                effectiveResourceId = first['id'] as int;
+            if (effectiveResourceId == null || effectiveResourceId <= 0) {
+              if (rawRes is Map && rawRes['id'] is int) {
+                effectiveResourceId = rawRes['id'] as int;
+              } else if (rawRes is List && rawRes.isNotEmpty) {
+                final first = rawRes[0];
+                if (first is int) {
+                  effectiveResourceId = first;
+                } else if (first is Map && first['id'] is int) {
+                  effectiveResourceId = first['id'] as int;
+                }
+              } else if (rawRes is int) {
+                effectiveResourceId = rawRes;
               }
-            } else if (rawRes is int) {
-              effectiveResourceId = rawRes;
             }
             debugPrint(
               '🟢 [OdooApiService] Effective ApptType ID=$effectiveAppointmentTypeId, Resource ID=$effectiveResourceId, Product ID=$effectiveProductId',
             );
           } else {
-            debugPrint('🟡 [OdooApiService] prodMap is NULL after variant search for productId=$productId');
+            debugPrint(
+              '🟡 [OdooApiService] prodMap is NULL after variant search for productId=$productId',
+            );
           }
         } catch (checkErr, stack) {
           debugPrint(
@@ -1259,6 +1269,8 @@ class OdooApiService implements BaseOdooService {
         'vehicle_images': formattedImages,
       };
 
+      debugPrint('payload: $payload');
+
       final response = await _callKw(
         model: 'calendar.event',
         method: 'web_save',
@@ -1290,77 +1302,6 @@ class OdooApiService implements BaseOdooService {
       debugPrint(
         '🔴 [OdooApiService] Endpoint 4 (calendar.event/web_save) error: $errStr',
       );
-      if ((errStr.contains('Record does not exist') ||
-              errStr.contains('product.product')) &&
-          productId != null) {
-        debugPrint(
-          '🟡 [OdooApiService] Record does not exist for product.product($productId). Searching variant ID for template $productId...',
-        );
-        try {
-          final tmplSearch = await _callKw(
-            model: 'product.product',
-            method: 'search_read',
-            args: [
-              [
-                ['product_tmpl_id', '=', productId],
-              ],
-            ],
-            kwargs: {
-              'fields': ['id'],
-              'limit': 1,
-            },
-          );
-          if (tmplSearch is List && tmplSearch.isNotEmpty) {
-            final realVariantId = tmplSearch[0]['id'] as int;
-            debugPrint(
-              '🟢 [OdooApiService] Found real product.product ID=$realVariantId. Retrying bookAppointment...',
-            );
-            return bookAppointment(
-              name: name,
-              appointmentTypeId: appointmentTypeId,
-              productId: realVariantId,
-              appointmentBookerId: appointmentBookerId,
-              partnerIds: partnerIds,
-              start: start,
-              stop: stop,
-              duration: duration,
-              resourceId: resourceId,
-              phone: phone,
-              collectorName: collectorName,
-              collectorLicense: collectorLicense,
-              vehicleMake: vehicleMake,
-              vehicleModel: vehicleModel,
-              vehicleImagesBase64: vehicleImagesBase64,
-            );
-          }
-        } catch (varErr) {
-          debugPrint(
-            '🔴 [OdooApiService] Variant lookup retry failed: $varErr',
-          );
-        }
-      }
-      if (errStr.contains('cannot be used for') && appointmentTypeId != 2) {
-        debugPrint(
-          '🟡 [OdooApiService] Retrying Endpoint 4 with appointmentTypeId=2...',
-        );
-        return bookAppointment(
-          name: name,
-          appointmentTypeId: 2,
-          productId: productId,
-          appointmentBookerId: appointmentBookerId,
-          partnerIds: partnerIds,
-          start: start,
-          stop: stop,
-          duration: duration,
-          resourceId: resourceId,
-          phone: phone,
-          collectorName: collectorName,
-          collectorLicense: collectorLicense,
-          vehicleMake: vehicleMake,
-          vehicleModel: vehicleModel,
-          vehicleImagesBase64: vehicleImagesBase64,
-        );
-      }
       rethrow;
     }
   }
@@ -1376,7 +1317,11 @@ class OdooApiService implements BaseOdooService {
         kwargs: {
           'domain': [
             '|',
-            ['partner_ids', 'in', [partnerId]],
+            [
+              'partner_ids',
+              'in',
+              [partnerId],
+            ],
             ['appointment_booker_id', '=', partnerId],
           ],
           'specification': {
@@ -1669,7 +1614,7 @@ class OdooApiService implements BaseOdooService {
         model: 'res.company',
         method: 'web_read',
         args: [
-          [1]
+          [1],
         ],
         kwargs: {
           'specification': {
@@ -1683,16 +1628,10 @@ class OdooApiService implements BaseOdooService {
             'city': {},
             'zip': {},
             'state_id': {
-              'fields': {
-                'id': {},
-                'name': {},
-              },
+              'fields': {'id': {}, 'name': {}},
             },
             'country_id': {
-              'fields': {
-                'id': {},
-                'name': {},
-              },
+              'fields': {'id': {}, 'name': {}},
             },
             'latitude': {},
             'longitude': {},
@@ -1702,7 +1641,9 @@ class OdooApiService implements BaseOdooService {
       final List records = response is List ? response : [];
       if (records.isNotEmpty) {
         final comp = Map<String, dynamic>.from(records.first as Map);
-        debugPrint('🟢 [OdooApiService] Company location details: name=${comp['name']}, lat=${comp['latitude']}, lng=${comp['longitude']}');
+        debugPrint(
+          '🟢 [OdooApiService] Company location details: name=${comp['name']}, lat=${comp['latitude']}, lng=${comp['longitude']}',
+        );
         return comp;
       }
       return null;

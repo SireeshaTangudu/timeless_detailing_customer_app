@@ -226,21 +226,27 @@ class _ServiceVariantsScreenState extends State<ServiceVariantsScreen> {
   }
 
   DetailService _mapVariantToDetailService(ProductVariant v, DetailService parent) {
+    double durationHours = parent.durationHours;
+    if (v.appointmentType != null) {
+      final dur = (v.appointmentType!.appointmentDuration as num).toDouble();
+      durationHours = (dur > 0 && dur <= 12) ? dur : (dur / 60.0);
+    }
+
     return DetailService(
       id: v.id.toString(),
       name: v.displayName.isNotEmpty ? v.displayName : v.name,
-      description: v.appointmentType?.messageIntro.isNotEmpty == true
+      description: (v.appointmentType?.messageIntro != null &&
+              v.appointmentType!.messageIntro.isNotEmpty)
           ? v.appointmentType!.messageIntro
           : parent.description,
       price: v.lstPrice > 0 ? v.lstPrice : parent.price,
-      durationHours: v.appointmentType != null
-          ? (v.appointmentType!.appointmentDuration / 60.0)
-          : parent.durationHours,
+      durationHours: durationHours > 0 ? durationHours : 1.0,
       imageUrl: parent.imageUrl,
       category: parent.category,
       whatsIncluded: parent.whatsIncluded,
       odooProductId: v.id,
       appointmentTypeId: v.appointmentType?.id ?? parent.appointmentTypeId,
+      appointmentResourceId: v.appointmentResource?.id ?? parent.appointmentResourceId,
       assetImagePath: parent.assetImagePath,
     );
   }

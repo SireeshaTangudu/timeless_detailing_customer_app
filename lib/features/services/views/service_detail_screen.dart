@@ -238,10 +238,19 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
         subtitle: '\$${service.price.toStringAsFixed(2)}',
         buttonText: 'BOOK THIS SERVICE',
         onPressed: () {
+          final templateId = service.odooProductId ?? int.tryParse(service.id) ?? 4;
+          final variants = controller.getVariantsForTemplate(templateId);
+          final firstVar = variants.isNotEmpty ? variants.first : null;
+          final targetService = service.copyWith(
+            odooProductId: firstVar?.id ?? service.odooProductId,
+            appointmentTypeId: firstVar?.appointmentType?.id ?? service.appointmentTypeId,
+            appointmentResourceId: firstVar?.appointmentResource?.id ?? service.appointmentResourceId,
+            price: (firstVar != null && firstVar.lstPrice > 0) ? firstVar.lstPrice : service.price,
+          );
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => BookServiceScreen(initialService: service),
+              builder: (context) => BookServiceScreen(initialService: targetService),
             ),
           );
         },

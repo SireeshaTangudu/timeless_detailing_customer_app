@@ -13,6 +13,8 @@ import 'package:timeless_detailing_customer_app/features/services/models/service
 import 'package:timeless_detailing_customer_app/features/bookings/controllers/bookings_controller.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/models/estimation_model.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/views/estimation_screen.dart';
+import 'package:timeless_detailing_customer_app/features/services/controllers/services_controller.dart';
+import 'package:timeless_detailing_customer_app/features/dashboard/views/main_navigation_scaffold.dart';
 
 class BookServiceScreen extends StatefulWidget {
   final DetailService initialService;
@@ -39,15 +41,37 @@ class _BookServiceScreenState extends State<BookServiceScreen> {
 
   void _fetchOdooBookableSlots(DateTime date) {
     final controller = Provider.of<BookingsController>(context, listen: false);
-    final partnerId = controller.currentPartnerId ?? 26;
-    final appointmentTypeId = widget.initialService.appointmentTypeId ?? partnerId;
+    final servicesController = Provider.of<ServicesController>(
+      context,
+      listen: false,
+    );
+
+    int? apptTypeId = widget.initialService.appointmentTypeId;
+    int? resId = widget.initialService.appointmentResourceId;
+
+    if (apptTypeId == null || resId == null) {
+      final templateId =
+          widget.initialService.odooProductId ??
+          int.tryParse(widget.initialService.id) ??
+          4;
+      final variants = servicesController.getVariantsForTemplate(templateId);
+      if (variants.isNotEmpty) {
+        final firstVar = variants.first;
+        apptTypeId ??= firstVar.appointmentType?.id;
+        resId ??= firstVar.appointmentResource?.id;
+      }
+    }
+
+    final finalApptTypeId = apptTypeId ?? 3;
+    final finalResId = resId ?? 8;
+
     debugPrint(
-      '🔵 [BookServiceScreen] Calling Endpoint 3 (appointment.type/get_bookable_slots) for appointmentTypeId=$appointmentTypeId (partnerId=$partnerId), date=${DateFormat('yyyy-MM-dd').format(date)}...',
+      '🔵 [BookServiceScreen] Calling Endpoint 3 (appointment.type/get_bookable_slots) for appointmentTypeId=$finalApptTypeId, resourceId=$finalResId, date=${DateFormat('yyyy-MM-dd').format(date)}...',
     );
     controller.fetchBookableSlots(
-      appointmentTypeId: appointmentTypeId,
+      appointmentTypeId: finalApptTypeId,
       timezone: 'UTC',
-      resourceId: 1,
+      resourceId: finalResId,
       date: date,
     );
   }
@@ -173,8 +197,6 @@ class _BookServiceScreenState extends State<BookServiceScreen> {
     super.dispose();
   }
 
-
-
   void _handleConfirmBooking() async {
     final vehicleMake = _vehicleMakeController.text.trim();
     final vehicleModel = _vehicleModelController.text.trim();
@@ -220,9 +242,31 @@ class _BookServiceScreenState extends State<BookServiceScreen> {
       listen: false,
     );
 
-    final partnerId = bookingsController.currentPartnerId ?? 26;
-    final appointmentTypeId = widget.initialService.appointmentTypeId ?? partnerId;
-    final productId = widget.initialService.odooProductId;
+    int? apptTypeId = widget.initialService.appointmentTypeId;
+    int? resId = widget.initialService.appointmentResourceId;
+    int? prodId = widget.initialService.odooProductId;
+
+    if (apptTypeId == null || resId == null || prodId == null) {
+      final templateId =
+          widget.initialService.odooProductId ??
+          int.tryParse(widget.initialService.id) ??
+          4;
+      final servicesController = Provider.of<ServicesController>(
+        context,
+        listen: false,
+      );
+      final variants = servicesController.getVariantsForTemplate(templateId);
+      if (variants.isNotEmpty) {
+        final firstVar = variants.first;
+        prodId ??= firstVar.id;
+        apptTypeId ??= firstVar.appointmentType?.id;
+        resId ??= firstVar.appointmentResource?.id;
+      }
+    }
+
+    final appointmentTypeId = apptTypeId ?? 3;
+    final productId = prodId ?? 9;
+    final resourceId = resId ?? 8;
 
     List<String> base64Images = [];
     if (_attachedImages.isNotEmpty) {
@@ -237,13 +281,14 @@ class _BookServiceScreenState extends State<BookServiceScreen> {
     }
 
     debugPrint(
-      '🔵 [BookServiceScreen] Triggering Endpoint 4 (calendar.event/web_save) for service="${widget.initialService.name}", apptTypeId=$appointmentTypeId, productId=$productId, make=$vehicleMake, model=$vehicleModel, imagesCount=${base64Images.length}...',
+      '🔵 [BookServiceScreen] Triggering Endpoint 4 (calendar.event/web_save) for service="${widget.initialService.name}", apptTypeId=$appointmentTypeId, productId=$productId, resourceId=$resourceId, make=$vehicleMake, model=$vehicleModel, imagesCount=${base64Images.length}...',
     );
 
     final result = await bookingsController.scheduleAppointment(
       service: widget.initialService,
       appointmentTypeId: appointmentTypeId,
       productId: productId,
+      resourceId: resourceId,
       startDateTime: finalDateTime,
       stopDateTime: finalDateTime.add(
         Duration(
@@ -324,9 +369,12 @@ class _BookServiceScreenState extends State<BookServiceScreen> {
                 const SizedBox(height: 10),
                 OutlinedButton(
                   onPressed: () {
-                    Navigator.pop(context); // Close dialog
-                    Navigator.pop(context); // Go back from Book Screen
-                    Navigator.pop(context); // Go back from Detail Screen
+                    Navigator.of(context).pushAndRemoveUntil(
+                      MaterialPageRoute(
+                        builder: (context) => const MainNavigationScaffold(),
+                      ),
+                      (route) => false,
+                    );
                   },
                   style: OutlinedButton.styleFrom(
                     side: const BorderSide(color: AppTheme.primary, width: 1.5),
@@ -336,7 +384,7 @@ class _BookServiceScreenState extends State<BookServiceScreen> {
                     minimumSize: const Size(double.infinity, 48),
                   ),
                   child: Text(
-                    'GO TO PORTAL',
+                    'Go To Home',
                     style: GoogleFonts.outfit(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
@@ -507,7 +555,8 @@ class _BookServiceScreenState extends State<BookServiceScreen> {
                   const SizedBox(height: 12),
                   Builder(
                     builder: (context) {
-                      final slotsResult = bookingsController.currentBookableSlots;
+                      final slotsResult =
+                          bookingsController.currentBookableSlots;
                       final isLoadingSlots = bookingsController.isLoadingSlots;
 
                       List<String> dynamicSlots = [
@@ -521,14 +570,18 @@ class _BookServiceScreenState extends State<BookServiceScreen> {
                       ];
 
                       if (slotsResult != null && slotsResult.slots.isNotEmpty) {
-                        dynamicSlots = slotsResult.slots.map((s) => s.formattedTime).toList();
+                        dynamicSlots = slotsResult.slots
+                            .map((s) => s.formattedTime)
+                            .toList();
                       }
 
                       if (isLoadingSlots) {
                         return const Center(
                           child: Padding(
                             padding: EdgeInsets.symmetric(vertical: 16),
-                            child: CircularProgressIndicator(color: AppTheme.primary),
+                            child: CircularProgressIndicator(
+                              color: AppTheme.primary,
+                            ),
                           ),
                         );
                       }

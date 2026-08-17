@@ -112,6 +112,7 @@ class GarageSelectorModal extends StatelessWidget {
                     if (onGarageSelected != null) {
                       onGarageSelected!(garage);
                     }
+                    MapLauncherUtil.openGoogleMapsDirections(garage);
                     Navigator.pop(context, garage);
                   },
                   child: Container(

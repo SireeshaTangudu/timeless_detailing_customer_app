@@ -1,44 +1,64 @@
+import 'package:flutter/foundation.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../features/bookings/models/garage_location_model.dart';
 
 class MapLauncherUtil {
   /// Launches Google Maps to show directions and Start navigation to garage location
   static Future<void> openGoogleMapsDirections(GarageLocation garage) async {
-    // Determine target location label (e.g. "Timeless Detailing, 7 Crystal Crescent, Boksburg")
-    final String locationLabel = garage.address.isNotEmpty
-        ? '${garage.name}, ${garage.address}'
-        : garage.name;
+    final bool hasCoords = garage.latitude != 0.0 && garage.longitude != 0.0;
 
-    // 1. Google Maps Directions API URL (opens directions mode from current location with Start button)
+    final String destinationParam = hasCoords
+        ? '${garage.latitude},${garage.longitude}'
+        : Uri.encodeComponent(
+            garage.address.isNotEmpty
+                ? '${garage.name}, ${garage.address}'
+                : garage.name,
+          );
+
     final String directionsUrl =
-        'https://www.google.com/maps/dir/?api=1&destination=${Uri.encodeComponent(locationLabel)}';
-
-    // 2. Android Navigation Intent (opens Turn-by-Turn Navigation mode directly)
-    final Uri navIntentUri = Uri.parse(
-      'google.navigation:q=${Uri.encodeComponent(locationLabel)}',
-    );
-
-    // 3. Fallback Search URL with location name label & coordinates
-    final String searchUrl =
-        'https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(locationLabel)}';
+        'https://www.google.com/maps/dir/?api=1&destination=$destinationParam';
 
     final Uri directionsUri = Uri.parse(directionsUrl);
-    final Uri searchUri = Uri.parse(searchUrl);
+
+    final String geoString = hasCoords
+        ? 'geo:${garage.latitude},${garage.longitude}?q=${garage.latitude},${garage.longitude}(${Uri.encodeComponent(garage.name)})'
+        : 'geo:0,0?q=${Uri.encodeComponent(garage.address.isNotEmpty ? garage.address : garage.name)}';
+
+    final Uri geoUri = Uri.parse(geoString);
+
+    debugPrint(
+      '🔵 [MapLauncherUtil] Launching Google Maps for garage: ${garage.name} (lat=${garage.latitude}, lng=${garage.longitude})',
+    );
 
     try {
-      if (await canLaunchUrl(navIntentUri)) {
-        // Launches native Android Google Maps navigation directly with Start button
-        await launchUrl(navIntentUri, mode: LaunchMode.externalApplication);
-      } else if (await canLaunchUrl(directionsUri)) {
-        // Launches Google Maps directions web/app mode
-        await launchUrl(directionsUri, mode: LaunchMode.externalApplication);
-      } else if (await canLaunchUrl(searchUri)) {
-        await launchUrl(searchUri, mode: LaunchMode.externalApplication);
-      } else {
-        await launchUrl(directionsUri, mode: LaunchMode.platformDefault);
+      // 1. Try launching Google Maps HTTPS URL directly in external application mode
+      bool launched = await launchUrl(
+        directionsUri,
+        mode: LaunchMode.externalApplication,
+      );
+
+      if (!launched) {
+        // 2. Try geo URI scheme for Android native maps app
+        launched = await launchUrl(
+          geoUri,
+          mode: LaunchMode.externalApplication,
+        );
+      }
+
+      if (!launched) {
+        // 3. Fallback to platform default browser/app
+        await launchUrl(
+          directionsUri,
+          mode: LaunchMode.platformDefault,
+        );
       }
     } catch (e) {
-      await launchUrl(directionsUri, mode: LaunchMode.externalApplication);
+      debugPrint('🔴 [MapLauncherUtil] Primary map launch error ($e). Attempting direct launch...');
+      try {
+        await launchUrl(directionsUri, mode: LaunchMode.externalApplication);
+      } catch (err) {
+        debugPrint('🔴 [MapLauncherUtil] Map launch failed: $err');
+      }
     }
   }
 }

@@ -417,6 +417,7 @@ class _ServiceInteractiveDetailScreenState
                       ? selectedVar.id
                       : service.odooProductId,
                   appointmentTypeId: selectedVar?.appointmentType?.id ?? service.appointmentTypeId,
+                  appointmentResourceId: selectedVar?.appointmentResource?.id ?? service.appointmentResourceId,
                 );
                 Navigator.push(
                   context,

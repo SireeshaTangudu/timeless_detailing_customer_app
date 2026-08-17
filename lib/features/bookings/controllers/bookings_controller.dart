@@ -136,7 +136,11 @@ class BookingsController extends ChangeNotifier {
     _errorMessage = null;
     notifyListeners();
 
-    final partnerId = _odooService.currentPartnerId ?? _odooService.currentUid ?? 26;
+    final bookerId = _odooService.currentUid ?? 65;
+    final partnerId = _odooService.currentPartnerId ?? 14;
+    final effectiveResourceId = resourceId ?? service.appointmentResourceId ?? 21;
+    final effectiveProductId = productId ?? service.odooProductId ?? 57;
+
     final startStr = DateFormat('yyyy-MM-dd HH:mm:ss').format(startDateTime);
     final stopStr = DateFormat('yyyy-MM-dd HH:mm:ss').format(stopDateTime);
     final bookingName = '${service.name} - $vehicleMake $vehicleModel';
@@ -145,13 +149,13 @@ class BookingsController extends ChangeNotifier {
       final res = await _odooService.bookAppointment(
         name: bookingName,
         appointmentTypeId: appointmentTypeId,
-        productId: productId ?? service.odooProductId,
-        appointmentBookerId: partnerId,
+        productId: effectiveProductId,
+        appointmentBookerId: bookerId,
         partnerIds: [partnerId],
         start: startStr,
         stop: stopStr,
         duration: service.durationHours > 0 ? service.durationHours : 1.0,
-        resourceId: resourceId,
+        resourceId: effectiveResourceId,
         phone: phone,
         collectorName: collectorName,
         collectorLicense: collectorLicense,

@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import 'package:timeless_detailing_customer_app/core/widgets/custom_app_bar.dart';
+import 'package:timeless_detailing_customer_app/core/utils/map_launcher_util.dart';
+import 'package:timeless_detailing_customer_app/core/network/odoo_client.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/models/estimation_model.dart';
-import 'package:timeless_detailing_customer_app/features/bookings/views/widgets/garage_selector_modal.dart';
+import 'package:timeless_detailing_customer_app/features/bookings/models/garage_location_model.dart';
 
 class EstimationScreen extends StatelessWidget {
   final EstimationModel? estimation;
@@ -10,8 +13,35 @@ class EstimationScreen extends StatelessWidget {
   const EstimationScreen({super.key, this.estimation});
 
   Future<void> _openGoogleMapsDirections(BuildContext context) async {
-    // Opens multiple garage branches selection modal
-    await GarageSelectorModal.show(context);
+    try {
+      final odooService = Provider.of<BaseOdooService>(context, listen: false);
+      final compMap = await odooService.getCompanyLocationDetails();
+      GarageLocation garage;
+      if (compMap != null) {
+        garage = GarageLocation.fromJson(compMap);
+      } else {
+        garage = const GarageLocation(
+          id: '1',
+          name: 'Timeless Detailing',
+          address: '7 Crystal Crescent, Golden Crest Country Estate, Parkrand, Boksburg, 1459',
+          phone: '',
+          latitude: -25.933578,
+          longitude: 28.18122,
+        );
+      }
+      await MapLauncherUtil.openGoogleMapsDirections(garage);
+    } catch (e) {
+      debugPrint('Error getting company coordinates: $e');
+      const fallbackGarage = GarageLocation(
+        id: '1',
+        name: 'Timeless Detailing',
+        address: '7 Crystal Crescent, Golden Crest Country Estate, Parkrand, Boksburg, 1459',
+        phone: '',
+        latitude: -25.933578,
+        longitude: 28.18122,
+      );
+      await MapLauncherUtil.openGoogleMapsDirections(fallbackGarage);
+    }
   }
 
   @override
@@ -284,64 +314,61 @@ class EstimationScreen extends StatelessWidget {
           final step = data.nextSteps[index];
           final isLast = index == data.nextSteps.length - 1;
 
-          return IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Left Step Number Circle with Vertical Connector Line
-                Column(
-                  children: [
-                    Container(
-                      width: 28,
-                      height: 28,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: const Color(0xFF2A231C),
-                        border: Border.all(
-                          color: const Color(0xFFC4913F),
-                          width: 1.5,
-                        ),
-                      ),
-                      child: Center(
-                        child: Text(
-                          '${step.stepNumber}',
-                          style: GoogleFonts.outfit(
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
-                            color: const Color(0xFFC4913F),
-                          ),
-                        ),
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Left Step Number Circle with Vertical Connector Line
+              Column(
+                children: [
+                  Container(
+                    width: 28,
+                    height: 28,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: const Color(0xFF2A231C),
+                      border: Border.all(
+                        color: const Color(0xFFC4913F),
+                        width: 1.5,
                       ),
                     ),
-                    if (!isLast)
-                      Expanded(
-                        child: Container(
-                          width: 1.5,
-                          margin: const EdgeInsets.symmetric(vertical: 4),
-                          color: const Color(0xFF4A3E30),
+                    child: Center(
+                      child: Text(
+                        '${step.stepNumber}',
+                        style: GoogleFonts.outfit(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFFC4913F),
                         ),
-                      ),
-                  ],
-                ),
-                const SizedBox(width: 14),
-
-                // Right Step Description Text
-                Expanded(
-                  child: Padding(
-                    padding: EdgeInsets.only(top: 4, bottom: isLast ? 0 : 20),
-                    child: Text(
-                      step.title,
-                      style: GoogleFonts.montserrat(
-                        fontSize: 13.5,
-                        color: Colors.white,
-                        fontWeight: FontWeight.w500,
-                        height: 1.35,
                       ),
                     ),
                   ),
+                  if (!isLast)
+                    Container(
+                      width: 1.5,
+                      height: 36,
+                      margin: const EdgeInsets.symmetric(vertical: 4),
+                      color: const Color(0xFF4A3E30),
+                    ),
+                ],
+              ),
+              const SizedBox(width: 14),
+
+              // Right Step Description Text
+              Expanded(
+                child: Padding(
+                  padding: EdgeInsets.only(top: 4, bottom: isLast ? 0 : 16),
+                  child: Text(
+                    step.title,
+                    style: GoogleFonts.montserrat(
+                      fontSize: 13.5,
+                      color: Colors.white,
+                      fontWeight: FontWeight.w500,
+                      height: 1.35,
+                    ),
+                  ),
                 ),
-              ],
-            ),
+              ),
+            ],
           );
         }),
       ),

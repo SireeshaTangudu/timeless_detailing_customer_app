@@ -68,6 +68,7 @@ class DetailService {
   final List<String> whatsIncluded;
   final int? odooProductId;
   final int? appointmentTypeId;
+  final int? appointmentResourceId;
   final String? assetImagePath;
   final int? mobileCategoryId;
   final String? mobileCategoryName;
@@ -86,6 +87,7 @@ class DetailService {
     required this.whatsIncluded,
     this.odooProductId,
     this.appointmentTypeId,
+    this.appointmentResourceId,
     this.assetImagePath,
     this.mobileCategoryId,
     this.mobileCategoryName,
@@ -105,6 +107,7 @@ class DetailService {
     List<String>? whatsIncluded,
     int? odooProductId,
     int? appointmentTypeId,
+    int? appointmentResourceId,
     String? assetImagePath,
     int? mobileCategoryId,
     String? mobileCategoryName,
@@ -123,6 +126,7 @@ class DetailService {
       whatsIncluded: whatsIncluded ?? this.whatsIncluded,
       odooProductId: odooProductId ?? this.odooProductId,
       appointmentTypeId: appointmentTypeId ?? this.appointmentTypeId,
+      appointmentResourceId: appointmentResourceId ?? this.appointmentResourceId,
       assetImagePath: assetImagePath ?? this.assetImagePath,
       mobileCategoryId: mobileCategoryId ?? this.mobileCategoryId,
       mobileCategoryName: mobileCategoryName ?? this.mobileCategoryName,
@@ -200,6 +204,21 @@ class DetailService {
       apptTypeId = json['appointment_type_id'] as int;
     }
 
+    int? apptResId;
+    final rawRes = json['appointment_resource_id'] ?? json['appointment_resource_ids'];
+    if (rawRes is Map) {
+      apptResId = rawRes['id'] is int ? rawRes['id'] as int : int.tryParse(rawRes['id']?.toString() ?? '');
+    } else if (rawRes is List && rawRes.isNotEmpty) {
+      final first = rawRes[0];
+      if (first is Map) {
+        apptResId = first['id'] is int ? first['id'] as int : int.tryParse(first['id']?.toString() ?? '');
+      } else {
+        apptResId = first is int ? first : int.tryParse(first.toString());
+      }
+    } else if (rawRes is int) {
+      apptResId = rawRes;
+    }
+
     List<TimelessCoverageLine> parsedCoverage = [];
     if (json['timeless_coverage_line_ids'] is List) {
       parsedCoverage = (json['timeless_coverage_line_ids'] as List)
@@ -233,6 +252,7 @@ class DetailService {
           ? json['id'] as int
           : int.tryParse(json['id']?.toString() ?? ''),
       appointmentTypeId: apptTypeId,
+      appointmentResourceId: apptResId,
       assetImagePath: assetImg,
       mobileCategoryId: mobileCatId,
       mobileCategoryName: mobileCatName,
