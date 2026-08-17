@@ -274,7 +274,7 @@ class _ServiceInteractiveDetailScreenState
                       // Parts where it effects Section (Variant Package Chips if multiple variants)
                       if (allVariants.length > 1) ...[
                         Text(
-                          'Parts where it effects',
+                          'Where We Focus Inside Your Vehicle',
                           style: GoogleFonts.lora(
                             fontSize: 22,
                             fontWeight: FontWeight.w500,
