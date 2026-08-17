@@ -6,6 +6,7 @@ import 'package:timeless_detailing_customer_app/features/services/controllers/se
 import 'package:timeless_detailing_customer_app/features/services/models/service_model.dart';
 import 'package:timeless_detailing_customer_app/features/services/models/service_variant_model.dart';
 import 'package:timeless_detailing_customer_app/features/services/views/service_interactive_detail_screen.dart';
+import 'package:timeless_detailing_customer_app/core/widgets/custom_loader.dart';
 
 class ServiceVariantsScreen extends StatefulWidget {
   final DetailService parentService;
@@ -102,9 +103,7 @@ class _ServiceVariantsScreenState extends State<ServiceVariantsScreen> {
               // Grid of Sub-Service Variant Cards
               Expanded(
                 child: servicesController.isLoading
-                    ? const Center(
-                        child: CircularProgressIndicator(color: AppTheme.primary),
-                      )
+                    ? const FourRotatingDotsLoader()
                     : GridView.builder(
                         itemCount: displaySubServices.length,
                         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(

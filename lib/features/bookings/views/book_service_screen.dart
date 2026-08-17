@@ -15,6 +15,7 @@ import 'package:timeless_detailing_customer_app/features/bookings/models/estimat
 import 'package:timeless_detailing_customer_app/features/bookings/views/estimation_screen.dart';
 import 'package:timeless_detailing_customer_app/features/services/controllers/services_controller.dart';
 import 'package:timeless_detailing_customer_app/features/dashboard/views/main_navigation_scaffold.dart';
+import 'package:timeless_detailing_customer_app/core/widgets/custom_loader.dart';
 
 class BookServiceScreen extends StatefulWidget {
   final DetailService initialService;
@@ -411,8 +412,10 @@ class _BookServiceScreenState extends State<BookServiceScreen> {
   Widget build(BuildContext context) {
     final bookingsController = Provider.of<BookingsController>(context);
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF9F7F4),
+    return Stack(
+      children: [
+        Scaffold(
+          backgroundColor: const Color(0xFFF9F7F4),
       body: Column(
         children: [
           CustomAppBar(
@@ -576,13 +579,9 @@ class _BookServiceScreenState extends State<BookServiceScreen> {
                       }
 
                       if (isLoadingSlots) {
-                        return const Center(
-                          child: Padding(
-                            padding: EdgeInsets.symmetric(vertical: 16),
-                            child: CircularProgressIndicator(
-                              color: AppTheme.primary,
-                            ),
-                          ),
+                        return const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 24),
+                          child: FourRotatingDotsLoader(),
                         );
                       }
 
@@ -837,14 +836,7 @@ class _BookServiceScreenState extends State<BookServiceScreen> {
                     ),
                   ),
                   child: bookingsController.isLoading
-                      ? const SizedBox(
-                          width: 22,
-                          height: 22,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
+                      ? const FourRotatingDotsLoader(size: 22, color: Colors.white)
                       : Text(
                           'Book and Get Quotation',
                           style: GoogleFonts.inter(
@@ -860,6 +852,13 @@ class _BookServiceScreenState extends State<BookServiceScreen> {
           ),
         ],
       ),
+    ),
+        if (bookingsController.isLoading)
+          Container(
+            color: Colors.transparent,
+            child: const FourRotatingDotsLoader(size: 45),
+          ),
+      ],
     );
   }
 }

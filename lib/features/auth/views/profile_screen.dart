@@ -13,6 +13,7 @@ import 'package:timeless_detailing_customer_app/features/auth/views/settings_scr
 import 'package:timeless_detailing_customer_app/features/bookings/controllers/bookings_controller.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/models/booking_model.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/views/bookings_history_screen.dart';
+import 'package:timeless_detailing_customer_app/core/widgets/custom_loader.dart';
 
 class ProfileScreen extends StatefulWidget {
   final TabController? tabController;
@@ -191,16 +192,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                       ),
                       child: isSaving
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  Colors.white,
-                                ),
-                              ),
-                            )
+                          ? const FourRotatingDotsLoader(size: 20, color: Colors.white)
                           : Text(
                               'Save Changes',
                               style: GoogleFonts.inter(
@@ -435,18 +427,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               child: ClipOval(
                 child: auth.isLoading
-                    ? const Center(
-                        child: SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              AppTheme.primary,
-                            ),
-                          ),
-                        ),
-                      )
+                    ? const FourRotatingDotsLoader(size: 30)
                     : (imageBytes != null
                           ? Image.memory(
                               imageBytes,

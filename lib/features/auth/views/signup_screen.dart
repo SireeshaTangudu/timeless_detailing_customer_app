@@ -5,6 +5,7 @@ import 'package:timeless_detailing_customer_app/core/theme/app_theme.dart';
 import 'package:timeless_detailing_customer_app/core/widgets/custom_app_bar.dart';
 import 'package:timeless_detailing_customer_app/features/auth/controllers/auth_controller.dart';
 import 'package:timeless_detailing_customer_app/features/dashboard/views/main_navigation_scaffold.dart';
+import 'package:timeless_detailing_customer_app/core/widgets/custom_loader.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -307,17 +308,7 @@ class _SignupScreenState extends State<SignupScreen> {
                                 ),
                               ),
                               child: auth.isLoading
-                                  ? const SizedBox(
-                                      width: 22,
-                                      height: 22,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        valueColor:
-                                            AlwaysStoppedAnimation<Color>(
-                                              Colors.white,
-                                            ),
-                                      ),
-                                    )
+                                  ? const FourRotatingDotsLoader(size: 22, color: Colors.white)
                                   : Text(
                                       'Login',
                                       style: GoogleFonts.inter(

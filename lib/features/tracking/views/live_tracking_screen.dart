@@ -6,6 +6,7 @@ import 'package:timeless_detailing_customer_app/core/widgets/custom_app_bar.dart
 import 'package:timeless_detailing_customer_app/features/bookings/models/booking_model.dart';
 import 'package:timeless_detailing_customer_app/features/tracking/controllers/tracking_controller.dart';
 import 'package:timeless_detailing_customer_app/features/tracking/models/project_model.dart';
+import 'package:timeless_detailing_customer_app/core/widgets/custom_loader.dart';
 
 class LiveTrackingScreen extends StatefulWidget {
   final Booking booking;
@@ -44,7 +45,7 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
           ),
           Expanded(
             child: tracking.isLoading
-                ? const Center(child: CircularProgressIndicator(color: AppTheme.primary))
+                ? const FourRotatingDotsLoader()
                 : SingleChildScrollView(
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                     child: Column(

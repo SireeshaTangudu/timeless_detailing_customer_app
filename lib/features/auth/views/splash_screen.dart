@@ -6,6 +6,7 @@ import 'package:timeless_detailing_customer_app/core/theme/app_typography.dart';
 import 'package:timeless_detailing_customer_app/features/auth/controllers/auth_controller.dart';
 import 'package:timeless_detailing_customer_app/features/auth/views/onboarding_screen.dart';
 import 'package:timeless_detailing_customer_app/features/dashboard/views/main_navigation_scaffold.dart';
+import 'package:timeless_detailing_customer_app/core/widgets/custom_loader.dart';
 
 class SplashScreen extends StatefulWidget {
   final VoidCallback? onSplashComplete;
@@ -128,11 +129,7 @@ class _SplashScreenState extends State<SplashScreen>
                             width: 205,
                             height: 139,
                             placeholderBuilder: (BuildContext context) =>
-                                const CircularProgressIndicator(
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                    AppTheme.primary,
-                                  ),
-                                ),
+                                const FourRotatingDotsLoader(size: 30),
                           ),
                         ],
                       ),

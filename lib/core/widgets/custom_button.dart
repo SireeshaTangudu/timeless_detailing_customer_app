@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:timeless_detailing_customer_app/core/theme/app_theme.dart';
+import 'package:timeless_detailing_customer_app/core/widgets/custom_loader.dart';
 
 class CustomButton extends StatelessWidget {
   final String text;
@@ -41,15 +42,9 @@ class CustomButton extends StatelessWidget {
           const SizedBox(width: 8),
         ],
         if (isLoading)
-          SizedBox(
-            width: 20,
-            height: 20,
-            child: CircularProgressIndicator(
-              strokeWidth: 2,
-              valueColor: AlwaysStoppedAnimation<Color>(
-                isOutlined ? AppTheme.primary : AppTheme.background,
-              ),
-            ),
+          FourRotatingDotsLoader(
+            size: 22,
+            color: isOutlined ? AppTheme.primary : AppTheme.background,
           )
         else
           Text(

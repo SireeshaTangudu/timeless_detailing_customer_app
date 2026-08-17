@@ -6,6 +6,7 @@ import 'package:timeless_detailing_customer_app/core/theme/app_theme.dart';
 import 'package:timeless_detailing_customer_app/features/services/controllers/services_controller.dart';
 import 'package:timeless_detailing_customer_app/features/services/models/service_model.dart';
 import 'package:timeless_detailing_customer_app/features/services/views/service_interactive_detail_screen.dart';
+import 'package:timeless_detailing_customer_app/core/widgets/custom_loader.dart';
 
 class ServicesListScreen extends StatefulWidget {
   final VoidCallback? onMenuTap;
@@ -175,11 +176,7 @@ class _ServicesListScreenState extends State<ServicesListScreen> {
               // 2-Column Child Services Grid (Matching Figma Layout)
               Expanded(
                 child: controller.isLoading
-                    ? const Center(
-                        child: CircularProgressIndicator(
-                          color: Color(0xFFC4913F),
-                        ),
-                      )
+                    ? const FourRotatingDotsLoader()
                     : controller.errorMessage != null
                     ? Center(
                         child: Text(

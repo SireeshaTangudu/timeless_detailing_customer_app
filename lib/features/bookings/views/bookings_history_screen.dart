@@ -8,6 +8,7 @@ import '../models/booking_model.dart';
 import 'estimation_screen.dart';
 import '../../tracking/views/live_tracking_screen.dart';
 import '../../services/models/service_model.dart';
+import '../../../core/widgets/custom_loader.dart';
 
 class BookingsHistoryScreen extends StatefulWidget {
   final VoidCallback? onMenuTap;
@@ -469,9 +470,7 @@ class _NewEstimateScreenState extends State<NewEstimateScreen> {
               onBackPressed: () => Navigator.pop(context),
             ),
             const Expanded(
-              child: Center(
-                child: CircularProgressIndicator(color: Color(0xFFC4913F)),
-              ),
+              child: FourRotatingDotsLoader(),
             ),
           ],
         ),

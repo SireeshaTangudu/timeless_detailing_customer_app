@@ -6,6 +6,7 @@ import 'package:timeless_detailing_customer_app/core/theme/app_typography.dart';
 import 'package:timeless_detailing_customer_app/core/widgets/custom_app_bar.dart';
 import 'package:timeless_detailing_customer_app/features/auth/controllers/auth_controller.dart';
 import 'package:timeless_detailing_customer_app/features/auth/views/login_screen.dart';
+import 'package:timeless_detailing_customer_app/core/widgets/custom_loader.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -366,14 +367,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           disabledBackgroundColor: AppTheme.primary.withValues(alpha: 0.5),
                         ),
                         child: isSubmitting
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                ),
-                              )
+                            ? const FourRotatingDotsLoader(size: 20, color: Colors.white)
                             : Text(
                                 'Update Password',
                                 style: GoogleFonts.inter(
@@ -498,16 +492,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             AppTheme.primary.withValues(alpha: 0.5),
                       ),
                       child: isClearing
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  Colors.white,
-                                ),
-                              ),
-                            )
+                          ? const FourRotatingDotsLoader(size: 20, color: Colors.white)
                           : Text(
                               'Remove Picture',
                               style: GoogleFonts.inter(
@@ -709,16 +694,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             AppTheme.error.withValues(alpha: 0.5),
                       ),
                       child: isDeleting
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  Colors.white,
-                                ),
-                              ),
-                            )
+                          ? const FourRotatingDotsLoader(size: 20, color: Colors.white)
                           : Text(
                               'Delete My Account',
                               style: GoogleFonts.inter(

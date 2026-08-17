@@ -7,6 +7,7 @@ import 'package:timeless_detailing_customer_app/features/auth/controllers/auth_c
 import 'package:timeless_detailing_customer_app/features/auth/views/signup_screen.dart';
 import 'package:timeless_detailing_customer_app/features/auth/views/forgot_password_screen.dart';
 import 'package:timeless_detailing_customer_app/features/dashboard/views/main_navigation_scaffold.dart';
+import 'package:timeless_detailing_customer_app/core/widgets/custom_loader.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -82,9 +83,13 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
+    final auth = Provider.of<AuthController>(context);
+
+    return Stack(
+      children: [
+        Scaffold(
+          backgroundColor: Colors.white,
+          body: SafeArea(
         child: Column(
           children: [
             // Top Navigation Bar
@@ -380,17 +385,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 ),
                               ),
                               child: auth.isLoading
-                                  ? const SizedBox(
-                                      width: 22,
-                                      height: 22,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        valueColor:
-                                            AlwaysStoppedAnimation<Color>(
-                                          Colors.white,
-                                        ),
-                                      ),
-                                    )
+                                  ? const FourRotatingDotsLoader(size: 22, color: Colors.white)
                                   : Text(
                                       'Login',
                                       style: GoogleFonts.inter(
@@ -412,6 +407,13 @@ class _LoginScreenState extends State<LoginScreen> {
           ],
         ),
       ),
-    );
+    ),
+    if (auth.isLoading)
+      Container(
+        color: Colors.transparent,
+        child: const FourRotatingDotsLoader(size: 45),
+      ),
+  ],
+);
   }
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:timeless_detailing_customer_app/core/theme/app_theme.dart';
 import 'package:timeless_detailing_customer_app/core/theme/app_typography.dart';
+import 'package:timeless_detailing_customer_app/core/widgets/custom_loader.dart';
 
 class CustomFooter extends StatelessWidget {
   final Widget? child;
@@ -127,14 +128,7 @@ class CustomFooter extends StatelessWidget {
               ),
             ),
             child: isLoading
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
-                    ),
-                  )
+                ? const FourRotatingDotsLoader(size: 22, color: Colors.white)
                 : Text(
                     buttonText!,
                     style: GoogleFonts.outfit(

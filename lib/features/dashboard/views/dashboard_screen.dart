@@ -18,6 +18,7 @@ import 'package:timeless_detailing_customer_app/features/bookings/models/booking
 import 'package:timeless_detailing_customer_app/features/bookings/views/bookings_history_screen.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/views/upcoming_appointment_details_screen.dart';
 import 'package:timeless_detailing_customer_app/features/tracking/views/live_tracking_screen.dart';
+import 'package:timeless_detailing_customer_app/core/widgets/custom_loader.dart';
 
 class _AssetServiceImage extends StatefulWidget {
   final String assetPath;
@@ -70,17 +71,8 @@ class _AssetServiceImageState extends State<_AssetServiceImage> {
           return snapshot.data!;
         }
         return Container(
-          color: widget.backgroundColor,
-          child: const Center(
-            child: SizedBox(
-              width: 18,
-              height: 18,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: AppTheme.primary,
-              ),
-            ),
-          ),
+          color: Colors.transparent,
+          child: const FourRotatingDotsLoader(size: 20),
         );
       },
     );
@@ -330,11 +322,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   height: 200,
                   child: (servicesController.isLoading &&
                           servicesController.productCategories.isEmpty)
-                      ? const Center(
-                          child: CircularProgressIndicator(
-                            color: Color(0xFFC4913F),
-                          ),
-                        )
+                      ? const FourRotatingDotsLoader()
                       : ListView.separated(
                           scrollDirection: Axis.horizontal,
                           physics: const BouncingScrollPhysics(),
