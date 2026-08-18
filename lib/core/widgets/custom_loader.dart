@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
+import 'package:timeless_detailing_customer_app/core/theme/app_theme.dart';
 
 class ChakraLoadingIndicator extends StatelessWidget {
   const ChakraLoadingIndicator({
@@ -24,7 +25,7 @@ class ChakraLoadingIndicator extends StatelessWidget {
     } else {
       loader = ShaderMask(
         shaderCallback: (bounds) => const LinearGradient(
-          colors: [Color(0xFFED5A00), Color(0xFFFFD180)],
+          colors: [AppTheme.primary, Color(0xFFE5B86B)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ).createShader(bounds),

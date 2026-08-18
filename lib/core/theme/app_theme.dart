@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
@@ -21,7 +22,11 @@ class AppTheme {
   static const Color error = Color(0xFFE74C3C);
 
   // Gradient definitions
-  static List<Color> get goldGradientColors => [primaryDark, primary, primaryLight];
+  static List<Color> get goldGradientColors => [
+    primaryDark,
+    primary,
+    primaryLight,
+  ];
 
   static LinearGradient get goldGradient => LinearGradient(
     colors: goldGradientColors,
@@ -111,9 +116,12 @@ class AppTheme {
         ),
       ),
       appBarTheme: AppBarTheme(
-        backgroundColor: const Color(0xFF0C0C0E),
+        backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
+        systemOverlayStyle: SystemUiOverlayStyle.light.copyWith(
+          statusBarColor: Colors.transparent,
+        ),
         titleTextStyle: GoogleFonts.outfit(
           fontSize: 20,
           fontWeight: FontWeight.bold,
@@ -124,9 +132,18 @@ class AppTheme {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: const Color(0xFF16161A),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-        hintStyle: GoogleFonts.montserrat(color: const Color(0xFF616161), fontSize: 14),
-        labelStyle: GoogleFonts.montserrat(color: const Color(0xFF9E9E9E), fontSize: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 20,
+          vertical: 18,
+        ),
+        hintStyle: GoogleFonts.montserrat(
+          color: const Color(0xFF616161),
+          fontSize: 14,
+        ),
+        labelStyle: GoogleFonts.montserrat(
+          color: const Color(0xFF9E9E9E),
+          fontSize: 14,
+        ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: Color(0xFF32323D), width: 1),
@@ -263,9 +280,12 @@ class AppTheme {
         ),
       ),
       appBarTheme: AppBarTheme(
-        backgroundColor: const Color(0xFFF9F9FB),
+        backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
+        systemOverlayStyle: SystemUiOverlayStyle.dark.copyWith(
+          statusBarColor: Colors.transparent,
+        ),
         titleTextStyle: GoogleFonts.outfit(
           fontSize: 20,
           fontWeight: FontWeight.bold,
@@ -276,9 +296,18 @@ class AppTheme {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: Colors.white,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-        hintStyle: GoogleFonts.montserrat(color: const Color(0xFFAEAEB2), fontSize: 14),
-        labelStyle: GoogleFonts.montserrat(color: const Color(0xFF6E6E73), fontSize: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 20,
+          vertical: 18,
+        ),
+        hintStyle: GoogleFonts.montserrat(
+          color: const Color(0xFFAEAEB2),
+          fontSize: 14,
+        ),
+        labelStyle: GoogleFonts.montserrat(
+          color: const Color(0xFF6E6E73),
+          fontSize: 14,
+        ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: Color(0xFFE5E5EA), width: 1),
