@@ -229,7 +229,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   : 'John Doe',
                               style: AppTypography.canela(
                                 fontSize: 14,
-                                fontWeight: FontWeight.bold,
+                                fontWeight: FontWeight.w700,
                                 color: const Color(0xFF3A2F1E),
                               ),
                             ),
@@ -240,7 +240,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       // Circular Menu Icon Button on Top Right (Opening Side Drawer)
                       AnimatedPressable(
                         onTap: () {
-                          debugPrint('🔵 [DashboardScreen] Menu button clicked!');
+                          debugPrint(
+                            '🔵 [DashboardScreen] Menu button clicked!',
+                          );
                           if (widget.onMenuTap != null) {
                             widget.onMenuTap!();
                           } else {
@@ -272,7 +274,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 34),
 
                 // Welcome Subheading & Headline
                 FadeSlideIn(
@@ -326,10 +328,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           ),
                           const SizedBox(width: 4),
                           const Icon(
-                            Icons.arrow_forward_ios,
-                            size: 10,
-                            color: Color(0xFF7A7A7E),
-                          )
+                                Icons.arrow_forward_ios,
+                                size: 10,
+                                color: Color(0xFF7A7A7E),
+                              )
                               .animate(
                                 onPlay: (controller) =>
                                     controller.repeat(reverse: true),
@@ -366,7 +368,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               final category =
                                   servicesController.productCategories[index];
                               return FadeSlideIn(
-                                delay: Duration(milliseconds: 400 + (index * 80)),
+                                delay: Duration(
+                                  milliseconds: 400 + (index * 80),
+                                ),
                                 slideOffset: const Offset(0.15, 0),
                                 child: _buildProductCategoryCard(
                                   context,
@@ -435,11 +439,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Row(
             children: [
               const PulseGlow(
-                child: Icon(
-                  Icons.circle,
-                  size: 8,
-                  color: Color(0xFFC4913F),
-                ),
+                child: Icon(Icons.circle, size: 8, color: Color(0xFFC4913F)),
               ),
               const SizedBox(width: 8),
               Text(
@@ -490,7 +490,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     Navigator.push(
                       context,
                       FadeSlidePageRoute(
-                        page: UpcomingAppointmentDetailsScreen(booking: booking),
+                        page: UpcomingAppointmentDetailsScreen(
+                          booking: booking,
+                        ),
                       ),
                     );
                   }
@@ -508,7 +510,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       Navigator.push(
                         context,
                         FadeSlidePageRoute(
-                          page: UpcomingAppointmentDetailsScreen(booking: booking),
+                          page: UpcomingAppointmentDetailsScreen(
+                            booking: booking,
+                          ),
                         ),
                       );
                     }
@@ -683,28 +687,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
     String? assetImg;
     IconData iconData = Icons.auto_awesome_outlined;
 
-    if (lowerName.contains('protection') || lowerName.contains('ppf')) {
-      assetImg = 'assets/services/paint_care/paint_care.png';
-      iconData = Icons.shield_outlined;
-    } else if (lowerName.contains('paint') || lowerName.contains('care')) {
-      assetImg = 'assets/services/paint_care/paint_care.png';
-      iconData = Icons.directions_car_outlined;
-    } else if (lowerName.contains('interior')) {
-      assetImg = 'assets/services/interior/interior_detailing.png';
-      iconData = Icons.airline_seat_recline_extra_outlined;
-    } else if (lowerName.contains('maintenance')) {
-      iconData = Icons.calendar_month_outlined;
-    }
-
     return AnimatedPressable(
       onTap: () {
         controller.selectCategoryById(category.id, category.name);
         if (lowerName.contains('interior')) {
           Navigator.push(
             context,
-            FadeSlidePageRoute(
-              page: const InteriorDetailingScreen(),
-            ),
+            FadeSlidePageRoute(page: const InteriorDetailingScreen()),
           );
         } else {
           Navigator.push(

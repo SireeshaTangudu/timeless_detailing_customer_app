@@ -172,12 +172,12 @@ class _MainNavigationScaffoldState extends State<MainNavigationScaffold>
                 title: 'Home',
                 index: 0,
               ),
-              _buildDrawerItem(
-                icon: Icons.cleaning_services_outlined,
-                activeIcon: Icons.cleaning_services,
-                title: 'Services',
-                index: 1,
-              ),
+              // _buildDrawerItem(
+              //   icon: Icons.cleaning_services_outlined,
+              //   activeIcon: Icons.cleaning_services,
+              //   title: 'Services',
+              //   index: 1,
+              // ),
               _buildDrawerItem(
                 icon: Icons.calendar_month_outlined,
                 activeIcon: Icons.calendar_month,

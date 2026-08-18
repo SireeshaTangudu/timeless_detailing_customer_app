@@ -171,6 +171,38 @@ class OdooApiService implements BaseOdooService {
     await initialize();
   }
 
+  bool _isReauthenticating = false;
+
+  /// Helper to automatically re-authenticate when session expires
+  Future<bool> _tryReauthenticate() async {
+    if (_isReauthenticating) return false;
+    _isReauthenticating = true;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedUser = prefs.getString('username') ??
+          prefs.getString('user_email') ??
+          await _storage.read(key: 'username').catchError((_) => null);
+      final savedPass = prefs.getString('password') ??
+          await _storage.read(key: 'password').catchError((_) => null);
+
+      if (savedUser != null &&
+          savedUser.isNotEmpty &&
+          savedPass != null &&
+          savedPass.isNotEmpty) {
+        debugPrint(
+          '🔑 [OdooApiService] Auto re-authenticating user ($savedUser)...',
+        );
+        final success = await login(savedUser, savedPass);
+        _isReauthenticating = false;
+        return success;
+      }
+    } catch (e) {
+      debugPrint('🔴 [OdooApiService] Auto re-authentication error: $e');
+    }
+    _isReauthenticating = false;
+    return false;
+  }
+
   /// JSON-RPC caller helper mapping to Odoo's call_kw endpoint
   Future<dynamic> _callKw({
     required String model,
@@ -225,15 +257,55 @@ class OdooApiService implements BaseOdooService {
 
       final error = response.data['error'];
       if (error != null) {
+        final errorMsg =
+            (error['data']?['message'] ?? error['message'] ?? '').toString();
+        final errorName = (error['data']?['name'] ?? '').toString();
+        final isSessionExpired =
+            errorMsg.toLowerCase().contains('session expired') ||
+            errorName.contains('SessionExpired') ||
+            error['code'] == 100;
+
+        if (isSessionExpired && !_isReauthenticating) {
+          debugPrint(
+            '⚠️ [OdooApiService] Session expired on $model/$method. Attempting auto re-authentication...',
+          );
+          final reauthSuccess = await _tryReauthenticate();
+          if (reauthSuccess) {
+            debugPrint(
+              '🟢 [OdooApiService] Auto re-authentication successful. Retrying $model/$method...',
+            );
+            return _callKw(
+              model: model,
+              method: method,
+              args: args,
+              kwargs: kwargs,
+            );
+          }
+        }
+
         throw Exception(
-          error['data']?['message'] ??
-              error['message'] ??
-              'Odoo JSON-RPC Error',
+          errorMsg.isNotEmpty ? errorMsg : 'Odoo JSON-RPC Error',
         );
       }
 
       return response.data['result'];
     } catch (e) {
+      final errStr = e.toString();
+      if (errStr.toLowerCase().contains('session expired') &&
+          !_isReauthenticating) {
+        debugPrint(
+          '⚠️ [OdooApiService] Exception contains "session expired". Attempting re-authentication...',
+        );
+        final reauthSuccess = await _tryReauthenticate();
+        if (reauthSuccess) {
+          return _callKw(
+            model: model,
+            method: method,
+            args: args,
+            kwargs: kwargs,
+          );
+        }
+      }
       print('Odoo call_kw error on $model/$method: $e');
       rethrow;
     }
@@ -597,19 +669,15 @@ class OdooApiService implements BaseOdooService {
         'phone': savedPhone ?? '',
       };
 
-      // Background silent re-auth to refresh session cookies
+      // Background silent re-auth to refresh session cookies (non-blocking for fast splash load)
       if (effectiveEmail != null &&
           effectivePassword != null &&
           effectiveEmail.isNotEmpty &&
           effectivePassword.isNotEmpty) {
-        try {
-          await login(
-            effectiveEmail,
-            effectivePassword,
-          ).timeout(const Duration(seconds: 5), onTimeout: () => false);
-        } catch (e) {
-          debugPrint('Silent re-auth timeout or error: $e');
-        }
+        login(effectiveEmail, effectivePassword).catchError((e) {
+          debugPrint('Silent re-auth background error: $e');
+          return false;
+        });
       }
 
       return true;

@@ -31,7 +31,7 @@ class _SplashScreenState extends State<SplashScreen>
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 2000),
+      duration: const Duration(milliseconds: 500),
     );
 
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
@@ -57,7 +57,7 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   Future<void> _navigateWhenReady() async {
-    const minSplashDuration = Duration(milliseconds: 2200);
+    const minSplashDuration = Duration(milliseconds: 600);
     final minSplashFuture = Future.delayed(minSplashDuration);
 
     await Future.wait([
@@ -73,14 +73,6 @@ class _SplashScreenState extends State<SplashScreen>
     }
 
     final auth = Provider.of<AuthController>(context, listen: false);
-
-    int retries = 0;
-    while (auth.isLoading && retries < 40) {
-      await Future.delayed(const Duration(milliseconds: 150));
-      retries++;
-    }
-
-    if (!mounted) return;
 
     // Check if user is logged in (either via auth status or saved session profile)
     if (auth.isAuthenticated || auth.userProfile != null) {
