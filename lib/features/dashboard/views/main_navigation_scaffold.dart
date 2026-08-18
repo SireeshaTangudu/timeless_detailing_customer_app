@@ -25,7 +25,9 @@ class _MainNavigationScaffoldState extends State<MainNavigationScaffold>
   int _currentIndex = 0;
 
   void _openDrawer() {
-    debugPrint('🔵 [MainNavigationScaffold] Opening side drawer via _scaffoldKey!');
+    debugPrint(
+      '🔵 [MainNavigationScaffold] Opening side drawer via _scaffoldKey!',
+    );
     _scaffoldKey.currentState?.openDrawer();
   }
 
@@ -188,13 +190,13 @@ class _MainNavigationScaffoldState extends State<MainNavigationScaffold>
                 title: 'Profile',
                 index: 3,
               ),
-              _buildDrawerItem(
-                icon: Icons.info_outline,
-                activeIcon: Icons.info,
-                title: 'About Us',
-                index: 4,
-              ),
 
+              // _buildDrawerItem(
+              //   icon: Icons.info_outline,
+              //   activeIcon: Icons.info,
+              //   title: 'About Us',
+              //   index: 4,
+              // ),
               const Spacer(),
               const Divider(color: Color(0xFFEBE7DF), height: 1),
 
@@ -249,10 +251,16 @@ class _MainNavigationScaffoldState extends State<MainNavigationScaffold>
         controller: _tabController,
         physics: const NeverScrollableScrollPhysics(),
         children: [
-          DashboardScreen(tabController: _tabController, onMenuTap: _openDrawer),
+          DashboardScreen(
+            tabController: _tabController,
+            onMenuTap: _openDrawer,
+          ),
           ServicesListScreen(onMenuTap: () => _tabController.animateTo(0)),
           BookingsHistoryScreen(onMenuTap: () => _tabController.animateTo(0)),
-          ProfileScreen(tabController: _tabController, onMenuTap: () => _tabController.animateTo(0)),
+          ProfileScreen(
+            tabController: _tabController,
+            onMenuTap: () => _tabController.animateTo(0),
+          ),
           AboutUsScreen(onMenuTap: _openDrawer),
         ],
       ),

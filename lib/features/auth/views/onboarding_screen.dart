@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:timeless_detailing_customer_app/core/theme/app_theme.dart';
 import 'package:timeless_detailing_customer_app/core/theme/app_typography.dart';
 import 'package:timeless_detailing_customer_app/features/auth/views/login_screen.dart';
+import 'package:timeless_detailing_customer_app/core/utils/app_animations.dart';
 
 class OnboardingItem {
   final String title;
@@ -62,7 +63,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     } else {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const LoginScreen()),
+        FadeSlidePageRoute(page: const LoginScreen()),
       );
     }
   }
@@ -159,7 +160,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 children: [
                   // Back arrow circular button (visible on slide 1 & 2)
                   if (_currentIndex > 0)
-                    GestureDetector(
+                    AnimatedPressable(
                       onTap: _previousPage,
                       child: Container(
                         width: 36,
@@ -179,7 +180,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     const SizedBox(width: 36),
 
                   // Skip >> Button
-                  GestureDetector(
+                  AnimatedPressable(
                     onTap: _finishOnboarding,
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
@@ -211,27 +212,34 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Title Text in Canela Text Trial Font
-                Text(
-                  item.title,
-                  style: AppTypography.canela(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.primary,
-                    height: 1.15,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-                const SizedBox(height: 12),
-
-                // Description Text in Inter Font
-                Text(
-                  item.description,
-                  style: AppTypography.inter(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w400,
-                    color: AppTheme.primary,
-                    height: 1.45,
+                // Animated Title & Description Text
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 300),
+                  child: Column(
+                    key: ValueKey(_currentIndex),
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        item.title,
+                        style: AppTypography.canela(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.primary,
+                          height: 1.15,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        item.description,
+                        style: AppTypography.inter(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w400,
+                          color: AppTheme.primary,
+                          height: 1.45,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 const SizedBox(height: 36),
@@ -261,7 +269,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     ),
 
                     // Next / Get Started Gold Pill Button
-                    GestureDetector(
+                    AnimatedPressable(
                       onTap: _nextPage,
                       child: Container(
                         height: 42,

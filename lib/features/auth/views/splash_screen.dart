@@ -7,6 +7,7 @@ import 'package:timeless_detailing_customer_app/features/auth/controllers/auth_c
 import 'package:timeless_detailing_customer_app/features/auth/views/onboarding_screen.dart';
 import 'package:timeless_detailing_customer_app/features/dashboard/views/main_navigation_scaffold.dart';
 import 'package:timeless_detailing_customer_app/core/widgets/custom_loader.dart';
+import 'package:timeless_detailing_customer_app/core/utils/app_animations.dart';
 
 class SplashScreen extends StatefulWidget {
   final VoidCallback? onSplashComplete;
@@ -85,14 +86,12 @@ class _SplashScreenState extends State<SplashScreen>
     if (auth.isAuthenticated || auth.userProfile != null) {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(
-          builder: (context) => const MainNavigationScaffold(),
-        ),
+        FadeSlidePageRoute(page: const MainNavigationScaffold()),
       );
     } else {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const OnboardingScreen()),
+        FadeSlidePageRoute(page: const OnboardingScreen()),
       );
     }
   }

@@ -8,6 +8,7 @@ import 'package:timeless_detailing_customer_app/features/bookings/views/book_ser
 import 'package:timeless_detailing_customer_app/core/widgets/custom_footer.dart';
 import 'package:timeless_detailing_customer_app/features/services/views/interior_detailing_screen.dart';
 import 'package:timeless_detailing_customer_app/features/services/controllers/services_controller.dart';
+import 'package:timeless_detailing_customer_app/core/utils/app_animations.dart';
 
 class CarFocusPoint {
   final String id;
@@ -401,8 +402,8 @@ class _ServiceInteractiveDetailScreenState
           ),
           trailing: SizedBox(
             height: 38,
-            child: ElevatedButton(
-              onPressed: () {
+            child: AnimatedPressable(
+              onTap: () {
                 final ProductVariant? selectedVar = allVariants.isNotEmpty
                     ? allVariants.firstWhere(
                         (v) => v.id == _selectedVariantId,
@@ -421,27 +422,52 @@ class _ServiceInteractiveDetailScreenState
                 );
                 Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (context) =>
-                        BookServiceScreen(initialService: targetService),
+                  FadeSlidePageRoute(
+                    page: BookServiceScreen(initialService: targetService),
                   ),
                 );
               },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFC4913F),
-                foregroundColor: Colors.white,
-                elevation: 0,
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(6),
+              child: ElevatedButton(
+                onPressed: () {
+                  final ProductVariant? selectedVar = allVariants.isNotEmpty
+                      ? allVariants.firstWhere(
+                          (v) => v.id == _selectedVariantId,
+                          orElse: () => allVariants.first,
+                        )
+                      : null;
+                  final targetService = service.copyWith(
+                    price: (selectedVar != null && selectedVar.lstPrice > 0)
+                        ? selectedVar.lstPrice
+                        : service.price,
+                    odooProductId: (selectedVar != null && selectedVar.id > 0)
+                        ? selectedVar.id
+                        : service.odooProductId,
+                    appointmentTypeId: selectedVar?.appointmentType?.id ?? service.appointmentTypeId,
+                    appointmentResourceId: selectedVar?.appointmentResource?.id ?? service.appointmentResourceId,
+                  );
+                  Navigator.push(
+                    context,
+                    FadeSlidePageRoute(
+                      page: BookServiceScreen(initialService: targetService),
+                    ),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFC4913F),
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(6),
+                  ),
                 ),
-              ),
-              child: Text(
-                'Book Now!',
-                style: GoogleFonts.outfit(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
+                child: Text(
+                  'Book Now!',
+                  style: GoogleFonts.outfit(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
                 ),
               ),
             ),

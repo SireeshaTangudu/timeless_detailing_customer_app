@@ -7,6 +7,7 @@ import 'package:timeless_detailing_customer_app/features/services/controllers/se
 import 'package:timeless_detailing_customer_app/features/services/models/service_model.dart';
 import 'package:timeless_detailing_customer_app/features/services/views/service_interactive_detail_screen.dart';
 import 'package:timeless_detailing_customer_app/core/widgets/custom_loader.dart';
+import 'package:timeless_detailing_customer_app/core/utils/app_animations.dart';
 
 class ServicesListScreen extends StatefulWidget {
   final VoidCallback? onMenuTap;
@@ -22,7 +23,10 @@ class _ServicesListScreenState extends State<ServicesListScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final controller = Provider.of<ServicesController>(context, listen: false);
+      final controller = Provider.of<ServicesController>(
+        context,
+        listen: false,
+      );
       if (controller.services.isEmpty && !controller.isLoading) {
         controller.loadServices(categoryId: controller.selectedCategoryId);
       }
@@ -33,47 +37,52 @@ class _ServicesListScreenState extends State<ServicesListScreen> {
     const baseUrl =
         'https://keerthan-lfi-lfi-timeless-detailing-uat-36441944.dev.odoo.com';
 
+    Widget imageWidget;
+
     // 1. Base64 mobileImage string from Odoo API
     if (service.mobileImage != null &&
         service.mobileImage!.length > 100 &&
         !service.mobileImage!.startsWith('http')) {
       try {
         final bytes = base64Decode(service.mobileImage!);
-        return Image.memory(bytes, fit: BoxFit.contain);
-      } catch (_) {}
+        imageWidget = Image.memory(bytes, fit: BoxFit.contain);
+      } catch (_) {
+        imageWidget = _buildFallbackChildServiceAsset(service);
+      }
+    } else {
+      final rawImgUrl =
+          (service.mobileImage != null && service.mobileImage!.isNotEmpty)
+          ? service.mobileImage
+          : (service.imageUrl.isNotEmpty ? service.imageUrl : null);
+
+      if (rawImgUrl != null && rawImgUrl.isNotEmpty) {
+        final fullUrl = rawImgUrl.startsWith('http')
+            ? rawImgUrl
+            : '$baseUrl$rawImgUrl';
+        imageWidget = Image.network(
+          fullUrl,
+          fit: BoxFit.contain,
+          errorBuilder: (context, error, stackTrace) =>
+              _buildFallbackChildServiceAsset(service),
+        );
+      } else if (service.odooProductId != null) {
+        final odooImgUrl =
+            '$baseUrl/web/image?model=product.template&id=${service.odooProductId}&field=mobile_image';
+        imageWidget = Image.network(
+          odooImgUrl,
+          fit: BoxFit.contain,
+          errorBuilder: (context, error, stackTrace) =>
+              _buildFallbackChildServiceAsset(service),
+        );
+      } else {
+        imageWidget = _buildFallbackChildServiceAsset(service);
+      }
     }
 
-    // 2. Relative or absolute image URL from API response
-    final rawImgUrl =
-        (service.mobileImage != null && service.mobileImage!.isNotEmpty)
-        ? service.mobileImage
-        : (service.imageUrl.isNotEmpty ? service.imageUrl : null);
-
-    if (rawImgUrl != null && rawImgUrl.isNotEmpty) {
-      final fullUrl = rawImgUrl.startsWith('http')
-          ? rawImgUrl
-          : '$baseUrl$rawImgUrl';
-      return Image.network(
-        fullUrl,
-        fit: BoxFit.contain,
-        errorBuilder: (context, error, stackTrace) =>
-            _buildFallbackChildServiceAsset(service),
-      );
-    }
-
-    // 3. Odoo product.template REST endpoint
-    if (service.odooProductId != null) {
-      final odooImgUrl =
-          '$baseUrl/web/image?model=product.template&id=${service.odooProductId}&field=mobile_image';
-      return Image.network(
-        odooImgUrl,
-        fit: BoxFit.contain,
-        errorBuilder: (context, error, stackTrace) =>
-            _buildFallbackChildServiceAsset(service),
-      );
-    }
-
-    return _buildFallbackChildServiceAsset(service);
+    return Hero(
+      tag: 'service_image_${service.id}',
+      child: imageWidget,
+    );
   }
 
   Widget _buildFallbackChildServiceAsset(DetailService service) {
@@ -125,55 +134,60 @@ class _ServicesListScreenState extends State<ServicesListScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Header Row: Circular Back Button matching Figma
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () {
-                      if (Navigator.canPop(context)) {
-                        Navigator.pop(context);
-                      } else if (widget.onMenuTap != null) {
-                        widget.onMenuTap!();
-                      }
-                    },
-                    child: Container(
-                      width: 38,
-                      height: 38,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: const Color(0xFFAB8C5A),
-                          width: 1.2,
+              FadeSlideIn(
+                delay: const Duration(milliseconds: 100),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    AnimatedPressable(
+                      onTap: () {
+                        if (Navigator.canPop(context)) {
+                          Navigator.pop(context);
+                        } else if (widget.onMenuTap != null) {
+                          widget.onMenuTap!();
+                        }
+                      },
+                      child: Container(
+                        width: 38,
+                        height: 38,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: const Color(0xFFAB8C5A),
+                            width: 1.2,
+                          ),
+                          color: Colors.white,
                         ),
-                        color: Colors.white,
-                      ),
-                      child: const Icon(
-                        Icons.arrow_back,
-                        size: 20,
-                        color: Color(0xFFAB8C5A),
+                        child: const Icon(
+                          Icons.arrow_back,
+                          size: 20,
+                          color: Color(0xFFAB8C5A),
+                        ),
                       ),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-
-              // Parent Service / Category Title in Elegant Serif (matching Figma)
-              Text(
-                selectedCategoryName == 'All'
-                    ? 'Services'
-                    : selectedCategoryName,
-                style: GoogleFonts.lora(
-                  fontSize: 32,
-                  fontWeight: FontWeight.w500,
-                  color: const Color(0xFF3A2F1E),
-                  height: 1.15,
+                  ],
                 ),
               ),
               const SizedBox(height: 24),
 
-              // 2-Column Child Services Grid (Matching Figma Layout)
+              // Parent Service / Category Title in Elegant Serif
+              FadeSlideIn(
+                delay: const Duration(milliseconds: 180),
+                child: Text(
+                  selectedCategoryName == 'All'
+                      ? 'Services'
+                      : selectedCategoryName,
+                  style: GoogleFonts.lora(
+                    fontSize: 32,
+                    fontWeight: FontWeight.w500,
+                    color: const Color(0xFF3A2F1E),
+                    height: 1.15,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // 2-Column Child Services Grid
               Expanded(
                 child: controller.isLoading
                     ? const FourRotatingDotsLoader()
@@ -205,11 +219,15 @@ class _ServicesListScreenState extends State<ServicesListScreen> {
                               crossAxisCount: 2,
                               mainAxisSpacing: 16,
                               crossAxisSpacing: 16,
-                              childAspectRatio: 0.85,
+                              childAspectRatio: 0.72,
                             ),
                         itemBuilder: (context, index) {
                           final childService = displayServices[index];
-                          return _buildChildServiceCard(context, childService);
+                          return FadeSlideIn(
+                            delay: Duration(milliseconds: 200 + (index * 60)),
+                            slideOffset: const Offset(0, 0.1),
+                            child: _buildChildServiceCard(context, childService),
+                          );
                         },
                       ),
               ),
@@ -221,16 +239,15 @@ class _ServicesListScreenState extends State<ServicesListScreen> {
   }
 
   Widget _buildChildServiceCard(BuildContext context, DetailService service) {
-    return GestureDetector(
+    return AnimatedPressable(
       onTap: () {
         debugPrint(
           '🔵 [ServicesListScreen] Tapped child service "${service.name}", opening ServiceInteractiveDetailScreen...',
         );
         Navigator.push(
           context,
-          MaterialPageRoute(
-            builder: (context) =>
-                ServiceInteractiveDetailScreen(service: service),
+          FadeSlidePageRoute(
+            page: ServiceInteractiveDetailScreen(service: service),
           ),
         );
       },
@@ -255,8 +272,8 @@ class _ServicesListScreenState extends State<ServicesListScreen> {
             Align(
               alignment: Alignment.topRight,
               child: SizedBox(
-                width: 89,
-                height: 67,
+                width: 98,
+                height: 78,
                 child: _buildChildServiceIcon(service),
               ),
             ),

@@ -5,8 +5,8 @@ import 'package:timeless_detailing_customer_app/core/theme/app_theme.dart';
 import 'package:timeless_detailing_customer_app/core/widgets/custom_app_bar.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/models/booking_model.dart';
 import 'package:timeless_detailing_customer_app/features/tracking/controllers/tracking_controller.dart';
-import 'package:timeless_detailing_customer_app/features/tracking/models/project_model.dart';
 import 'package:timeless_detailing_customer_app/core/widgets/custom_loader.dart';
+import 'package:timeless_detailing_customer_app/core/utils/app_animations.dart';
 
 class LiveTrackingScreen extends StatefulWidget {
   final Booking booking;
@@ -52,57 +52,10 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         // Dynamic Vehicle & Booking Card
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: AppTheme.surface,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: AppTheme.cardBorder),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(Icons.directions_car_filled, color: AppTheme.primary, size: 36),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      activeBooking.vehicleName.isNotEmpty
-                                          ? activeBooking.vehicleName
-                                          : activeBooking.service.name,
-                                      style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      activeBooking.service.name,
-                                      style: theme.textTheme.bodyMedium?.copyWith(color: AppTheme.textSecondary),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                decoration: BoxDecoration(
-                                  color: AppTheme.primary.withValues(alpha: 0.1),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text(
-                                  activeBooking.statusTitle,
-                                  style: theme.textTheme.labelLarge?.copyWith(fontSize: 11, fontWeight: FontWeight.bold),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-
-                        // Dynamic Detailer Specialist Card (Rendered only if technician data exists in Odoo)
-                        if (activeBooking.technicianName.isNotEmpty) ...[
-                          Text('Detailing Specialist', style: theme.textTheme.titleMedium),
-                          const SizedBox(height: 12),
-                          Container(
-                            padding: const EdgeInsets.all(14),
+                        FadeSlideIn(
+                          delay: const Duration(milliseconds: 100),
+                          child: Container(
+                            padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
                               color: AppTheme.surface,
                               borderRadius: BorderRadius.circular(16),
@@ -110,26 +63,86 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
                             ),
                             child: Row(
                               children: [
-                                CircleAvatar(
-                                  radius: 24,
-                                  backgroundColor: AppTheme.primary.withValues(alpha: 0.1),
-                                  backgroundImage: activeBooking.technicianAvatar.isNotEmpty
-                                      ? NetworkImage(activeBooking.technicianAvatar)
-                                      : null,
-                                  child: activeBooking.technicianAvatar.isEmpty
-                                      ? const Icon(Icons.person_outline, color: AppTheme.primary, size: 24)
-                                      : null,
-                                ),
+                                const Icon(Icons.directions_car_filled, color: AppTheme.primary, size: 36),
                                 const SizedBox(width: 16),
                                 Expanded(
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      Text(activeBooking.technicianName, style: theme.textTheme.titleSmall),
+                                      Text(
+                                        activeBooking.vehicleName.isNotEmpty
+                                            ? activeBooking.vehicleName
+                                            : activeBooking.service.name,
+                                        style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                                      ),
                                       const SizedBox(height: 2),
                                       Text(
-                                        'Odoo Assigned Specialist',
-                                        style: theme.textTheme.bodySmall?.copyWith(color: AppTheme.textSecondary),
+                                        activeBooking.service.name,
+                                        style: theme.textTheme.bodyMedium?.copyWith(color: AppTheme.textSecondary),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                PulseGlow(
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                    decoration: BoxDecoration(
+                                      color: AppTheme.primary.withValues(alpha: 0.1),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                      activeBooking.statusTitle,
+                                      style: theme.textTheme.labelLarge?.copyWith(fontSize: 11, fontWeight: FontWeight.bold),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+
+                        // Dynamic Detailer Specialist Card (Rendered only if technician data exists in Odoo)
+                        if (activeBooking.technicianName.isNotEmpty) ...[
+                          FadeSlideIn(
+                            delay: const Duration(milliseconds: 200),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Detailing Specialist', style: theme.textTheme.titleMedium),
+                                const SizedBox(height: 12),
+                                Container(
+                                  padding: const EdgeInsets.all(14),
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.surface,
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(color: AppTheme.cardBorder),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      CircleAvatar(
+                                        radius: 24,
+                                        backgroundColor: AppTheme.primary.withValues(alpha: 0.1),
+                                        backgroundImage: activeBooking.technicianAvatar.isNotEmpty
+                                            ? NetworkImage(activeBooking.technicianAvatar)
+                                            : null,
+                                        child: activeBooking.technicianAvatar.isEmpty
+                                            ? const Icon(Icons.person_outline, color: AppTheme.primary, size: 24)
+                                            : null,
+                                      ),
+                                      const SizedBox(width: 16),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(activeBooking.technicianName, style: theme.textTheme.titleSmall),
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              'Odoo Assigned Specialist',
+                                              style: theme.textTheme.bodySmall?.copyWith(color: AppTheme.textSecondary),
+                                            ),
+                                          ],
+                                        ),
                                       ),
                                     ],
                                   ),
@@ -140,9 +153,12 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
                           const SizedBox(height: 24),
                         ],
 
-                        // Dynamic Tasks Timeline (Endpoint 9: project.task/web_search_read)
+                        // Dynamic Tasks Timeline
                         if (tasksList.isNotEmpty) ...[
-                          Text('Live Bay Tasks & Progress', style: theme.textTheme.titleMedium),
+                          FadeSlideIn(
+                            delay: const Duration(milliseconds: 300),
+                            child: Text('Live Bay Tasks & Progress', style: theme.textTheme.titleMedium),
+                          ),
                           const SizedBox(height: 12),
                           ListView.builder(
                             shrinkWrap: true,
@@ -152,66 +168,86 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
                               final task = tasksList[index];
                               final isDone = task.state == 'done' || task.state == '1_done';
 
-                              return Container(
-                                margin: const EdgeInsets.only(bottom: 12),
-                                padding: const EdgeInsets.all(14),
-                                decoration: BoxDecoration(
-                                  color: AppTheme.surface,
-                                  borderRadius: BorderRadius.circular(16),
-                                  border: Border.all(color: AppTheme.cardBorder),
-                                ),
-                                child: Row(
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.all(10),
-                                      decoration: BoxDecoration(
-                                        color: isDone
-                                            ? const Color(0xFF2E7D32).withValues(alpha: 0.12)
-                                            : AppTheme.primary.withValues(alpha: 0.1),
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: Icon(
-                                        isDone ? Icons.check_circle_outline : Icons.cleaning_services_outlined,
-                                        color: isDone ? const Color(0xFF2E7D32) : AppTheme.primary,
-                                        size: 20,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 14),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            task.name,
-                                            style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
-                                          ),
-                                          const SizedBox(height: 4),
-                                          Text(
-                                            'Stage: ${task.stageName.isNotEmpty ? task.stageName : task.state}'
-                                            '${task.portalUserNames.isNotEmpty ? ' • ${task.portalUserNames.join(", ")}' : ''}',
-                                            style: theme.textTheme.bodySmall?.copyWith(color: AppTheme.textSecondary),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                      decoration: BoxDecoration(
-                                        color: isDone
-                                            ? const Color(0xFF2E7D32).withValues(alpha: 0.12)
-                                            : AppTheme.primary.withValues(alpha: 0.1),
-                                        borderRadius: BorderRadius.circular(20),
-                                      ),
-                                      child: Text(
-                                        task.stageName.isNotEmpty ? task.stageName.toUpperCase() : 'IN PROGRESS',
-                                        style: theme.textTheme.labelLarge?.copyWith(
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.bold,
+                              return FadeSlideIn(
+                                delay: Duration(milliseconds: 300 + (index * 60)),
+                                child: Container(
+                                  margin: const EdgeInsets.only(bottom: 12),
+                                  padding: const EdgeInsets.all(14),
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.surface,
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(color: AppTheme.cardBorder),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.all(10),
+                                        decoration: BoxDecoration(
+                                          color: isDone
+                                              ? const Color(0xFF2E7D32).withValues(alpha: 0.12)
+                                              : AppTheme.primary.withValues(alpha: 0.1),
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: Icon(
+                                          isDone ? Icons.check_circle_outline : Icons.cleaning_services_outlined,
                                           color: isDone ? const Color(0xFF2E7D32) : AppTheme.primary,
+                                          size: 20,
                                         ),
                                       ),
-                                    ),
-                                  ],
+                                      const SizedBox(width: 14),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              task.name,
+                                              style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              'Stage: ${task.stageName.isNotEmpty ? task.stageName : task.state}'
+                                              '${task.portalUserNames.isNotEmpty ? ' • ${task.portalUserNames.join(", ")}' : ''}',
+                                              style: theme.textTheme.bodySmall?.copyWith(color: AppTheme.textSecondary),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      if (!isDone)
+                                        PulseGlow(
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                            decoration: BoxDecoration(
+                                              color: AppTheme.primary.withValues(alpha: 0.1),
+                                              borderRadius: BorderRadius.circular(20),
+                                            ),
+                                            child: Text(
+                                              task.stageName.isNotEmpty ? task.stageName.toUpperCase() : 'IN PROGRESS',
+                                              style: theme.textTheme.labelLarge?.copyWith(
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.bold,
+                                                color: AppTheme.primary,
+                                              ),
+                                            ),
+                                          ),
+                                        )
+                                      else
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFF2E7D32).withValues(alpha: 0.12),
+                                            borderRadius: BorderRadius.circular(20),
+                                          ),
+                                          child: Text(
+                                            task.stageName.isNotEmpty ? task.stageName.toUpperCase() : 'DONE',
+                                            style: theme.textTheme.labelLarge?.copyWith(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.bold,
+                                              color: const Color(0xFF2E7D32),
+                                            ),
+                                          ),
+                                        ),
+                                    ],
+                                  ),
                                 ),
                               );
                             },

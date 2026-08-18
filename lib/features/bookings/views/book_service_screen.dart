@@ -16,6 +16,7 @@ import 'package:timeless_detailing_customer_app/features/bookings/views/estimati
 import 'package:timeless_detailing_customer_app/features/services/controllers/services_controller.dart';
 import 'package:timeless_detailing_customer_app/features/dashboard/views/main_navigation_scaffold.dart';
 import 'package:timeless_detailing_customer_app/core/widgets/custom_loader.dart';
+import 'package:timeless_detailing_customer_app/core/utils/app_animations.dart';
 
 class BookServiceScreen extends StatefulWidget {
   final DetailService initialService;
@@ -294,6 +295,7 @@ class _BookServiceScreenState extends State<BookServiceScreen> {
     }
 
     if (apptTypeId == null || resId == null || prodId == null) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(

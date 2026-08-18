@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:timeless_detailing_customer_app/core/theme/app_theme.dart';
-import 'package:timeless_detailing_customer_app/core/widgets/custom_loader.dart';
+import 'package:timeless_detailing_customer_app/core/utils/app_animations.dart';
 
 class CustomButton extends StatelessWidget {
   final String text;
@@ -29,41 +29,54 @@ class CustomButton extends StatelessWidget {
     final theme = Theme.of(context);
     final buttonWidth = width ?? double.infinity;
 
-    Widget buttonContent = Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        if (icon != null && !isLoading) ...[
-          Icon(
-            icon,
-            size: 20,
-            color: isOutlined ? AppTheme.primary : AppTheme.background,
-          ),
-          const SizedBox(width: 8),
-        ],
-        if (isLoading)
-          FourRotatingDotsLoader(
-            size: 22,
-            color: isOutlined ? AppTheme.primary : AppTheme.background,
-          )
-        else
-          Text(
-            text,
-            style: theme.textTheme.labelLarge?.copyWith(
+    Widget buttonContent = AnimatedSwitcher(
+      duration: const Duration(milliseconds: 200),
+      child: Row(
+        key: ValueKey(isLoading),
+        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (icon != null && !isLoading) ...[
+            Icon(
+              icon,
+              size: 20,
               color: isOutlined ? AppTheme.primary : AppTheme.background,
-              fontSize: 16,
             ),
-          ),
-      ],
+            const SizedBox(width: 8),
+          ],
+          if (isLoading)
+            SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(
+                strokeWidth: 2.2,
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  isOutlined ? AppTheme.primary : AppTheme.background,
+                ),
+              ),
+            )
+          else
+            Text(
+              text,
+              style: theme.textTheme.labelLarge?.copyWith(
+                color: isOutlined ? AppTheme.primary : AppTheme.background,
+                fontSize: 16,
+              ),
+            ),
+        ],
+      ),
     );
 
     if (isOutlined) {
-      return SizedBox(
-        width: buttonWidth,
-        height: height,
-        child: OutlinedButton(
-          onPressed: isLoading ? null : onPressed,
-          child: buttonContent,
+      return AnimatedPressable(
+        onTap: isLoading ? null : onPressed,
+        child: SizedBox(
+          width: buttonWidth,
+          height: height,
+          child: OutlinedButton(
+            onPressed: isLoading ? null : onPressed,
+            child: buttonContent,
+          ),
         ),
       );
     }
@@ -79,24 +92,27 @@ class CustomButton extends StatelessWidget {
           ? []
           : [
               BoxShadow(
-                color: AppTheme.primary.withOpacity(0.3),
+                color: AppTheme.primary.withValues(alpha: 0.3),
                 blurRadius: 12,
                 offset: const Offset(0, 4),
               ),
             ],
     );
 
-    return Container(
-      width: buttonWidth,
-      height: height,
-      decoration: decoration,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: isLoading ? null : onPressed,
-          borderRadius: BorderRadius.circular(12),
-          child: Center(
-            child: buttonContent,
+    return AnimatedPressable(
+      onTap: isLoading ? null : onPressed,
+      child: Container(
+        width: buttonWidth,
+        height: height,
+        decoration: decoration,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: isLoading ? null : onPressed,
+            borderRadius: BorderRadius.circular(12),
+            child: Center(
+              child: buttonContent,
+            ),
           ),
         ),
       ),

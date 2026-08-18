@@ -17,8 +17,9 @@ import 'package:timeless_detailing_customer_app/features/bookings/controllers/bo
 import 'package:timeless_detailing_customer_app/features/bookings/models/booking_model.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/views/bookings_history_screen.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/views/upcoming_appointment_details_screen.dart';
-import 'package:timeless_detailing_customer_app/features/tracking/views/live_tracking_screen.dart';
 import 'package:timeless_detailing_customer_app/core/widgets/custom_loader.dart';
+import 'package:timeless_detailing_customer_app/core/utils/app_animations.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 class _AssetServiceImage extends StatefulWidget {
   final String assetPath;
@@ -105,7 +106,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildServiceImage(DetailService service) {
-    const baseUrl = 'https://keerthan-lfi-lfi-timeless-detailing-uat-36441944.dev.odoo.com';
+    const baseUrl =
+        'https://keerthan-lfi-lfi-timeless-detailing-uat-36441944.dev.odoo.com';
 
     // 1. Base64 mobileImage
     if (service.mobileImage != null &&
@@ -118,30 +120,36 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
 
     // 2. Relative / Absolute image URL from API response
-    final rawImgUrl = (service.mobileImage != null && service.mobileImage!.isNotEmpty)
+    final rawImgUrl =
+        (service.mobileImage != null && service.mobileImage!.isNotEmpty)
         ? service.mobileImage
         : (service.imageUrl.isNotEmpty ? service.imageUrl : null);
 
     if (rawImgUrl != null && rawImgUrl.isNotEmpty) {
-      final fullUrl = rawImgUrl.startsWith('http') ? rawImgUrl : '$baseUrl$rawImgUrl';
+      final fullUrl = rawImgUrl.startsWith('http')
+          ? rawImgUrl
+          : '$baseUrl$rawImgUrl';
       return Image.network(
         fullUrl,
         fit: BoxFit.contain,
         filterQuality: FilterQuality.high,
         isAntiAlias: true,
-        errorBuilder: (context, error, stackTrace) => _buildFallbackServiceAsset(service),
+        errorBuilder: (context, error, stackTrace) =>
+            _buildFallbackServiceAsset(service),
       );
     }
 
     // 3. Odoo REST image endpoint for product template
     if (service.odooProductId != null) {
-      final odooImgUrl = '$baseUrl/web/image?model=product.template&id=${service.odooProductId}&field=mobile_image';
+      final odooImgUrl =
+          '$baseUrl/web/image?model=product.template&id=${service.odooProductId}&field=mobile_image';
       return Image.network(
         odooImgUrl,
         fit: BoxFit.contain,
         filterQuality: FilterQuality.high,
         isAntiAlias: true,
-        errorBuilder: (context, error, stackTrace) => _buildFallbackServiceAsset(service),
+        errorBuilder: (context, error, stackTrace) =>
+            _buildFallbackServiceAsset(service),
       );
     }
 
@@ -198,159 +206,192 @@ class _DashboardScreenState extends State<DashboardScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Header Row: Greeting on Left & Circular Menu Icon Button on Right
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    RichText(
-                      text: TextSpan(
-                        children: [
-                          TextSpan(
-                            text: 'Hello ',
-                            style: GoogleFonts.inter(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w400,
-                              color: const Color(0xFF3A2F1E),
+                FadeSlideIn(
+                  delay: const Duration(milliseconds: 100),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      RichText(
+                        text: TextSpan(
+                          children: [
+                            TextSpan(
+                              text: 'Hello ',
+                              style: GoogleFonts.inter(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w400,
+                                color: const Color(0xFF3A2F1E),
+                              ),
                             ),
-                          ),
-                          TextSpan(
-                            text: auth.userName.isNotEmpty
-                                ? auth.userName
-                                : 'John Doe',
-                            style: AppTypography.canela(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              color: const Color(0xFF3A2F1E),
+                            TextSpan(
+                              text: auth.userName.isNotEmpty
+                                  ? auth.userName
+                                  : 'John Doe',
+                              style: AppTypography.canela(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: const Color(0xFF3A2F1E),
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
 
-                    // Circular Menu Icon Button on Top Right (Opening Side Drawer)
-                    GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTap: () {
-                        debugPrint('🔵 [DashboardScreen] Menu button clicked!');
-                        if (widget.onMenuTap != null) {
-                          widget.onMenuTap!();
-                        } else {
-                          try {
-                            Scaffold.of(context).openDrawer();
-                          } catch (e) {
-                            debugPrint('Error opening drawer: $e');
+                      // Circular Menu Icon Button on Top Right (Opening Side Drawer)
+                      AnimatedPressable(
+                        onTap: () {
+                          debugPrint('🔵 [DashboardScreen] Menu button clicked!');
+                          if (widget.onMenuTap != null) {
+                            widget.onMenuTap!();
+                          } else {
+                            try {
+                              Scaffold.of(context).openDrawer();
+                            } catch (e) {
+                              debugPrint('Error opening drawer: $e');
+                            }
                           }
-                        }
-                      },
-                      child: Container(
-                        width: 38,
-                        height: 38,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: const Color(0xFFAB8C5A),
-                            width: 1.2,
+                        },
+                        child: Container(
+                          width: 38,
+                          height: 38,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: const Color(0xFFAB8C5A),
+                              width: 1.2,
+                            ),
+                            color: Colors.white,
                           ),
-                          color: Colors.white,
-                        ),
-                        child: const Icon(
-                          Icons.menu,
-                          size: 20,
-                          color: Color(0xFFAB8C5A),
+                          child: const Icon(
+                            Icons.menu,
+                            size: 20,
+                            color: Color(0xFFAB8C5A),
+                          ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 24),
 
-                // Welcome Subheading
-                Text(
-                  'Welcome to Timeless Detailing',
-                  style: GoogleFonts.lora(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w400,
-                    color: const Color(0xFF3A2F1E),
-                    letterSpacing: 0.2,
-                  ),
-                ),
-                const SizedBox(height: 8),
-
-                // Main Display Headline: "What are you looking for today?"
-                Text(
-                  'What are you\nlooking for today?',
-                  style: GoogleFonts.lora(
-                    fontSize: 35,
-                    fontWeight: FontWeight.bold,
-                    color: const Color(0xFF3A2F1E),
-                    height: 1.15,
-                    letterSpacing: -0.2,
+                // Welcome Subheading & Headline
+                FadeSlideIn(
+                  delay: const Duration(milliseconds: 200),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Welcome to Timeless Detailing',
+                        style: GoogleFonts.lora(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w400,
+                          color: const Color(0xFF3A2F1E),
+                          letterSpacing: 0.2,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'What are you\nlooking for today?',
+                        style: GoogleFonts.lora(
+                          fontSize: 35,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFF3A2F1E),
+                          height: 1.15,
+                          letterSpacing: -0.2,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 const Spacer(),
 
-                // Cue Label: "Swipe to view all categories »"
-                Align(
-                  alignment: Alignment.bottomRight,
-                  child: Padding(
-                    padding: const EdgeInsets.only(right: 8, bottom: 12),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          'Swipe to view all categories',
-                          style: GoogleFonts.lora(
-                            fontSize: 12,
-                            fontStyle: FontStyle.italic,
-                            fontWeight: FontWeight.w400,
-                            color: const Color(0xFF000000),
+                // Cue Label: "Swipe to view all categories »" with repeating arrow nudge
+                FadeSlideIn(
+                  delay: const Duration(milliseconds: 300),
+                  child: Align(
+                    alignment: Alignment.bottomRight,
+                    child: Padding(
+                      padding: const EdgeInsets.only(right: 8, bottom: 12),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Swipe to view all categories',
+                            style: GoogleFonts.lora(
+                              fontSize: 12,
+                              fontStyle: FontStyle.italic,
+                              fontWeight: FontWeight.w400,
+                              color: const Color(0xFF000000),
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 4),
-                        const Icon(
-                          Icons.arrow_forward_ios,
-                          size: 10,
-                          color: Color(0xFF7A7A7E),
-                        ),
-                      ],
+                          const SizedBox(width: 4),
+                          const Icon(
+                            Icons.arrow_forward_ios,
+                            size: 10,
+                            color: Color(0xFF7A7A7E),
+                          )
+                              .animate(
+                                onPlay: (controller) =>
+                                    controller.repeat(reverse: true),
+                              )
+                              .moveX(
+                                begin: 0,
+                                end: 4,
+                                duration: 800.ms,
+                                curve: Curves.easeInOut,
+                              ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
 
                 // Horizontal Scrollable Cards View for Product Categories
-                SizedBox(
-                  height: 200,
-                  child: (servicesController.isLoading &&
-                          servicesController.productCategories.isEmpty)
-                      ? const FourRotatingDotsLoader()
-                      : ListView.separated(
-                          scrollDirection: Axis.horizontal,
-                          physics: const BouncingScrollPhysics(),
-                          itemCount: servicesController.productCategories.length,
-                          separatorBuilder: (context, index) =>
-                              const SizedBox(width: 16),
-                          itemBuilder: (context, index) {
-                            final category =
-                                servicesController.productCategories[index];
-                            return _buildProductCategoryCard(
-                              context,
-                              category,
-                              servicesController,
-                            );
-                          },
-                        ),
+                FadeSlideIn(
+                  delay: const Duration(milliseconds: 400),
+                  child: SizedBox(
+                    height: 220,
+                    child:
+                        (servicesController.isLoading &&
+                            servicesController.productCategories.isEmpty)
+                        ? const FourRotatingDotsLoader()
+                        : ListView.separated(
+                            scrollDirection: Axis.horizontal,
+                            physics: const BouncingScrollPhysics(),
+                            itemCount:
+                                servicesController.productCategories.length,
+                            separatorBuilder: (context, index) =>
+                                const SizedBox(width: 16),
+                            itemBuilder: (context, index) {
+                              final category =
+                                  servicesController.productCategories[index];
+                              return FadeSlideIn(
+                                delay: Duration(milliseconds: 400 + (index * 80)),
+                                slideOffset: const Offset(0.15, 0),
+                                child: _buildProductCategoryCard(
+                                  context,
+                                  category,
+                                  servicesController,
+                                ),
+                              );
+                            },
+                          ),
+                  ),
                 ),
 
                 const SizedBox(height: 18),
 
-                // Upcoming Appointment Card placed BELOW Services (matching Figma Image 1)
-                Consumer<BookingsController>(
-                  builder: (context, bookingsController, child) {
-                    final upcoming = bookingsController.bookings;
-                    if (upcoming.isEmpty) return const SizedBox.shrink();
-                    final b = upcoming.first;
-                    return _buildUpcomingAppointmentCard(context, b);
-                  },
+                // Upcoming Appointment Card placed BELOW Services
+                FadeSlideIn(
+                  delay: const Duration(milliseconds: 500),
+                  child: Consumer<BookingsController>(
+                    builder: (context, bookingsController, child) {
+                      final upcoming = bookingsController.bookings;
+                      if (upcoming.isEmpty) return const SizedBox.shrink();
+                      final b = upcoming.first;
+                      return _buildUpcomingAppointmentCard(context, b);
+                    },
+                  ),
                 ),
               ],
             ),
@@ -376,10 +417,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         gradient: const LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [
-            Color(0xFF121212),
-            Color(0xFF22190C),
-          ],
+          colors: [Color(0xFF121212), Color(0xFF22190C)],
         ),
         borderRadius: BorderRadius.circular(8), // Figma Radius 8px
         boxShadow: [
@@ -393,23 +431,31 @@ class _DashboardScreenState extends State<DashboardScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Title in Gold Serif (Figma)
-          Text(
-            isQuoteReceived ? 'New Quote Received' : 'Upcoming Appointment',
-            style: GoogleFonts.lora(
-              fontSize: 15,
-              fontWeight: FontWeight.w500,
-              color: const Color(0xFFC4913F),
-            ),
+          // Title in Gold Serif (Figma) with Pulsing Glow Dot
+          Row(
+            children: [
+              const PulseGlow(
+                child: Icon(
+                  Icons.circle,
+                  size: 8,
+                  color: Color(0xFFC4913F),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                isQuoteReceived ? 'New Quote Received' : 'Upcoming Appointment',
+                style: GoogleFonts.lora(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
+                  color: const Color(0xFFC4913F),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 8),
 
           // Line 4 Divider (Figma)
-          const Divider(
-            color: Color(0xFF332A1F),
-            height: 1,
-            thickness: 1,
-          ),
+          const Divider(color: Color(0xFF332A1F), height: 1, thickness: 1),
           const SizedBox(height: 12),
 
           // Subtitle (Figma)
@@ -431,41 +477,58 @@ class _DashboardScreenState extends State<DashboardScreen> {
             alignment: Alignment.centerRight,
             child: SizedBox(
               height: 38,
-              child: ElevatedButton(
-                onPressed: () {
+              child: AnimatedPressable(
+                onTap: () {
                   if (isQuoteReceived) {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            NewEstimateScreen(bookingItem: booking),
+                      FadeSlidePageRoute(
+                        page: NewEstimateScreen(bookingItem: booking),
                       ),
                     );
                   } else {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            UpcomingAppointmentDetailsScreen(booking: booking),
+                      FadeSlidePageRoute(
+                        page: UpcomingAppointmentDetailsScreen(booking: booking),
                       ),
                     );
                   }
                 },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFC4913F),
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  padding: const EdgeInsets.symmetric(horizontal: 18),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+                child: ElevatedButton(
+                  onPressed: () {
+                    if (isQuoteReceived) {
+                      Navigator.push(
+                        context,
+                        FadeSlidePageRoute(
+                          page: NewEstimateScreen(bookingItem: booking),
+                        ),
+                      );
+                    } else {
+                      Navigator.push(
+                        context,
+                        FadeSlidePageRoute(
+                          page: UpcomingAppointmentDetailsScreen(booking: booking),
+                        ),
+                      );
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFC4913F),
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(horizontal: 18),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
-                ),
-                child: Text(
-                  'View Details',
-                  style: GoogleFonts.outfit(
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
+                  child: Text(
+                    'View Details',
+                    style: GoogleFonts.outfit(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
               ),
@@ -546,8 +609,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
-  Widget _buildCategoryImage(ProductCategory category, String? assetImg, IconData iconData) {
-    const baseUrl = 'https://keerthan-lfi-lfi-timeless-detailing-uat-36441944.dev.odoo.com';
+  Widget _buildCategoryImage(
+    ProductCategory category,
+    String? assetImg,
+    IconData iconData,
+  ) {
+    const baseUrl =
+        'https://keerthan-lfi-lfi-timeless-detailing-uat-36441944.dev.odoo.com';
 
     // 1. Base64 image string
     if (category.image != null &&
@@ -628,22 +696,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
       iconData = Icons.calendar_month_outlined;
     }
 
-    return GestureDetector(
+    return AnimatedPressable(
       onTap: () {
         controller.selectCategoryById(category.id, category.name);
         if (lowerName.contains('interior')) {
           Navigator.push(
             context,
-            MaterialPageRoute(
-              builder: (context) => const InteriorDetailingScreen(),
+            FadeSlidePageRoute(
+              page: const InteriorDetailingScreen(),
             ),
           );
         } else {
           Navigator.push(
             context,
-            MaterialPageRoute(
-              builder: (context) => const ServicesListScreen(),
-            ),
+            FadeSlidePageRoute(page: const ServicesListScreen()),
           );
         }
       },
@@ -653,10 +719,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: const Color(0xFFEBE7DF),
-            width: 1,
-          ),
+          border: Border.all(color: const Color(0xFFEBE7DF), width: 1),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.04),
@@ -723,10 +786,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: const Color(0xFFEBE7DF),
-            width: 1,
-          ),
+          border: Border.all(color: const Color(0xFFEBE7DF), width: 1),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.04),
