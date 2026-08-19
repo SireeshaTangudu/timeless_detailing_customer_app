@@ -188,216 +188,217 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final media = MediaQuery.of(context);
     final safeBottom = media.padding.bottom;
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF9F7F4),
-      body: SafeArea(
-        bottom: false,
-        child: SizedBox(
-          width: double.infinity,
-          height: double.infinity,
-          child: Padding(
-            padding: EdgeInsets.only(
-              left: 24,
-              right: 24,
-              top: 16,
-              bottom: safeBottom + 24,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Header Row: Greeting on Left & Circular Menu Icon Button on Right
-                FadeSlideIn(
-                  delay: const Duration(milliseconds: 100),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      RichText(
-                        text: TextSpan(
+    return FullPageLoadingOverlay(
+      isLoading: servicesController.isLoading,
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF9F7F4),
+        body: SafeArea(
+          bottom: false,
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            child: Padding(
+              padding: EdgeInsets.only(
+                left: 24,
+                right: 24,
+                top: 16,
+                bottom: safeBottom + 24,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Header Row: Greeting on Left & Circular Menu Icon Button on Right
+                  FadeSlideIn(
+                    delay: const Duration(milliseconds: 100),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        RichText(
+                          text: TextSpan(
+                            children: [
+                              TextSpan(
+                                text: 'Hello ',
+                                style: GoogleFonts.inter(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w400,
+                                  color: const Color(0xFF3A2F1E),
+                                ),
+                              ),
+                              TextSpan(
+                                text: auth.userName.isNotEmpty
+                                    ? auth.userName
+                                    : 'John Doe',
+                                style: AppTypography.canela(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                  color: const Color(0xFF3A2F1E),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        // Circular Menu Icon Button on Top Right (Opening Side Drawer)
+                        AnimatedPressable(
+                          onTap: () {
+                            debugPrint(
+                              '🔵 [DashboardScreen] Menu button clicked!',
+                            );
+                            if (widget.onMenuTap != null) {
+                              widget.onMenuTap!();
+                            } else {
+                              try {
+                                Scaffold.of(context).openDrawer();
+                              } catch (e) {
+                                debugPrint('Error opening drawer: $e');
+                              }
+                            }
+                          },
+                          child: Container(
+                            width: 38,
+                            height: 38,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: const Color(0xFFAB8C5A),
+                                width: 1.2,
+                              ),
+                              color: Colors.white,
+                            ),
+                            child: const Icon(
+                              Icons.menu,
+                              size: 20,
+                              color: Color(0xFFAB8C5A),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 34),
+
+                  // Welcome Subheading & Headline
+                  FadeSlideIn(
+                    delay: const Duration(milliseconds: 200),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Welcome to Timeless Detailing',
+                          style: GoogleFonts.lora(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w400,
+                            color: const Color(0xFF3A2F1E),
+                            letterSpacing: 0.2,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'What are you\nlooking for today?',
+                          style: GoogleFonts.lora(
+                            fontSize: 35,
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFF3A2F1E),
+                            height: 1.15,
+                            letterSpacing: -0.2,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+
+                  // Cue Label: "Swipe to view all categories »" with repeating arrow nudge
+                  FadeSlideIn(
+                    delay: const Duration(milliseconds: 300),
+                    child: Align(
+                      alignment: Alignment.bottomRight,
+                      child: Padding(
+                        padding: const EdgeInsets.only(right: 8, bottom: 12),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            TextSpan(
-                              text: 'Hello ',
-                              style: GoogleFonts.inter(
+                            Text(
+                              'Swipe to view all categories',
+                              style: GoogleFonts.lora(
                                 fontSize: 12,
+                                fontStyle: FontStyle.italic,
                                 fontWeight: FontWeight.w400,
-                                color: const Color(0xFF3A2F1E),
+                                color: const Color(0xFF000000),
                               ),
                             ),
-                            TextSpan(
-                              text: auth.userName.isNotEmpty
-                                  ? auth.userName
-                                  : 'John Doe',
-                              style: AppTypography.canela(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w700,
-                                color: const Color(0xFF3A2F1E),
-                              ),
-                            ),
+                            const SizedBox(width: 4),
+                            const Icon(
+                                    Icons.double_arrow_rounded,
+                                    size: 14,
+                                    color: Color(0xFFC4913F),
+                                  )
+                                  .animate(
+                                    onPlay: (controller) => controller.repeat(),
+                                  )
+                                  .moveX(
+                                    begin: 0,
+                                    end: 4,
+                                    duration: 800.ms,
+                                    curve: Curves.easeInOut,
+                                  ),
                           ],
                         ),
                       ),
-
-                      // Circular Menu Icon Button on Top Right (Opening Side Drawer)
-                      AnimatedPressable(
-                        onTap: () {
-                          debugPrint(
-                            '🔵 [DashboardScreen] Menu button clicked!',
-                          );
-                          if (widget.onMenuTap != null) {
-                            widget.onMenuTap!();
-                          } else {
-                            try {
-                              Scaffold.of(context).openDrawer();
-                            } catch (e) {
-                              debugPrint('Error opening drawer: $e');
-                            }
-                          }
-                        },
-                        child: Container(
-                          width: 38,
-                          height: 38,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: const Color(0xFFAB8C5A),
-                              width: 1.2,
-                            ),
-                            color: Colors.white,
-                          ),
-                          child: const Icon(
-                            Icons.menu,
-                            size: 20,
-                            color: Color(0xFFAB8C5A),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 34),
-
-                // Welcome Subheading & Headline
-                FadeSlideIn(
-                  delay: const Duration(milliseconds: 200),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Welcome to Timeless Detailing',
-                        style: GoogleFonts.lora(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w400,
-                          color: const Color(0xFF3A2F1E),
-                          letterSpacing: 0.2,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'What are you\nlooking for today?',
-                        style: GoogleFonts.lora(
-                          fontSize: 35,
-                          fontWeight: FontWeight.bold,
-                          color: const Color(0xFF3A2F1E),
-                          height: 1.15,
-                          letterSpacing: -0.2,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const Spacer(),
-
-                // Cue Label: "Swipe to view all categories »" with repeating arrow nudge
-                FadeSlideIn(
-                  delay: const Duration(milliseconds: 300),
-                  child: Align(
-                    alignment: Alignment.bottomRight,
-                    child: Padding(
-                      padding: const EdgeInsets.only(right: 8, bottom: 12),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            'Swipe to view all categories',
-                            style: GoogleFonts.lora(
-                              fontSize: 12,
-                              fontStyle: FontStyle.italic,
-                              fontWeight: FontWeight.w400,
-                              color: const Color(0xFF000000),
-                            ),
-                          ),
-                          const SizedBox(width: 4),
-                          const Icon(
-                                Icons.arrow_forward_ios,
-                                size: 10,
-                                color: Color(0xFF7A7A7E),
-                              )
-                              .animate(
-                                onPlay: (controller) =>
-                                    controller.repeat(reverse: true),
-                              )
-                              .moveX(
-                                begin: 0,
-                                end: 4,
-                                duration: 800.ms,
-                                curve: Curves.easeInOut,
-                              ),
-                        ],
-                      ),
                     ),
                   ),
-                ),
 
-                // Horizontal Scrollable Cards View for Product Categories
-                FadeSlideIn(
-                  delay: const Duration(milliseconds: 400),
-                  child: SizedBox(
-                    height: 220,
-                    child:
-                        (servicesController.isLoading &&
-                            servicesController.productCategories.isEmpty)
-                        ? const FourRotatingDotsLoader()
-                        : ListView.separated(
-                            scrollDirection: Axis.horizontal,
-                            physics: const BouncingScrollPhysics(),
-                            itemCount:
-                                servicesController.productCategories.length,
-                            separatorBuilder: (context, index) =>
-                                const SizedBox(width: 16),
-                            itemBuilder: (context, index) {
-                              final category =
-                                  servicesController.productCategories[index];
-                              return FadeSlideIn(
-                                delay: Duration(
-                                  milliseconds: 400 + (index * 80),
-                                ),
-                                slideOffset: const Offset(0.15, 0),
-                                child: _buildProductCategoryCard(
-                                  context,
-                                  category,
-                                  servicesController,
-                                ),
-                              );
-                            },
-                          ),
+                  // Horizontal Scrollable Cards View for Product Categories
+                  FadeSlideIn(
+                    delay: const Duration(milliseconds: 400),
+                    child: SizedBox(
+                      height: 220,
+                      child:
+                          (servicesController.isLoading &&
+                              servicesController.productCategories.isEmpty)
+                          ? const FourRotatingDotsLoader()
+                          : ListView.separated(
+                              scrollDirection: Axis.horizontal,
+                              physics: const BouncingScrollPhysics(),
+                              itemCount:
+                                  servicesController.productCategories.length,
+                              separatorBuilder: (context, index) =>
+                                  const SizedBox(width: 16),
+                              itemBuilder: (context, index) {
+                                final category =
+                                    servicesController.productCategories[index];
+                                return FadeSlideIn(
+                                  delay: Duration(
+                                    milliseconds: 400 + (index * 80),
+                                  ),
+                                  slideOffset: const Offset(0.15, 0),
+                                  child: _buildProductCategoryCard(
+                                    context,
+                                    category,
+                                    servicesController,
+                                  ),
+                                );
+                              },
+                            ),
+                    ),
                   ),
-                ),
 
-                const SizedBox(height: 18),
+                  const SizedBox(height: 18),
 
-                // Upcoming Appointment Card placed BELOW Services
-                FadeSlideIn(
-                  delay: const Duration(milliseconds: 500),
-                  child: Consumer<BookingsController>(
-                    builder: (context, bookingsController, child) {
-                      final upcoming = bookingsController.bookings;
-                      if (upcoming.isEmpty) return const SizedBox.shrink();
-                      final b = upcoming.first;
-                      return _buildUpcomingAppointmentCard(context, b);
-                    },
+                  // Upcoming Appointment Card placed BELOW Services
+                  FadeSlideIn(
+                    delay: const Duration(milliseconds: 500),
+                    child: Consumer<BookingsController>(
+                      builder: (context, bookingsController, child) {
+                        final upcoming = bookingsController.bookings;
+                        if (upcoming.isEmpty) return const SizedBox.shrink();
+                        final b = upcoming.first;
+                        return _buildUpcomingAppointmentCard(context, b);
+                      },
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),

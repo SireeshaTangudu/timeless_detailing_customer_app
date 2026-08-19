@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -409,9 +410,17 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
     ),
     if (auth.isLoading)
-      Container(
-        color: Colors.transparent,
-        child: const FourRotatingDotsLoader(size: 45),
+      Positioned.fill(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 3.5, sigmaY: 3.5),
+          child: Container(
+            color: Colors.black.withValues(alpha: 0.35),
+            child: const FourRotatingDotsLoader(
+              size: 38,
+              showDisk: true,
+            ),
+          ),
+        ),
       ),
   ],
 );

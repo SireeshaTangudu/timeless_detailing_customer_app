@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui';
 import 'dart:convert';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter/material.dart';
@@ -912,9 +913,19 @@ class _BookServiceScreenState extends State<BookServiceScreen> {
           ),
         ),
         if (bookingsController.isLoading)
-          Container(
-            color: Colors.transparent,
-            child: const FourRotatingDotsLoader(size: 45),
+          Positioned.fill(
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 3.5, sigmaY: 3.5),
+              child: Container(
+                color: Colors.black.withValues(alpha: 0.35),
+                child: const Center(
+                  child: FourRotatingDotsLoader(
+                    size: 38,
+                    showDisk: true,
+                  ),
+                ),
+              ),
+            ),
           ),
       ],
     );

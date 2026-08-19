@@ -44,73 +44,76 @@ class _BookingsHistoryScreenState extends State<BookingsHistoryScreen> {
 
     final displayList = _selectedTabIndex == 0 ? completedList : upcomingList;
 
-    return Container(
-      color: const Color(0xFFF7F5F0), // Warm light cream matching Figma
-      child: SafeArea(
-        child: Column(
-          children: [
-            CustomAppBar(
-              title: 'My Orders and Bookings',
-              backIcon: Icons.arrow_back_sharp,
-              onBackPressed: () {
-                if (Navigator.canPop(context)) {
-                  Navigator.pop(context);
-                } else if (widget.onMenuTap != null) {
-                  widget.onMenuTap!();
-                }
-              },
-            ),
-            Expanded(
-              child: RefreshIndicator(
-                onRefresh: () => controller.loadBookings(),
-                color: const Color(0xFFC4913F),
-                child: SingleChildScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(
-                    parent: BouncingScrollPhysics(),
-                  ),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 16,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Segmented Pill Tab Bar (Completed Orders / Upcoming Bookings)
-                      Row(
-                        children: [
-                          Expanded(child: _buildTabPill(0, 'Completed Orders')),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: _buildTabPill(1, 'Upcoming Bookings'),
-                          ),
-                        ],
-                      ),
-
-                      const SizedBox(height: 24),
-
-                      // Orders / Bookings List View
-                      if (displayList.isEmpty)
-                        _buildEmptyState()
-                      else
-                        ListView.separated(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount: displayList.length,
-                          separatorBuilder: (context, index) =>
-                              const SizedBox(height: 14),
-                          itemBuilder: (context, index) {
-                            final item = displayList[index];
-                            return _buildBookingRowCard(context, item);
-                          },
+    return FullPageLoadingOverlay(
+      isLoading: controller.isLoading,
+      child: Container(
+        color: const Color(0xFFF7F5F0), // Warm light cream matching Figma
+        child: SafeArea(
+          child: Column(
+            children: [
+              CustomAppBar(
+                title: 'My Orders and Bookings',
+                backIcon: Icons.arrow_back_sharp,
+                onBackPressed: () {
+                  if (Navigator.canPop(context)) {
+                    Navigator.pop(context);
+                  } else if (widget.onMenuTap != null) {
+                    widget.onMenuTap!();
+                  }
+                },
+              ),
+              Expanded(
+                child: RefreshIndicator(
+                  onRefresh: () => controller.loadBookings(),
+                  color: const Color(0xFFC4913F),
+                  child: SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(
+                      parent: BouncingScrollPhysics(),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 16,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Segmented Pill Tab Bar (Completed Orders / Upcoming Bookings)
+                        Row(
+                          children: [
+                            Expanded(child: _buildTabPill(0, 'Completed Orders')),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: _buildTabPill(1, 'Upcoming Bookings'),
+                            ),
+                          ],
                         ),
 
-                      const SizedBox(height: 32),
-                    ],
+                        const SizedBox(height: 24),
+
+                        // Orders / Bookings List View
+                        if (displayList.isEmpty && !controller.isLoading)
+                          _buildEmptyState()
+                        else
+                          ListView.separated(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: displayList.length,
+                            separatorBuilder: (context, index) =>
+                                const SizedBox(height: 14),
+                            itemBuilder: (context, index) {
+                              final item = displayList[index];
+                              return _buildBookingRowCard(context, item);
+                            },
+                          ),
+
+                        const SizedBox(height: 32),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

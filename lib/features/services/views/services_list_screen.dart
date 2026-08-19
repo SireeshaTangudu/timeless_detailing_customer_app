@@ -119,119 +119,186 @@ class _ServicesListScreenState extends State<ServicesListScreen> {
     );
   }
 
+  Widget _buildCategorySelectorRow(
+    BuildContext context,
+    ServicesController controller,
+  ) {
+    final categories = controller.categories;
+    return SizedBox(
+      height: 38,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        itemCount: categories.length,
+        separatorBuilder: (context, index) => const SizedBox(width: 10),
+        itemBuilder: (context, index) {
+          final catName = categories[index];
+          final isSelected = controller.selectedCategory == catName;
+
+          return AnimatedPressable(
+            onTap: () {
+              controller.selectCategory(catName);
+            },
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: isSelected ? const Color(0xFFC4913F) : Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: isSelected
+                      ? const Color(0xFFC4913F)
+                      : const Color(0xFFEBE7DF),
+                  width: 1.2,
+                ),
+                boxShadow: isSelected
+                    ? [
+                        BoxShadow(
+                          color: const Color(0xFFC4913F).withValues(alpha: 0.25),
+                          blurRadius: 8,
+                          offset: const Offset(0, 3),
+                        ),
+                      ]
+                    : [],
+              ),
+              child: Center(
+                child: Text(
+                  catName,
+                  style: GoogleFonts.outfit(
+                    fontSize: 13,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                    color: isSelected ? Colors.white : const Color(0xFF5A5245),
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final controller = Provider.of<ServicesController>(context);
     final selectedCategoryName = controller.selectedCategory;
     final displayServices = controller.filteredServices;
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF9F7F4),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header Row: Circular Back Button matching Figma
-              FadeSlideIn(
-                delay: const Duration(milliseconds: 100),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    AnimatedPressable(
-                      onTap: () {
-                        if (Navigator.canPop(context)) {
-                          Navigator.pop(context);
-                        } else if (widget.onMenuTap != null) {
-                          widget.onMenuTap!();
-                        }
-                      },
-                      child: Container(
-                        width: 38,
-                        height: 38,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: const Color(0xFFAB8C5A),
-                            width: 1.2,
+    return FullPageLoadingOverlay(
+      isLoading: controller.isLoading,
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF9F7F4),
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header Row: Circular Back Button matching Figma
+                FadeSlideIn(
+                  delay: const Duration(milliseconds: 100),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      AnimatedPressable(
+                        onTap: () {
+                          if (Navigator.canPop(context)) {
+                            Navigator.pop(context);
+                          } else if (widget.onMenuTap != null) {
+                            widget.onMenuTap!();
+                          }
+                        },
+                        child: Container(
+                          width: 38,
+                          height: 38,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: const Color(0xFFAB8C5A),
+                              width: 1.2,
+                            ),
+                            color: Colors.white,
                           ),
-                          color: Colors.white,
-                        ),
-                        child: const Icon(
-                          Icons.arrow_back,
-                          size: 20,
-                          color: Color(0xFFAB8C5A),
+                          child: const Icon(
+                            Icons.arrow_back,
+                            size: 20,
+                            color: Color(0xFFAB8C5A),
+                          ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              // Parent Service / Category Title in Elegant Serif
-              FadeSlideIn(
-                delay: const Duration(milliseconds: 180),
-                child: Text(
-                  selectedCategoryName == 'All'
-                      ? 'Services'
-                      : selectedCategoryName,
-                  style: GoogleFonts.lora(
-                    fontSize: 32,
-                    fontWeight: FontWeight.w500,
-                    color: const Color(0xFF3A2F1E),
-                    height: 1.15,
+                    ],
                   ),
                 ),
-              ),
-              const SizedBox(height: 24),
+                const SizedBox(height: 24),
 
-              // 2-Column Child Services Grid
-              Expanded(
-                child: controller.isLoading
-                    ? const FourRotatingDotsLoader()
-                    : controller.errorMessage != null
-                    ? Center(
-                        child: Text(
-                          controller.errorMessage!,
-                          style: GoogleFonts.outfit(
-                            color: AppTheme.error,
-                            fontSize: 14,
-                          ),
-                        ),
-                      )
-                    : displayServices.isEmpty
-                    ? Center(
-                        child: Text(
-                          'No services available in this category.',
-                          style: GoogleFonts.lora(
-                            fontSize: 15,
-                            color: const Color(0xFF7A6F5D),
-                          ),
-                        ),
-                      )
-                    : GridView.builder(
-                        physics: const BouncingScrollPhysics(),
-                        itemCount: displayServices.length,
-                        gridDelegate:
-                            const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 2,
-                              mainAxisSpacing: 16,
-                              crossAxisSpacing: 16,
-                              childAspectRatio: 0.72,
+                // Parent Service / Category Title in Elegant Serif
+                FadeSlideIn(
+                  delay: const Duration(milliseconds: 180),
+                  child: Text(
+                    selectedCategoryName == 'All'
+                        ? 'Services'
+                        : selectedCategoryName,
+                    style: GoogleFonts.lora(
+                      fontSize: 32,
+                      fontWeight: FontWeight.w500,
+                      color: const Color(0xFF3A2F1E),
+                      height: 1.15,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Category Selector Chips Row
+                FadeSlideIn(
+                  delay: const Duration(milliseconds: 220),
+                  child: _buildCategorySelectorRow(context, controller),
+                ),
+                const SizedBox(height: 20),
+
+                // 2-Column Child Services Grid
+                Expanded(
+                  child: controller.errorMessage != null
+                      ? Center(
+                          child: Text(
+                            controller.errorMessage!,
+                            style: GoogleFonts.outfit(
+                              color: AppTheme.error,
+                              fontSize: 14,
                             ),
-                        itemBuilder: (context, index) {
-                          final childService = displayServices[index];
-                          return FadeSlideIn(
-                            delay: Duration(milliseconds: 200 + (index * 60)),
-                            slideOffset: const Offset(0, 0.1),
-                            child: _buildChildServiceCard(context, childService),
-                          );
-                        },
-                      ),
-              ),
-            ],
+                          ),
+                        )
+                      : (displayServices.isEmpty && !controller.isLoading)
+                      ? Center(
+                          child: Text(
+                            'No services available in this category.',
+                            style: GoogleFonts.lora(
+                              fontSize: 15,
+                              color: const Color(0xFF7A6F5D),
+                            ),
+                          ),
+                        )
+                      : GridView.builder(
+                          physics: const BouncingScrollPhysics(),
+                          itemCount: displayServices.length,
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 2,
+                                mainAxisSpacing: 16,
+                                crossAxisSpacing: 16,
+                                childAspectRatio: 0.72,
+                              ),
+                          itemBuilder: (context, index) {
+                            final childService = displayServices[index];
+                            return FadeSlideIn(
+                              delay: Duration(milliseconds: 200 + (index * 60)),
+                              slideOffset: const Offset(0, 0.1),
+                              child: _buildChildServiceCard(context, childService),
+                            );
+                          },
+                        ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
