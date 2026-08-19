@@ -13,6 +13,7 @@ import 'package:timeless_detailing_customer_app/features/auth/views/settings_scr
 import 'package:timeless_detailing_customer_app/features/bookings/controllers/bookings_controller.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/models/booking_model.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/views/bookings_history_screen.dart';
+import 'package:timeless_detailing_customer_app/core/widgets/custom_app_bar.dart';
 import 'package:timeless_detailing_customer_app/core/widgets/custom_loader.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -472,85 +473,43 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: SafeArea(
         child: Column(
           children: [
-            // Top Navigation Bar: Back Arrow, "My Profile" Title & Gear Icon
-            Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 20.0,
-                vertical: 12.0,
-              ),
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: GestureDetector(
-                      onTap: () {
-                        if (Navigator.canPop(context)) {
-                          Navigator.pop(context);
-                        } else if (widget.tabController != null) {
-                          widget.tabController!.animateTo(0);
-                        } else if (widget.onMenuTap != null) {
-                          widget.onMenuTap!();
-                        }
-                      },
-                      child: Container(
-                        width: 36,
-                        height: 36,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: const Color(0xFFE5E0D8),
-                            width: 1,
-                          ),
-                          color: Colors.white,
-                        ),
-                        child: Icon(
-                          Icons.arrow_back_sharp,
-                          size: 18,
-                          color: const Color(0xFFAB8C5A),
-                        ),
-                      ),
+            CustomAppBar(
+              title: 'My Profile',
+              onBackPressed: () {
+                if (Navigator.canPop(context)) {
+                  Navigator.pop(context);
+                } else if (widget.tabController != null) {
+                  widget.tabController!.animateTo(0);
+                } else if (widget.onMenuTap != null) {
+                  widget.onMenuTap!();
+                }
+              },
+              trailing: GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const SettingsScreen(),
                     ),
-                  ),
-                  Text(
-                    'My Profile',
-                    style: AppTypography.canela(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: const Color(0xFF1C1C1E),
+                  );
+                },
+                child: Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: const Color(0xFFAB8C5A),
+                      width: 1.2,
                     ),
+                    color: Colors.white,
                   ),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const SettingsScreen(),
-                          ),
-                        );
-                      },
-                      child: Container(
-                        width: 36,
-                        height: 36,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: AppTheme.primary,
-                            width: 1.2,
-                          ),
-                          color: Colors.white,
-                        ),
-                        child: Icon(
-                          Icons.settings_outlined,
-                          size: 18,
-                          color: AppTheme.primary,
-                        ),
-                      ),
-                    ),
+                  child: const Icon(
+                    Icons.settings_outlined,
+                    size: 20,
+                    color: Color(0xFFAB8C5A),
                   ),
-                ],
+                ),
               ),
             ),
             const SizedBox(height: 24),

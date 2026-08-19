@@ -134,201 +134,204 @@ class _SignupScreenState extends State<SignupScreen> {
             subtitle: 'Create an account to get started',
           ),
 
-            // Form Inputs
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24.0,
-                  vertical: 8.0,
-                ),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      const SizedBox(height: 22),
+          // Form Inputs
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 24.0,
+                vertical: 8.0,
+              ),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const SizedBox(height: 22),
 
-                      // Full Name
-                      _buildFieldLabel('Full Name'),
-                      TextFormField(
-                        controller: _nameController,
-                        style: GoogleFonts.inter(
-                          fontSize: 14,
-                          color: const Color(0xFF1C1C1E),
-                        ),
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return 'Full name is required';
-                          }
-                          return null;
-                        },
-                        decoration: _buildInputDecoration(
-                          hintText: 'Enter your full name',
-                        ),
+                    // Full Name
+                    _buildFieldLabel('Full Name'),
+                    TextFormField(
+                      controller: _nameController,
+                      style: GoogleFonts.inter(
+                        fontSize: 14,
+                        color: const Color(0xFF1C1C1E),
                       ),
-                      const SizedBox(height: 16),
-
-                      // Email ID
-                      _buildFieldLabel('Email ID'),
-                      TextFormField(
-                        controller: _emailController,
-                        keyboardType: TextInputType.emailAddress,
-                        style: GoogleFonts.inter(
-                          fontSize: 14,
-                          color: const Color(0xFF1C1C1E),
-                        ),
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return 'Email ID is required';
-                          }
-                          if (!RegExp(
-                            r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
-                          ).hasMatch(value.trim())) {
-                            return 'Enter a valid email address';
-                          }
-                          return null;
-                        },
-                        decoration: _buildInputDecoration(
-                          hintText: 'Enter your email address',
-                        ),
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Full name is required';
+                        }
+                        return null;
+                      },
+                      decoration: _buildInputDecoration(
+                        hintText: 'Enter your full name',
                       ),
-                      const SizedBox(height: 16),
+                    ),
+                    const SizedBox(height: 16),
 
-                      // Phone Number
-                      _buildFieldLabel('Phone Number'),
-                      TextFormField(
-                        controller: _phoneController,
-                        keyboardType: TextInputType.phone,
-                        style: GoogleFonts.inter(
-                          fontSize: 14,
-                          color: const Color(0xFF1C1C1E),
-                        ),
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return 'Phone number is required';
-                          }
-                          return null;
-                        },
-                        decoration: _buildInputDecoration(
-                          hintText: 'Enter your phone number',
-                        ),
+                    // Email ID
+                    _buildFieldLabel('Email ID'),
+                    TextFormField(
+                      controller: _emailController,
+                      keyboardType: TextInputType.emailAddress,
+                      style: GoogleFonts.inter(
+                        fontSize: 14,
+                        color: const Color(0xFF1C1C1E),
                       ),
-                      const SizedBox(height: 16),
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Email ID is required';
+                        }
+                        if (!RegExp(
+                          r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                        ).hasMatch(value.trim())) {
+                          return 'Enter a valid email address';
+                        }
+                        return null;
+                      },
+                      decoration: _buildInputDecoration(
+                        hintText: 'Enter your email address',
+                      ),
+                    ),
+                    const SizedBox(height: 16),
 
-                      // Password
-                      _buildFieldLabel('Password'),
-                      TextFormField(
-                        controller: _passwordController,
-                        obscureText: _obscurePassword,
-                        style: GoogleFonts.inter(
-                          fontSize: 14,
-                          color: const Color(0xFF1C1C1E),
-                        ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Password is required';
-                          }
-                          if (value.length < 6) {
-                            return 'Password must be at least 6 characters';
-                          }
-                          return null;
-                        },
-                        decoration: _buildInputDecoration(
-                          hintText: '••••••••',
-                          suffixIcon: IconButton(
-                            icon: Icon(
-                              _obscurePassword
-                                  ? Icons.visibility_off_outlined
-                                  : Icons.visibility_outlined,
-                              color: AppTheme.primary,
-                              size: 20,
-                            ),
-                            onPressed: () {
-                              setState(() {
-                                _obscurePassword = !_obscurePassword;
-                              });
-                            },
+                    // Phone Number
+                    _buildFieldLabel('Phone Number'),
+                    TextFormField(
+                      controller: _phoneController,
+                      keyboardType: TextInputType.phone,
+                      style: GoogleFonts.inter(
+                        fontSize: 14,
+                        color: const Color(0xFF1C1C1E),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Phone number is required';
+                        }
+                        return null;
+                      },
+                      decoration: _buildInputDecoration(
+                        hintText: 'Enter your phone number',
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Password
+                    _buildFieldLabel('Password'),
+                    TextFormField(
+                      controller: _passwordController,
+                      obscureText: _obscurePassword,
+                      style: GoogleFonts.inter(
+                        fontSize: 14,
+                        color: const Color(0xFF1C1C1E),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Password is required';
+                        }
+                        if (value.length < 6) {
+                          return 'Password must be at least 6 characters';
+                        }
+                        return null;
+                      },
+                      decoration: _buildInputDecoration(
+                        hintText: '••••••••',
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscurePassword
+                                ? Icons.visibility_off_outlined
+                                : Icons.visibility_outlined,
+                            color: AppTheme.primary,
+                            size: 20,
                           ),
+                          onPressed: () {
+                            setState(() {
+                              _obscurePassword = !_obscurePassword;
+                            });
+                          },
                         ),
                       ),
-                      const SizedBox(height: 16),
+                    ),
+                    const SizedBox(height: 16),
 
-                      // Confirm Password
-                      _buildFieldLabel('Confirm Password'),
-                      TextFormField(
-                        controller: _confirmPasswordController,
-                        obscureText: _obscureConfirmPassword,
-                        style: GoogleFonts.inter(
-                          fontSize: 14,
-                          color: const Color(0xFF1C1C1E),
-                        ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please confirm your password';
-                          }
-                          if (value != _passwordController.text) {
-                            return 'Passwords do not match';
-                          }
-                          return null;
-                        },
-                        decoration: _buildInputDecoration(
-                          hintText: '••••••••',
-                          suffixIcon: IconButton(
-                            icon: Icon(
-                              _obscureConfirmPassword
-                                  ? Icons.visibility_off_outlined
-                                  : Icons.visibility_outlined,
-                              color: AppTheme.primary,
-                              size: 20,
-                            ),
-                            onPressed: () {
-                              setState(() {
-                                _obscureConfirmPassword =
-                                    !_obscureConfirmPassword;
-                              });
-                            },
+                    // Confirm Password
+                    _buildFieldLabel('Confirm Password'),
+                    TextFormField(
+                      controller: _confirmPasswordController,
+                      obscureText: _obscureConfirmPassword,
+                      style: GoogleFonts.inter(
+                        fontSize: 14,
+                        color: const Color(0xFF1C1C1E),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please confirm your password';
+                        }
+                        if (value != _passwordController.text) {
+                          return 'Passwords do not match';
+                        }
+                        return null;
+                      },
+                      decoration: _buildInputDecoration(
+                        hintText: '••••••••',
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscureConfirmPassword
+                                ? Icons.visibility_off_outlined
+                                : Icons.visibility_outlined,
+                            color: AppTheme.primary,
+                            size: 20,
                           ),
+                          onPressed: () {
+                            setState(() {
+                              _obscureConfirmPassword =
+                                  !_obscureConfirmPassword;
+                            });
+                          },
                         ),
                       ),
-                      const SizedBox(height: 36),
+                    ),
+                    const SizedBox(height: 36),
 
-                      // Create Account Button
-                      Consumer<AuthController>(
-                        builder: (context, auth, _) {
-                          return SizedBox(
-                            height: 50,
-                            child: ElevatedButton(
-                              onPressed: auth.isLoading ? null : _handleSignup,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppTheme.primary,
-                                foregroundColor: Colors.white,
-                                elevation: 0,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
+                    // Create Account Button
+                    Consumer<AuthController>(
+                      builder: (context, auth, _) {
+                        return SizedBox(
+                          height: 50,
+                          child: ElevatedButton(
+                            onPressed: auth.isLoading ? null : _handleSignup,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppTheme.primary,
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
                               ),
-                              child: auth.isLoading
-                                  ? const FourRotatingDotsLoader(size: 22, color: Colors.white)
-                                  : Text(
-                                      'Login',
-                                      style: GoogleFonts.inter(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.white,
-                                      ),
-                                    ),
                             ),
-                          );
-                        },
-                      ),
-                      const SizedBox(height: 24),
-                    ],
-                  ),
+                            child: auth.isLoading
+                                ? const FourRotatingDotsLoader(
+                                    size: 22,
+                                    color: Colors.white,
+                                  )
+                                : Text(
+                                    'Register',
+                                    style: GoogleFonts.inter(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 24),
+                  ],
                 ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
+      ),
     );
   }
 }

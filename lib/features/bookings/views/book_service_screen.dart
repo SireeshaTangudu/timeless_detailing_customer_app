@@ -89,7 +89,7 @@ class _BookServiceScreenState extends State<BookServiceScreen> {
     );
     controller.fetchBookableSlots(
       appointmentTypeId: apptTypeId,
-      timezone: 'UTC',
+      timezone: 'Africa/Johannesburg',
       resourceId: resId,
       date: date,
     );
@@ -919,10 +919,7 @@ class _BookServiceScreenState extends State<BookServiceScreen> {
               child: Container(
                 color: Colors.black.withValues(alpha: 0.35),
                 child: const Center(
-                  child: FourRotatingDotsLoader(
-                    size: 38,
-                    showDisk: true,
-                  ),
+                  child: FourRotatingDotsLoader(size: 38, showDisk: true),
                 ),
               ),
             ),

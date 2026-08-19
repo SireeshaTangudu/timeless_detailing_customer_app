@@ -8,6 +8,7 @@ import 'package:timeless_detailing_customer_app/features/bookings/views/book_ser
 import 'package:timeless_detailing_customer_app/core/widgets/custom_footer.dart';
 import 'package:timeless_detailing_customer_app/features/services/views/interior_detailing_screen.dart';
 import 'package:timeless_detailing_customer_app/features/services/controllers/services_controller.dart';
+import 'package:timeless_detailing_customer_app/core/widgets/custom_app_bar.dart';
 import 'package:timeless_detailing_customer_app/core/utils/app_animations.dart';
 
 class CarFocusPoint {
@@ -200,192 +201,160 @@ class _ServiceInteractiveDetailScreenState
       },
       child: Scaffold(
         backgroundColor: const Color(0xFFF9F7F4),
-        body: SafeArea(
-          child: Column(
-            children: [
-              // Top Bar with Circular Back Button matching Figma
-              Padding(
+        body: Column(
+          children: [
+            CustomAppBar(
+              // title: service.name,
+              // subtitle: service.description.isNotEmpty ? service.description : null,
+            ),
+
+            Expanded(
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
                 padding: const EdgeInsets.symmetric(
                   horizontal: 24,
-                  vertical: 12,
+                  vertical: 8,
                 ),
-                child: Row(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTap: () => Navigator.pop(context),
-                      child: Container(
-                        width: 38,
-                        height: 38,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: const Color(0xFFAB8C5A),
-                            width: 1.2,
-                          ),
-                          color: Colors.white,
-                        ),
-                        child: const Icon(
-                          Icons.arrow_back,
-                          size: 20,
-                          color: Color(0xFFAB8C5A),
-                        ),
+                    // Title in Elegant Serif (matching Figma)
+                    Text(
+                      service.name,
+                      style: GoogleFonts.lora(
+                        fontSize: 32,
+                        fontWeight: FontWeight.w500,
+                        color: const Color(0xFF3A2F1E),
+                        height: 1.15,
                       ),
                     ),
-                  ],
-                ),
-              ),
+                    const SizedBox(height: 14),
 
-              Expanded(
-                child: SingleChildScrollView(
-                  physics: const BouncingScrollPhysics(),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 8,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Title in Elegant Serif (matching Figma)
+                    // Dynamic Intro Paragraphs matching Figma
+                    if (introText.isNotEmpty) ...[
                       Text(
-                        service.name,
+                        introText,
+                        style: GoogleFonts.outfit(
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w400,
+                          color: const Color(0xFF5A5245),
+                          height: 1.55,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                    ],
+
+                    // Parts where it effects Section (Variant Package Chips if multiple variants)
+                    if (allVariants.length > 1) ...[
+                      Text(
+                        'Where We Focus Inside Your Vehicle',
                         style: GoogleFonts.lora(
-                          fontSize: 32,
+                          fontSize: 22,
                           fontWeight: FontWeight.w500,
                           color: const Color(0xFF3A2F1E),
-                          height: 1.15,
                         ),
                       ),
                       const SizedBox(height: 14),
 
-                      // Dynamic Intro Paragraphs matching Figma
-                      if (introText.isNotEmpty) ...[
-                        Text(
-                          introText,
-                          style: GoogleFonts.outfit(
-                            fontSize: 13.5,
-                            fontWeight: FontWeight.w400,
-                            color: const Color(0xFF5A5245),
-                            height: 1.55,
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                      ],
-
-                      // Parts where it effects Section (Variant Package Chips if multiple variants)
-                      if (allVariants.length > 1) ...[
-                        Text(
-                          'Where We Focus Inside Your Vehicle',
-                          style: GoogleFonts.lora(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w500,
-                            color: const Color(0xFF3A2F1E),
-                          ),
-                        ),
-                        const SizedBox(height: 14),
-
-                        SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          physics: const BouncingScrollPhysics(),
-                          child: Row(
-                            children: allVariants.map((v) {
-                              final isSel = _selectedVariantId == v.id;
-                              String cleanName = v.displayName;
-                              if (cleanName.contains('(') &&
-                                  cleanName.endsWith(')')) {
-                                final parts = cleanName.split('(');
-                                if (parts.length >= 3) {
-                                  cleanName = parts.last
-                                      .replaceAll(')', '')
-                                      .trim();
-                                } else if (parts.length == 2) {
-                                  cleanName = parts[1]
-                                      .replaceAll(')', '')
-                                      .trim();
-                                }
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        physics: const BouncingScrollPhysics(),
+                        child: Row(
+                          children: allVariants.map((v) {
+                            final isSel = _selectedVariantId == v.id;
+                            String cleanName = v.displayName;
+                            if (cleanName.contains('(') &&
+                                cleanName.endsWith(')')) {
+                              final parts = cleanName.split('(');
+                              if (parts.length >= 3) {
+                                cleanName = parts.last
+                                    .replaceAll(')', '')
+                                    .trim();
+                              } else if (parts.length == 2) {
+                                cleanName = parts[1].replaceAll(')', '').trim();
                               }
+                            }
 
-                              return Padding(
-                                padding: const EdgeInsets.only(right: 8),
-                                child: ChoiceChip(
-                                  label: Text(
-                                    cleanName,
-                                    style: GoogleFonts.outfit(
-                                      fontSize: 13,
-                                      fontWeight: isSel
-                                          ? FontWeight.w600
-                                          : FontWeight.w400,
-                                      color: isSel
-                                          ? Colors.white
-                                          : const Color(0xFF3A2F1E),
-                                    ),
+                            return Padding(
+                              padding: const EdgeInsets.only(right: 8),
+                              child: ChoiceChip(
+                                label: Text(
+                                  cleanName,
+                                  style: GoogleFonts.outfit(
+                                    fontSize: 13,
+                                    fontWeight: isSel
+                                        ? FontWeight.w600
+                                        : FontWeight.w400,
+                                    color: isSel
+                                        ? Colors.white
+                                        : const Color(0xFF3A2F1E),
                                   ),
-                                  selected: isSel,
-                                  selectedColor: const Color(0xFFC4913F),
-                                  backgroundColor: Colors.white,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                    side: BorderSide(
-                                      color: isSel
-                                          ? const Color(0xFFC4913F)
-                                          : const Color(0xFFEBE7DF),
-                                    ),
-                                  ),
-                                  showCheckmark: false,
-                                  onSelected: (selected) {
-                                    if (selected) {
-                                      setState(() {
-                                        _selectedVariantId = v.id;
-                                        _selectedPoint = null;
-                                      });
-                                    }
-                                  },
                                 ),
-                              );
-                            }).toList(),
-                          ),
+                                selected: isSel,
+                                selectedColor: const Color(0xFFC4913F),
+                                backgroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  side: BorderSide(
+                                    color: isSel
+                                        ? const Color(0xFFC4913F)
+                                        : const Color(0xFFEBE7DF),
+                                  ),
+                                ),
+                                showCheckmark: false,
+                                onSelected: (selected) {
+                                  if (selected) {
+                                    setState(() {
+                                      _selectedVariantId = v.id;
+                                      _selectedPoint = null;
+                                    });
+                                  }
+                                },
+                              ),
+                            );
+                          }).toList(),
                         ),
-                        const SizedBox(height: 20),
-                      ],
-
-                      // Hotspot Car Diagram with view_image_url Key
-                      if (focusPoints.isNotEmpty) ...[
-                        _CarViewWithHotspots(
-                          points: focusPoints,
-                          selected: selectedPoint,
-                          isExterior: isExterior,
-                          onPointSelected: (point) {
-                            setState(() {
-                              _selectedPoint = point;
-                            });
-                          },
-                        ),
-                        const SizedBox(height: 28),
-                      ],
-
-                      // Dynamic Feature Benefits Section from Odoo API
-                      if (featuresToShow.isNotEmpty) ...[
-                        Text(
-                          'Why Choose ${service.name}',
-                          style: GoogleFonts.lora(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w500,
-                            color: const Color(0xFF3A2F1E),
-                          ),
-                        ),
-                        const SizedBox(height: 14),
-                        ..._buildBulletList(featuresToShow),
-                        const SizedBox(height: 28),
-                      ],
-
-                      // Other Protection Services Carousel matching Figma
-                      _buildOtherServicesCarousel(context, service),
+                      ),
+                      const SizedBox(height: 20),
                     ],
-                  ),
+
+                    // Hotspot Car Diagram with view_image_url Key
+                    if (focusPoints.isNotEmpty) ...[
+                      _CarViewWithHotspots(
+                        points: focusPoints,
+                        selected: selectedPoint,
+                        isExterior: isExterior,
+                        onPointSelected: (point) {
+                          setState(() {
+                            _selectedPoint = point;
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 28),
+                    ],
+
+                    // Dynamic Feature Benefits Section from Odoo API
+                    if (featuresToShow.isNotEmpty) ...[
+                      Text(
+                        'Why Choose ${service.name}',
+                        style: GoogleFonts.lora(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w500,
+                          color: const Color(0xFF3A2F1E),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      ..._buildBulletList(featuresToShow),
+                      const SizedBox(height: 28),
+                    ],
+
+                    // Other Protection Services Carousel matching Figma
+                    _buildOtherServicesCarousel(context, service),
+                  ],
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
         bottomNavigationBar: CustomFooter(
           backgroundColor: const Color(0xFF1D1813),
@@ -417,8 +386,12 @@ class _ServiceInteractiveDetailScreenState
                   odooProductId: (selectedVar != null && selectedVar.id > 0)
                       ? selectedVar.id
                       : service.odooProductId,
-                  appointmentTypeId: selectedVar?.appointmentType?.id ?? service.appointmentTypeId,
-                  appointmentResourceId: selectedVar?.appointmentResource?.id ?? service.appointmentResourceId,
+                  appointmentTypeId:
+                      selectedVar?.appointmentType?.id ??
+                      service.appointmentTypeId,
+                  appointmentResourceId:
+                      selectedVar?.appointmentResource?.id ??
+                      service.appointmentResourceId,
                 );
                 Navigator.push(
                   context,
@@ -442,8 +415,12 @@ class _ServiceInteractiveDetailScreenState
                     odooProductId: (selectedVar != null && selectedVar.id > 0)
                         ? selectedVar.id
                         : service.odooProductId,
-                    appointmentTypeId: selectedVar?.appointmentType?.id ?? service.appointmentTypeId,
-                    appointmentResourceId: selectedVar?.appointmentResource?.id ?? service.appointmentResourceId,
+                    appointmentTypeId:
+                        selectedVar?.appointmentType?.id ??
+                        service.appointmentTypeId,
+                    appointmentResourceId:
+                        selectedVar?.appointmentResource?.id ??
+                        service.appointmentResourceId,
                   );
                   Navigator.push(
                     context,

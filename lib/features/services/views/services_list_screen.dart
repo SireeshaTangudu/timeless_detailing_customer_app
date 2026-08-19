@@ -7,6 +7,7 @@ import 'package:timeless_detailing_customer_app/features/services/controllers/se
 import 'package:timeless_detailing_customer_app/features/services/models/service_model.dart';
 import 'package:timeless_detailing_customer_app/features/services/views/service_interactive_detail_screen.dart';
 import 'package:timeless_detailing_customer_app/core/widgets/custom_loader.dart';
+import 'package:timeless_detailing_customer_app/core/widgets/custom_app_bar.dart';
 import 'package:timeless_detailing_customer_app/core/utils/app_animations.dart';
 
 class ServicesListScreen extends StatefulWidget {
@@ -188,65 +189,28 @@ class _ServicesListScreenState extends State<ServicesListScreen> {
       isLoading: controller.isLoading,
       child: Scaffold(
         backgroundColor: const Color(0xFFF9F7F4),
-        body: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Header Row: Circular Back Button matching Figma
-                FadeSlideIn(
-                  delay: const Duration(milliseconds: 100),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      AnimatedPressable(
-                        onTap: () {
-                          if (Navigator.canPop(context)) {
-                            Navigator.pop(context);
-                          } else if (widget.onMenuTap != null) {
-                            widget.onMenuTap!();
-                          }
-                        },
-                        child: Container(
-                          width: 38,
-                          height: 38,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: const Color(0xFFAB8C5A),
-                              width: 1.2,
-                            ),
-                            color: Colors.white,
-                          ),
-                          child: const Icon(
-                            Icons.arrow_back,
-                            size: 20,
-                            color: Color(0xFFAB8C5A),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 24),
-
-                // Parent Service / Category Title in Elegant Serif
-                FadeSlideIn(
-                  delay: const Duration(milliseconds: 180),
-                  child: Text(
-                    selectedCategoryName == 'All'
-                        ? 'Services'
-                        : selectedCategoryName,
-                    style: GoogleFonts.lora(
-                      fontSize: 32,
-                      fontWeight: FontWeight.w500,
-                      color: const Color(0xFF3A2F1E),
-                      height: 1.15,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
+        body: Column(
+          children: [
+            CustomAppBar(
+              title: selectedCategoryName == 'All'
+                  ? 'Services'
+                  : selectedCategoryName,
+              showBackButton: Navigator.canPop(context) || widget.onMenuTap != null,
+              onBackPressed: () {
+                if (Navigator.canPop(context)) {
+                  Navigator.pop(context);
+                } else if (widget.onMenuTap != null) {
+                  widget.onMenuTap!();
+                }
+              },
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 12),
 
                 // Category Selector Chips Row
                 FadeSlideIn(
@@ -301,9 +265,11 @@ class _ServicesListScreenState extends State<ServicesListScreen> {
             ),
           ),
         ),
-      ),
-    );
-  }
+      ],
+    ),
+  ),
+);
+}
 
   Widget _buildChildServiceCard(BuildContext context, DetailService service) {
     return AnimatedPressable(

@@ -6,15 +6,13 @@ import 'package:timeless_detailing_customer_app/features/services/controllers/se
 import 'package:timeless_detailing_customer_app/features/services/models/service_model.dart';
 import 'package:timeless_detailing_customer_app/features/services/models/service_variant_model.dart';
 import 'package:timeless_detailing_customer_app/features/services/views/service_interactive_detail_screen.dart';
+import 'package:timeless_detailing_customer_app/core/widgets/custom_app_bar.dart';
 import 'package:timeless_detailing_customer_app/core/widgets/custom_loader.dart';
 
 class ServiceVariantsScreen extends StatefulWidget {
   final DetailService parentService;
 
-  const ServiceVariantsScreen({
-    super.key,
-    required this.parentService,
-  });
+  const ServiceVariantsScreen({super.key, required this.parentService});
 
   @override
   State<ServiceVariantsScreen> createState() => _ServiceVariantsScreenState();
@@ -26,14 +24,17 @@ class _ServiceVariantsScreenState extends State<ServiceVariantsScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        final templateId = widget.parentService.odooProductId ??
+        final templateId =
+            widget.parentService.odooProductId ??
             int.tryParse(widget.parentService.id) ??
             4;
         debugPrint(
           '🔵 [ServiceVariantsScreen] Fetching variants for "${widget.parentService.name}" (templateId=$templateId)...',
         );
-        Provider.of<ServicesController>(context, listen: false)
-            .fetchVariants(templateId);
+        Provider.of<ServicesController>(
+          context,
+          listen: false,
+        ).fetchVariants(templateId);
       }
     });
   }
@@ -41,7 +42,8 @@ class _ServiceVariantsScreenState extends State<ServiceVariantsScreen> {
   @override
   Widget build(BuildContext context) {
     final servicesController = Provider.of<ServicesController>(context);
-    final templateId = widget.parentService.odooProductId ??
+    final templateId =
+        widget.parentService.odooProductId ??
         int.tryParse(widget.parentService.id) ??
         4;
 
@@ -50,77 +52,52 @@ class _ServiceVariantsScreenState extends State<ServiceVariantsScreen> {
 
     // Dynamic list of sub-services / variants
     final List<DetailService> displaySubServices = rawVariants.isNotEmpty
-        ? rawVariants.map((v) => _mapVariantToDetailService(v, widget.parentService)).toList()
+        ? rawVariants
+              .map((v) => _mapVariantToDetailService(v, widget.parentService))
+              .toList()
         : _generateDefaultSubServices(widget.parentService);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF9F7F4),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Back Button
-              IconButton(
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-                icon: const Icon(
-                  Icons.arrow_back_ios_new,
-                  color: Color(0xFF3A2F1E),
-                  size: 20,
-                ),
-                onPressed: () => Navigator.pop(context),
-              ),
-              const SizedBox(height: 20),
-
-              // Service Title ( Seriff Font matching Figma )
-              Text(
-                widget.parentService.name,
-                style: GoogleFonts.lora(
-                  fontSize: 32,
-                  fontWeight: FontWeight.w500,
-                  color: const Color(0xFF3A2F1E),
-                  height: 1.1,
-                ),
-              ),
-              const SizedBox(height: 12),
-
-              // Service Description / Subtitle
-              Text(
-                widget.parentService.description.isNotEmpty
-                    ? widget.parentService.description
-                    : 'Precision paint refinement services, tailored to your vehicle\'s condition. You can choose from below to look at what service you are looking for.',
-                style: GoogleFonts.outfit(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w400,
-                  color: const Color(0xFF7A6F5D),
-                  height: 1.5,
-                ),
-              ),
-              const SizedBox(height: 28),
-
-              // Grid of Sub-Service Variant Cards
-              Expanded(
-                child: servicesController.isLoading
-                    ? const FourRotatingDotsLoader()
-                    : GridView.builder(
-                        itemCount: displaySubServices.length,
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          mainAxisSpacing: 16,
-                          crossAxisSpacing: 16,
-                          childAspectRatio: 0.9,
-                        ),
-                        itemBuilder: (context, index) {
-                          final subService = displaySubServices[index];
-                          return _buildVariantCard(context, subService);
-                        },
-                      ),
-              ),
-            ],
+      body: Column(
+        children: [
+          CustomAppBar(
+            // title: widget.parentService.name,
+            // subtitle: widget.parentService.description.isNotEmpty
+            //     ? widget.parentService.description
+            //     : 'Precision paint refinement services, tailored to your vehicle\'s condition.',
           ),
-        ),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Column(
+                children: [
+                  const SizedBox(height: 12),
+
+                  // Grid of Sub-Service Variant Cards
+                  Expanded(
+                    child: servicesController.isLoading
+                        ? const FourRotatingDotsLoader()
+                        : GridView.builder(
+                            itemCount: displaySubServices.length,
+                            gridDelegate:
+                                const SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: 2,
+                                  mainAxisSpacing: 16,
+                                  crossAxisSpacing: 16,
+                                  childAspectRatio: 0.9,
+                                ),
+                            itemBuilder: (context, index) {
+                              final subService = displaySubServices[index];
+                              return _buildVariantCard(context, subService);
+                            },
+                          ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -132,7 +109,8 @@ class _ServiceVariantsScreenState extends State<ServiceVariantsScreen> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => ServiceInteractiveDetailScreen(service: subService),
+            builder: (context) =>
+                ServiceInteractiveDetailScreen(service: subService),
           ),
         );
       },
@@ -141,10 +119,7 @@ class _ServiceVariantsScreenState extends State<ServiceVariantsScreen> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: const Color(0xFFEBE7DF),
-            width: 1,
-          ),
+          border: Border.all(color: const Color(0xFFEBE7DF), width: 1),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.04),
@@ -197,11 +172,9 @@ class _ServiceVariantsScreenState extends State<ServiceVariantsScreen> {
   }
 
   Widget _buildSubServiceIcon(DetailService subService) {
-    if (subService.assetImagePath != null && subService.assetImagePath!.isNotEmpty) {
-      return Image.asset(
-        subService.assetImagePath!,
-        fit: BoxFit.contain,
-      );
+    if (subService.assetImagePath != null &&
+        subService.assetImagePath!.isNotEmpty) {
+      return Image.asset(subService.assetImagePath!, fit: BoxFit.contain);
     }
     return Icon(
       _getIconForServiceName(subService.name),
@@ -215,7 +188,9 @@ class _ServiceVariantsScreenState extends State<ServiceVariantsScreen> {
     if (lower.contains('ppf') || lower.contains('protect')) {
       return Icons.shield_outlined;
     }
-    if (lower.contains('paint') || lower.contains('enhancement') || lower.contains('correction')) {
+    if (lower.contains('paint') ||
+        lower.contains('enhancement') ||
+        lower.contains('correction')) {
       return Icons.auto_awesome_outlined;
     }
     if (lower.contains('interior')) {
@@ -224,7 +199,10 @@ class _ServiceVariantsScreenState extends State<ServiceVariantsScreen> {
     return Icons.directions_car_outlined;
   }
 
-  DetailService _mapVariantToDetailService(ProductVariant v, DetailService parent) {
+  DetailService _mapVariantToDetailService(
+    ProductVariant v,
+    DetailService parent,
+  ) {
     double durationHours = parent.durationHours;
     if (v.appointmentType != null) {
       final dur = (v.appointmentType!.appointmentDuration as num).toDouble();
@@ -234,7 +212,8 @@ class _ServiceVariantsScreenState extends State<ServiceVariantsScreen> {
     return DetailService(
       id: v.id.toString(),
       name: v.displayName.isNotEmpty ? v.displayName : v.name,
-      description: (v.appointmentType?.messageIntro != null &&
+      description:
+          (v.appointmentType?.messageIntro != null &&
               v.appointmentType!.messageIntro.isNotEmpty)
           ? v.appointmentType!.messageIntro
           : parent.description,
@@ -245,7 +224,8 @@ class _ServiceVariantsScreenState extends State<ServiceVariantsScreen> {
       whatsIncluded: parent.whatsIncluded,
       odooProductId: v.id,
       appointmentTypeId: v.appointmentType?.id ?? parent.appointmentTypeId,
-      appointmentResourceId: v.appointmentResource?.id ?? parent.appointmentResourceId,
+      appointmentResourceId:
+          v.appointmentResource?.id ?? parent.appointmentResourceId,
       assetImagePath: parent.assetImagePath,
     );
   }
@@ -257,7 +237,8 @@ class _ServiceVariantsScreenState extends State<ServiceVariantsScreen> {
         DetailService(
           id: '${parent.id}_1',
           name: 'Paint Enhancement',
-          description: 'Single stage paint refinement removing light oxidation and fine swirls for maximum shine.',
+          description:
+              'Single stage paint refinement removing light oxidation and fine swirls for maximum shine.',
           price: parent.price,
           durationHours: 3.0,
           imageUrl: '',
@@ -269,7 +250,8 @@ class _ServiceVariantsScreenState extends State<ServiceVariantsScreen> {
         DetailService(
           id: '${parent.id}_2',
           name: 'Enhancement Plus',
-          description: 'Dual stage polish eliminating up to 80% swirl defects and restoring mirror depth.',
+          description:
+              'Dual stage polish eliminating up to 80% swirl defects and restoring mirror depth.',
           price: parent.price * 1.2,
           durationHours: 4.5,
           imageUrl: '',
@@ -281,7 +263,8 @@ class _ServiceVariantsScreenState extends State<ServiceVariantsScreen> {
         DetailService(
           id: '${parent.id}_3',
           name: 'Paint Correction',
-          description: 'Multi-stage deep compound and finish polish eliminating isolated scratches and heavy oxidation.',
+          description:
+              'Multi-stage deep compound and finish polish eliminating isolated scratches and heavy oxidation.',
           price: parent.price * 1.5,
           durationHours: 6.0,
           imageUrl: '',
@@ -293,8 +276,6 @@ class _ServiceVariantsScreenState extends State<ServiceVariantsScreen> {
       ];
     }
 
-    return [
-      parent,
-    ];
+    return [parent];
   }
 }
