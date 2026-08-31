@@ -34,19 +34,19 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     OnboardingItem(
       title: 'Paint\nCorrection',
       description:
-          'Paint Correction is the highest level of paint refinement available before repainting',
+          'Paint Care is the highest level of paint refinement available before respraying',
       imagePath: 'assets/images/onboarding_screen_1.png',
     ),
     OnboardingItem(
       title: 'Timeless Maintenance\nMemberships',
       description:
-          'Our premier maintenance programme for owners who expect their vehicles to remain in exceptional condition all year',
+          'Our Premium maintenance programme is for owners who protect their professional detail and expect their vehicle to remain in exceptional condition all YEAR',
       imagePath: 'assets/images/onboarding_screen_2.png',
     ),
     OnboardingItem(
       title: 'Protection',
       description:
-          'Our premier maintenance programme for owners who expect their vehicles to remain in exceptional condition all year',
+          "Advanced Protective coatings and Paint Protection Film engineered to preserve your vehicle's finish for years to come.",
       imagePath: 'assets/images/onboarding_screen_3.png',
     ),
   ];

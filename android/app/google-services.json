@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "393735256043",
+    "project_id": "timeless-detailing-dev",
+    "storage_bucket": "timeless-detailing-dev.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:393735256043:android:735019212712cf99b88bae",
+        "android_client_info": {
+          "package_name": "com.example.odoo.fcmtest"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD-2nrjcluX_tGj_dwE-B2eSTrBw0bEmrA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:393735256043:android:d42847df29ebd51ab88bae",
+        "android_client_info": {
+          "package_name": "com.example.timeless_detailing_customer_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD-2nrjcluX_tGj_dwE-B2eSTrBw0bEmrA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

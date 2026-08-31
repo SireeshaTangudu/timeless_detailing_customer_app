@@ -2,6 +2,7 @@ import 'dart:typed_data';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:timeless_detailing_customer_app/core/network/odoo_client.dart';
+import 'package:timeless_detailing_customer_app/core/services/firebase_notification_service.dart';
 
 class AuthController extends ChangeNotifier {
   final BaseOdooService _odooService;
@@ -60,8 +61,17 @@ class AuthController extends ChangeNotifier {
       final success = await _odooService.login(email, password);
       if (success) {
         // Fetch full profile info upon success
-        _userProfile = await _odooService.getCustomerProfile('res_partner_12');
+        final partnerIdStr = _odooService.currentPartnerId?.toString() ?? 'current';
+        _userProfile = await _odooService.getCustomerProfile(partnerIdStr);
         _isAuthenticated = true;
+
+        // Automatically sync FCM token to Odoo device token after login
+        try {
+          await FirebaseNotificationService.syncFcmTokenToOdoo(_odooService);
+        } catch (e) {
+          debugPrint('Error syncing FCM token post-login: $e');
+        }
+
         _isLoading = false;
         notifyListeners();
         return true;

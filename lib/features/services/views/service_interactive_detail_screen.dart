@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:timeless_detailing_customer_app/core/network/odoo_client.dart';
 import 'package:timeless_detailing_customer_app/features/services/models/service_model.dart';
 import 'package:timeless_detailing_customer_app/features/services/models/service_variant_model.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/views/book_service_screen.dart';
@@ -483,7 +484,7 @@ class _ServiceInteractiveDetailScreenState
         ),
         const SizedBox(height: 14),
         SizedBox(
-          height: 130,
+          height: 220,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             physics: const BouncingScrollPhysics(),
@@ -511,51 +512,75 @@ class _ServiceInteractiveDetailScreenState
                 },
                 child: Container(
                   width: 160,
-                  margin: const EdgeInsets.only(right: 12),
-                  padding: const EdgeInsets.all(14),
+                  height: 220,
+                  margin: const EdgeInsets.only(right: 14),
                   decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: const Color(0xFFEBE7DF)),
+                    borderRadius: BorderRadius.circular(20),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.04),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
+                        color: Colors.black.withValues(alpha: 0.08),
+                        blurRadius: 16,
+                        offset: const Offset(0, 6),
                       ),
                     ],
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  clipBehavior: Clip.antiAlias,
+                  child: Stack(
                     children: [
-                      Align(
-                        alignment: Alignment.topRight,
-                        child: SizedBox(
-                          width: 60,
-                          height: 45,
-                          child: _buildOtherServiceImage(other),
+                      // 1. Full-bleed Image
+                      Positioned.fill(
+                        child: _buildOtherServiceFullBleedImage(other),
+                      ),
+
+                      // 2. Bottom Dark Gradient Overlay
+                      Positioned.fill(
+                        child: Container(
+                          decoration: const BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              stops: [0.35, 1.0],
+                              colors: [
+                                Colors.transparent,
+                                Color(0xCC000000), // Dark gradient
+                              ],
+                            ),
+                          ),
                         ),
                       ),
-                      Text(
-                        other.name,
-                        style: GoogleFonts.lora(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w500,
-                          color: const Color(0xFF3A2F1E),
-                          height: 1.2,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      Text(
-                        other.price > 0
-                            ? '\$${other.price.toStringAsFixed(0)}'
-                            : 'Enquire',
-                        style: GoogleFonts.outfit(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: const Color(0xFFC4913F),
+
+                      // 3. Service Title and Price at Bottom Left
+                      Positioned(
+                        left: 14,
+                        right: 14,
+                        bottom: 14,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              other.name,
+                              style: GoogleFonts.lora(
+                                fontSize: 16.5,
+                                fontWeight: FontWeight.w400,
+                                color: Colors.white,
+                                height: 1.2,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            if (other.price > 0) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                '\$${other.price.toStringAsFixed(0)}',
+                                style: GoogleFonts.outfit(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: const Color(0xFFC4913F),
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
                       ),
                     ],
@@ -570,9 +595,9 @@ class _ServiceInteractiveDetailScreenState
     );
   }
 
-  Widget _buildOtherServiceImage(DetailService service) {
-    const baseUrl =
-        'https://keerthan-lfi-lfi-timeless-detailing-uat-36441944.dev.odoo.com';
+  Widget _buildOtherServiceFullBleedImage(DetailService service) {
+    final odooService = Provider.of<BaseOdooService>(context, listen: false);
+    final baseUrl = odooService.baseUrl;
 
     // 1. Base64 mobileImage string from Odoo API
     if (service.mobileImage != null &&
@@ -580,7 +605,12 @@ class _ServiceInteractiveDetailScreenState
         !service.mobileImage!.startsWith('http')) {
       try {
         final bytes = base64Decode(service.mobileImage!);
-        return Image.memory(bytes, fit: BoxFit.contain);
+        return Image.memory(
+          bytes,
+          fit: BoxFit.cover,
+          width: double.infinity,
+          height: double.infinity,
+        );
       } catch (_) {}
     }
 
@@ -596,7 +626,9 @@ class _ServiceInteractiveDetailScreenState
           : '$baseUrl$rawImgUrl';
       return Image.network(
         fullUrl,
-        fit: BoxFit.contain,
+        fit: BoxFit.cover,
+        width: double.infinity,
+        height: double.infinity,
         errorBuilder: (context, error, stackTrace) =>
             _buildFallbackOtherServiceIcon(service),
       );
@@ -608,7 +640,9 @@ class _ServiceInteractiveDetailScreenState
           '$baseUrl/web/image?model=product.template&id=${service.odooProductId}&field=mobile_image';
       return Image.network(
         odooImgUrl,
-        fit: BoxFit.contain,
+        fit: BoxFit.cover,
+        width: double.infinity,
+        height: double.infinity,
         errorBuilder: (context, error, stackTrace) =>
             _buildFallbackOtherServiceIcon(service),
       );
@@ -621,18 +655,27 @@ class _ServiceInteractiveDetailScreenState
     if (service.assetImagePath != null && service.assetImagePath!.isNotEmpty) {
       return Image.asset(
         service.assetImagePath!,
-        fit: BoxFit.contain,
-        errorBuilder: (context, error, stackTrace) => const Icon(
-          Icons.directions_car_outlined,
-          size: 24,
-          color: Color(0xFFC4913F),
-        ),
+        fit: BoxFit.cover,
+        width: double.infinity,
+        height: double.infinity,
+        errorBuilder: (context, error, stackTrace) => _buildDarkFallbackIcon(),
       );
     }
-    return const Icon(
-      Icons.directions_car_outlined,
-      size: 24,
-      color: Color(0xFFC4913F),
+    return _buildDarkFallbackIcon();
+  }
+
+  Widget _buildDarkFallbackIcon() {
+    return Container(
+      width: double.infinity,
+      height: double.infinity,
+      color: const Color(0xFF1D1813),
+      child: const Center(
+        child: Icon(
+          Icons.directions_car_outlined,
+          size: 36,
+          color: Color(0xFFC4913F),
+        ),
+      ),
     );
   }
 
@@ -683,11 +726,13 @@ class _CarViewWithHotspots extends StatelessWidget {
     this.isExterior = true,
   });
 
-  Widget _buildVehicleImage(String? rawViewImageUrl, double w, double h) {
+  Widget _buildVehicleImage(BuildContext context, String? rawViewImageUrl, double w, double h) {
     if (rawViewImageUrl != null && rawViewImageUrl.isNotEmpty) {
+      final odooService = Provider.of<BaseOdooService>(context, listen: false);
+      final baseUrl = odooService.baseUrl;
       final fullUrl = rawViewImageUrl.startsWith('http')
           ? rawViewImageUrl
-          : 'https://keerthan-lfi-lfi-timeless-detailing-uat-36441944.dev.odoo.com$rawViewImageUrl';
+          : '$baseUrl$rawViewImageUrl';
 
       return Image.network(
         fullUrl,
@@ -760,7 +805,7 @@ class _CarViewWithHotspots extends StatelessWidget {
               Center(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(vertical: 20),
-                  child: _buildVehicleImage(viewImageUrl, w, h),
+                  child: _buildVehicleImage(context, viewImageUrl, w, h),
                 ),
               ),
 

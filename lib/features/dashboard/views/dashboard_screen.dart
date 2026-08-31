@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:timeless_detailing_customer_app/core/theme/app_theme.dart';
 import 'package:timeless_detailing_customer_app/core/theme/app_typography.dart';
+import 'package:timeless_detailing_customer_app/core/network/odoo_client.dart';
 import 'package:timeless_detailing_customer_app/features/auth/controllers/auth_controller.dart';
 import 'package:timeless_detailing_customer_app/features/services/controllers/services_controller.dart';
 import 'package:timeless_detailing_customer_app/features/services/models/service_model.dart';
@@ -106,8 +107,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildServiceImage(DetailService service) {
-    const baseUrl =
-        'https://keerthan-lfi-lfi-timeless-detailing-uat-36441944.dev.odoo.com';
+    final odooService = Provider.of<BaseOdooService>(context, listen: false);
+    final baseUrl = odooService.baseUrl;
 
     // 1. Base64 mobileImage
     if (service.mobileImage != null &&
@@ -676,34 +677,37 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
-  Widget _buildCategoryImage(
-    ProductCategory category,
-    String? assetImg,
-    IconData iconData,
-  ) {
-    const baseUrl =
-        'https://keerthan-lfi-lfi-timeless-detailing-uat-36441944.dev.odoo.com';
+  Widget _buildCategoryFullBleedImage(ProductCategory category) {
+    final odooService = Provider.of<BaseOdooService>(context, listen: false);
+    final baseUrl = odooService.baseUrl;
 
-    // 1. Base64 image string
+    // 1. Base64 image string from Odoo
     if (category.image != null &&
         category.image!.length > 100 &&
         !category.image!.startsWith('http')) {
       try {
         final bytes = base64Decode(category.image!);
-        return Image.memory(bytes, fit: BoxFit.contain);
+        return Image.memory(
+          bytes,
+          fit: BoxFit.cover,
+          width: double.infinity,
+          height: double.infinity,
+        );
       } catch (_) {}
     }
 
-    // 2. Relative or absolute image URL
+    // 2. Relative or absolute image URL from Odoo
     if (category.image != null && category.image!.isNotEmpty) {
       final fullUrl = category.image!.startsWith('http')
           ? category.image!
           : '$baseUrl${category.image}';
       return Image.network(
         fullUrl,
-        fit: BoxFit.contain,
+        fit: BoxFit.cover,
+        width: double.infinity,
+        height: double.infinity,
         errorBuilder: (context, error, stackTrace) =>
-            _buildFallbackCategoryAsset(assetImg, iconData),
+            _buildCategoryFallbackImage(category),
       );
     }
 
@@ -712,32 +716,48 @@ class _DashboardScreenState extends State<DashboardScreen> {
         '$baseUrl/web/image?model=timeless.product.category&id=${category.id}&field=image';
     return Image.network(
       odooCategoryUrl,
-      fit: BoxFit.contain,
+      fit: BoxFit.cover,
+      width: double.infinity,
+      height: double.infinity,
       errorBuilder: (context, error, stackTrace) =>
-          _buildFallbackCategoryAsset(assetImg, iconData),
+          _buildCategoryFallbackImage(category),
     );
   }
 
-  Widget _buildFallbackCategoryAsset(String? assetImg, IconData iconData) {
-    if (assetImg != null && assetImg.isNotEmpty) {
-      return _AssetServiceImage(
-        assetPath: assetImg,
-        fallback: Container(
-          decoration: BoxDecoration(
-            color: const Color(0xFFFBF9F5),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Icon(iconData, size: 28, color: AppTheme.primary),
-        ),
-        backgroundColor: Colors.transparent,
+  Widget _buildCategoryFallbackImage(ProductCategory category) {
+    final lowerName = category.name.toLowerCase();
+
+    if (lowerName.contains('interior')) {
+      return Image.asset(
+        'assets/services/interior/interior_detailing.png',
+        fit: BoxFit.cover,
+        width: double.infinity,
+        height: double.infinity,
+        errorBuilder: (context, error, stackTrace) =>
+            _buildDarkFallbackIcon(Icons.airline_seat_recline_extra_outlined),
+      );
+    } else if (lowerName.contains('paint')) {
+      return Image.asset(
+        'assets/services/paint_care/paint_care.png',
+        fit: BoxFit.cover,
+        width: double.infinity,
+        height: double.infinity,
+        errorBuilder: (context, error, stackTrace) =>
+            _buildDarkFallbackIcon(Icons.directions_car_outlined),
       );
     }
+
+    return _buildDarkFallbackIcon(Icons.auto_awesome_outlined);
+  }
+
+  Widget _buildDarkFallbackIcon(IconData icon) {
     return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFFFBF9F5),
-        borderRadius: BorderRadius.circular(12),
+      width: double.infinity,
+      height: double.infinity,
+      color: const Color(0xFF1D1813),
+      child: Center(
+        child: Icon(icon, size: 36, color: const Color(0xFFC4913F)),
       ),
-      child: Icon(iconData, size: 28, color: AppTheme.primary),
     );
   }
 
@@ -747,8 +767,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     ServicesController controller,
   ) {
     final lowerName = category.name.toLowerCase();
-    String? assetImg;
-    IconData iconData = Icons.auto_awesome_outlined;
 
     return AnimatedPressable(
       onTap: () {
@@ -767,45 +785,58 @@ class _DashboardScreenState extends State<DashboardScreen> {
       },
       child: Container(
         width: 160,
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        height: 220,
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFEBE7DF), width: 1),
+          borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
+              color: Colors.black.withValues(alpha: 0.08),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
             ),
           ],
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        clipBehavior: Clip.antiAlias,
+        child: Stack(
           children: [
-            // Category Image or Icon at top right (API response image with fallback)
-            Align(
-              alignment: Alignment.topRight,
-              child: SizedBox(
-                width: 100,
-                height: 86,
-                child: _buildCategoryImage(category, assetImg, iconData),
+            // 1. Full-bleed Category Image from Odoo / Fallback
+            Positioned.fill(
+              child: _buildCategoryFullBleedImage(category),
+            ),
+
+            // 2. Bottom Dark Gradient Overlay matching Figma
+            Positioned.fill(
+              child: Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    stops: [0.3, 1.0],
+                    colors: [
+                      Colors.transparent,
+                      Color(0xCC000000), // Dark gradient for white text legibility
+                    ],
+                  ),
+                ),
               ),
             ),
-            const Spacer(),
 
-            // Category Name
-            Text(
-              category.name,
-              style: GoogleFonts.lora(
-                fontSize: 20,
-                fontWeight: FontWeight.w400,
-                color: const Color(0xFF3A2F1E),
-                height: 1.2,
+            // 3. Category Name at Bottom-Left matching Figma
+            Positioned(
+              left: 14,
+              right: 14,
+              bottom: 16,
+              child: Text(
+                category.name,
+                style: GoogleFonts.lora(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w400,
+                  color: Colors.white,
+                  height: 1.2,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
-              textAlign: TextAlign.left,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),

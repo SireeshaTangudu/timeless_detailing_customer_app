@@ -249,7 +249,9 @@ class DetailService {
           json['description']?.toString() ??
           'Comprehensive professional detailing treatment for exceptional vehicle restoration and protection.',
       price: priceVal,
-      durationHours: (json['detailing_duration'] as num?)?.toDouble() ?? 3.0,
+      durationHours: (json['detailing_duration'] as num?)?.toDouble() ??
+          (json['appointment_duration'] as num?)?.toDouble() ??
+          1.0,
       imageUrl: json['image_url']?.toString() ?? '',
       category: derivedCategory,
       whatsIncluded: parseIncluded(json['whats_included']),

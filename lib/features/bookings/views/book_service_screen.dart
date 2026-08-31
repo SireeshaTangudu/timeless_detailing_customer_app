@@ -17,7 +17,6 @@ import 'package:timeless_detailing_customer_app/features/bookings/views/estimati
 import 'package:timeless_detailing_customer_app/features/services/controllers/services_controller.dart';
 import 'package:timeless_detailing_customer_app/features/dashboard/views/main_navigation_scaffold.dart';
 import 'package:timeless_detailing_customer_app/core/widgets/custom_loader.dart';
-import 'package:timeless_detailing_customer_app/core/utils/app_animations.dart';
 
 class BookServiceScreen extends StatefulWidget {
   final DetailService initialService;
@@ -243,11 +242,24 @@ class _BookServiceScreenState extends State<BookServiceScreen> {
       return;
     }
 
-    // Parse selected date and time slot
-    final timeFormat = DateFormat('hh:mm a');
-    final timeOfDay = TimeOfDay.fromDateTime(
-      timeFormat.parse(_selectedTimeSlot),
-    );
+    // Parse selected date and South Africa local time slot
+    TimeOfDay timeOfDay = const TimeOfDay(hour: 9, minute: 0);
+    try {
+      final cleanSlot = _selectedTimeSlot.trim().toUpperCase();
+      if (cleanSlot.contains('AM') || cleanSlot.contains('PM')) {
+        final parsed = DateFormat('h:mm a').parse(cleanSlot);
+        timeOfDay = TimeOfDay.fromDateTime(parsed);
+      } else if (cleanSlot.contains(':')) {
+        final parts = cleanSlot.split(':');
+        timeOfDay = TimeOfDay(
+          hour: int.parse(parts[0]),
+          minute: int.parse(parts[1].replaceAll(RegExp(r'[^\d]'), '')),
+        );
+      }
+    } catch (e) {
+      debugPrint('⚠️ [BookServiceScreen] Error parsing time slot "$_selectedTimeSlot": $e');
+    }
+
     final finalDateTime = DateTime(
       _selectedDate.year,
       _selectedDate.month,
@@ -336,9 +348,9 @@ class _BookServiceScreenState extends State<BookServiceScreen> {
       startDateTime: finalDateTime,
       stopDateTime: finalDateTime.add(
         Duration(
-          hours: widget.initialService.durationHours.toInt() > 0
-              ? widget.initialService.durationHours.toInt()
-              : 1,
+          minutes: ((widget.initialService.durationHours > 0 && widget.initialService.durationHours != 3.0
+                  ? widget.initialService.durationHours
+                  : 1.0) * 60).round(),
         ),
       ),
       vehicleMake: vehicleMake,

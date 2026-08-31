@@ -1,16 +1,26 @@
+import 'dart:convert';
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:timeless_detailing_customer_app/core/widgets/custom_app_bar.dart';
 import 'package:timeless_detailing_customer_app/core/utils/map_launcher_util.dart';
 import 'package:timeless_detailing_customer_app/core/network/odoo_client.dart';
+import 'package:timeless_detailing_customer_app/features/auth/controllers/auth_controller.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/models/estimation_model.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/models/garage_location_model.dart';
 
-class EstimationScreen extends StatelessWidget {
+class EstimationScreen extends StatefulWidget {
   final EstimationModel? estimation;
 
   const EstimationScreen({super.key, this.estimation});
+
+  @override
+  State<EstimationScreen> createState() => _EstimationScreenState();
+}
+
+class _EstimationScreenState extends State<EstimationScreen> {
+  String _status = 'pending'; // 'pending', 'accepted', 'declined'
 
   Future<void> _openGoogleMapsDirections(BuildContext context) async {
     try {
@@ -23,7 +33,8 @@ class EstimationScreen extends StatelessWidget {
         garage = const GarageLocation(
           id: '1',
           name: 'Timeless Detailing',
-          address: '7 Crystal Crescent, Golden Crest Country Estate, Parkrand, Boksburg, 1459',
+          address:
+              '7 Crystal Crescent, Golden Crest Country Estate, Parkrand, Boksburg, 1459',
           phone: '',
           latitude: -25.933578,
           longitude: 28.18122,
@@ -35,7 +46,8 @@ class EstimationScreen extends StatelessWidget {
       const fallbackGarage = GarageLocation(
         id: '1',
         name: 'Timeless Detailing',
-        address: '7 Crystal Crescent, Golden Crest Country Estate, Parkrand, Boksburg, 1459',
+        address:
+            '7 Crystal Crescent, Golden Crest Country Estate, Parkrand, Boksburg, 1459',
         phone: '',
         latitude: -25.933578,
         longitude: 28.18122,
@@ -44,14 +56,319 @@ class EstimationScreen extends StatelessWidget {
     }
   }
 
+  void _showAcceptAndSignModal(BuildContext context, EstimationModel data) {
+    final authController = Provider.of<AuthController>(context, listen: false);
+    final initialName = authController.userName != 'Guest Customer'
+        ? authController.userName
+        : '';
+    final nameController = TextEditingController(text: initialName);
+    final GlobalKey<_SignaturePadWidgetState> signatureKey =
+        GlobalKey<_SignaturePadWidgetState>();
+
+    bool isSubmitting = false;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (modalContext, setModalState) {
+          return Container(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(modalContext).viewInsets.bottom + 20,
+              top: 20,
+              left: 20,
+              right: 20,
+            ),
+            decoration: const BoxDecoration(
+              color: Color(0xFF1D1813),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Modal Handle
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF4A3E30),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Header Title & Close Button
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Accept & Sign Estimate',
+                        style: GoogleFonts.outfit(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.pop(modalContext),
+                        icon: const Icon(Icons.close, color: Color(0xFF8C8273)),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Please verify your name and draw your signature below to approve quotation #${data.id}.',
+                    style: GoogleFonts.montserrat(
+                      fontSize: 12.5,
+                      color: const Color(0xFFC5B7A1),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Full Name Label & Input
+                  Text(
+                    'Full Name',
+                    style: GoogleFonts.montserrat(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFFC4913F),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: nameController,
+                    style: GoogleFonts.montserrat(color: Colors.white),
+                    decoration: InputDecoration(
+                      hintText: 'Enter your full name',
+                      hintStyle: GoogleFonts.montserrat(
+                        color: const Color(0xFF7A7063),
+                      ),
+                      filled: true,
+                      fillColor: const Color(0xFF2A231C),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 12,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: const BorderSide(color: Color(0xFF4A3E30)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: const BorderSide(color: Color(0xFFC4913F)),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+
+                  // Signature Pad Label & Clear Button
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Digital Signature',
+                        style: GoogleFonts.montserrat(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFFC4913F),
+                        ),
+                      ),
+                      TextButton.icon(
+                        onPressed: () => signatureKey.currentState?.clear(),
+                        icon: const Icon(
+                          Icons.clear,
+                          size: 14,
+                          color: Color(0xFF8C8273),
+                        ),
+                        label: Text(
+                          'Clear',
+                          style: GoogleFonts.montserrat(
+                            fontSize: 12,
+                            color: const Color(0xFF8C8273),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+
+                  // Signature Pad Canvas Widget
+                  SignaturePadWidget(key: signatureKey),
+
+                  const SizedBox(height: 24),
+
+                  // Action Buttons: Accept & Decline
+                  if (isSubmitting)
+                    const Center(
+                      child: CircularProgressIndicator(
+                        color: Color(0xFFC4913F),
+                      ),
+                    )
+                  else
+                    Row(
+                      children: [
+                        // Decline Button
+                        Expanded(
+                          child: SizedBox(
+                            height: 48,
+                            child: OutlinedButton(
+                              onPressed: () async {
+                                final nav = Navigator.of(context);
+                                final messenger = ScaffoldMessenger.of(context);
+                                setModalState(() => isSubmitting = true);
+                                try {
+                                  final odooService =
+                                      Provider.of<BaseOdooService>(
+                                        context,
+                                        listen: false,
+                                      );
+                                  final orderId =
+                                      int.tryParse(
+                                        data.id.replaceAll(
+                                          RegExp(r'[^\d]'),
+                                          '',
+                                        ),
+                                      ) ??
+                                      23;
+                                  final partnerId =
+                                      odooService.currentPartnerId ??
+                                      odooService.currentUid ??
+                                      28;
+                                  await odooService.cancelBooking(
+                                    bookingId: orderId,
+                                    partnerIds: [partnerId],
+                                  );
+                                } catch (_) {}
+                                if (mounted) {
+                                  setState(() => _status = 'declined');
+                                  nav.pop();
+                                  messenger.showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Quotation declined.'),
+                                      backgroundColor: Color(0xFFB71C1C),
+                                    ),
+                                  );
+                                }
+                              },
+                              style: OutlinedButton.styleFrom(
+                                side: const BorderSide(color: Color(0xFFB71C1C)),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: Text(
+                                'Decline',
+                                style: GoogleFonts.outfit(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: const Color(0xFFE57373),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+
+                        // Accept Button
+                        Expanded(
+                          child: SizedBox(
+                            height: 48,
+                            child: ElevatedButton(
+                              onPressed: () async {
+                                final name = nameController.text.trim();
+                                if (name.isEmpty) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'Please enter your full name.',
+                                      ),
+                                      backgroundColor: Color(0xFFB71C1C),
+                                    ),
+                                  );
+                                  return;
+                                }
+
+                                final nav = Navigator.of(context);
+                                final messenger = ScaffoldMessenger.of(context);
+                                final odooService =
+                                    Provider.of<BaseOdooService>(
+                                      context,
+                                      listen: false,
+                                    );
+
+                                setModalState(() => isSubmitting = true);
+                                try {
+                                  final sigB64 = await signatureKey
+                                      .currentState
+                                      ?.toBase64Png();
+                                  final orderId =
+                                      int.tryParse(
+                                        data.id.replaceAll(
+                                          RegExp(r'[^\d]'),
+                                          '',
+                                        ),
+                                      ) ??
+                                      23;
+                                  await odooService.acceptQuotation(
+                                    orderId: orderId,
+                                    name: name,
+                                    signatureBase64: sigB64,
+                                  );
+                                } catch (_) {}
+
+                                if (mounted) {
+                                  setState(() => _status = 'accepted');
+                                  nav.pop();
+                                  messenger.showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'Quotation accepted & signed successfully!',
+                                      ),
+                                      backgroundColor: Color(0xFF2E7D32),
+                                    ),
+                                  );
+                                }
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFFC4913F),
+                                foregroundColor: Colors.white,
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: Text(
+                                'Accept',
+                                style: GoogleFonts.outfit(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final data = estimation ?? EstimationModel.defaultStatic();
+    final data = widget.estimation ?? EstimationModel.defaultStatic();
 
     return Scaffold(
-      backgroundColor: const Color(
-        0xFFF7F5F0,
-      ), // Warm light cream background matching Figma
+      backgroundColor: const Color(0xFFF7F5F0),
       body: Column(
         children: [
           CustomAppBar(
@@ -61,11 +378,14 @@ class EstimationScreen extends StatelessWidget {
           Expanded(
             child: SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 20,
+                vertical: 16,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Main Estimation Ticket Card (Top Dark, Bottom Light matching Figma)
+                  // Main Estimation Ticket Card
                   _buildEstimateTicketCard(context, data),
 
                   const SizedBox(height: 16),
@@ -100,7 +420,7 @@ class EstimationScreen extends StatelessWidget {
 
                   const SizedBox(height: 14),
 
-                  // Next steps timeline container (Dark Luxury Container)
+                  // Next steps timeline container
                   _buildNextStepsCard(context, data),
 
                   const SizedBox(height: 32),
@@ -113,7 +433,7 @@ class EstimationScreen extends StatelessWidget {
     );
   }
 
-  /// Two-tone ticket card matching Figma: Top Dark Price Box with Serrated teeth, Bottom White Details Box
+  /// Two-tone ticket card
   Widget _buildEstimateTicketCard(BuildContext context, EstimationModel data) {
     const darkBoxColor = Color(0xFF1D1813);
     const lightBoxColor = Colors.white;
@@ -227,41 +547,132 @@ class EstimationScreen extends StatelessWidget {
 
                 const SizedBox(height: 22),
 
-                // Get Directions to Garage Button
-                SizedBox(
-                  width: double.infinity,
-                  height: 48,
-                  child: ElevatedButton(
-                    onPressed: () => _openGoogleMapsDirections(context),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFC4913F),
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+                // Status or Action Buttons
+                if (_status == 'accepted')
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE8F5E9),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFF81C784)),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         const Icon(
-                          Icons.near_me_outlined,
-                          size: 18,
-                          color: Colors.white,
+                          Icons.check_circle,
+                          color: Color(0xFF2E7D32),
+                          size: 20,
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          'Get Directions to Garage',
+                          'Quotation Accepted & Signed',
                           style: GoogleFonts.outfit(
-                            fontSize: 14.5,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFF2E7D32),
                           ),
                         ),
                       ],
                     ),
+                  )
+                else if (_status == 'declined')
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFEBEE),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFE57373)),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.cancel,
+                          color: Color(0xFFC62828),
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Quotation Declined',
+                          style: GoogleFonts.outfit(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFFC62828),
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                else
+                  Column(
+                    children: [
+                      // Accept & Sign Button (Replaces Pay Button)
+                      SizedBox(
+                        width: double.infinity,
+                        height: 50,
+                        child: ElevatedButton.icon(
+                          onPressed: () => _showAcceptAndSignModal(context, data),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFC4913F),
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          icon: const Icon(
+                            Icons.draw_outlined,
+                            size: 20,
+                            color: Colors.white,
+                          ),
+                          label: Text(
+                            'Accept & Sign',
+                            style: GoogleFonts.outfit(
+                              fontSize: 15.5,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+
+                      // Get Directions to Garage Button
+                      SizedBox(
+                        width: double.infinity,
+                        height: 44,
+                        child: OutlinedButton.icon(
+                          onPressed: () => _openGoogleMapsDirections(context),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: const Color(0xFF1D1813),
+                            side: const BorderSide(
+                              color: Color(0xFFD6C8B4),
+                              width: 1,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                          icon: const Icon(
+                            Icons.near_me_outlined,
+                            size: 16,
+                            color: Color(0xFF1D1813),
+                          ),
+                          label: Text(
+                            'Get Directions to Garage',
+                            style: GoogleFonts.outfit(
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.w600,
+                              color: const Color(0xFF1D1813),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ),
               ],
             ),
           ),
@@ -270,7 +681,7 @@ class EstimationScreen extends StatelessWidget {
     );
   }
 
-  /// Light Detail Row with Grey Label left, Bold Dark Text right
+  /// Light Detail Row
   Widget _buildLightDetailRow(String label, String value) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -376,7 +787,153 @@ class EstimationScreen extends StatelessWidget {
   }
 }
 
-/// Custom painter to draw triangular sawtooth serrated ticket edge between dark top and light bottom
+/// Digital Signature Canvas Pad Widget
+class SignaturePadWidget extends StatefulWidget {
+  const SignaturePadWidget({super.key});
+
+  @override
+  State<SignaturePadWidget> createState() => _SignaturePadWidgetState();
+}
+
+class _SignaturePadWidgetState extends State<SignaturePadWidget> {
+  final List<List<Offset>> _strokes = [];
+  List<Offset> _currentStroke = [];
+
+  bool get isEmpty => _strokes.isEmpty && _currentStroke.isEmpty;
+
+  void clear() {
+    setState(() {
+      _strokes.clear();
+      _currentStroke.clear();
+    });
+  }
+
+  Future<String?> toBase64Png() async {
+    if (isEmpty) return null;
+    try {
+      final recorder = ui.PictureRecorder();
+      final canvas = Canvas(
+        recorder,
+        Rect.fromPoints(const Offset(0, 0), const Offset(400, 180)),
+      );
+
+      final paint = Paint()
+        ..color = const Color(0xFF1D1813)
+        ..strokeCap = ui.StrokeCap.round
+        ..strokeWidth = 3.0;
+
+      // Fill background
+      canvas.drawColor(Colors.white, ui.BlendMode.src);
+
+      for (final stroke in _strokes) {
+        for (int i = 0; i < stroke.length - 1; i++) {
+          canvas.drawLine(stroke[i], stroke[i + 1], paint);
+        }
+      }
+      for (int i = 0; i < _currentStroke.length - 1; i++) {
+        canvas.drawLine(_currentStroke[i], _currentStroke[i + 1], paint);
+      }
+
+      final picture = recorder.endRecording();
+      final img = await picture.toImage(400, 180);
+      final byteData = await img.toByteData(format: ui.ImageByteFormat.png);
+      if (byteData != null) {
+        final bytes = byteData.buffer.asUint8List();
+        return base64Encode(bytes);
+      }
+    } catch (e) {
+      debugPrint('Error generating signature base64: $e');
+    }
+    return null;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 160,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: const Color(0xFFC4913F).withValues(alpha: 0.5),
+          width: 1.5,
+        ),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Stack(
+          children: [
+            GestureDetector(
+              onPanStart: (details) {
+                setState(() {
+                  _currentStroke = [details.localPosition];
+                });
+              },
+              onPanUpdate: (details) {
+                setState(() {
+                  _currentStroke.add(details.localPosition);
+                });
+              },
+              onPanEnd: (details) {
+                setState(() {
+                  _strokes.add(List.from(_currentStroke));
+                  _currentStroke.clear();
+                });
+              },
+              child: CustomPaint(
+                size: Size.infinite,
+                painter: _SignaturePainter(_strokes, _currentStroke),
+              ),
+            ),
+            if (isEmpty)
+              IgnorePointer(
+                child: Center(
+                  child: Text(
+                    'Sign with your finger here',
+                    style: GoogleFonts.montserrat(
+                      fontSize: 13,
+                      color: const Color(0xFFAAA59B),
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SignaturePainter extends CustomPainter {
+  final List<List<Offset>> strokes;
+  final List<Offset> currentStroke;
+
+  _SignaturePainter(this.strokes, this.currentStroke);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = const Color(0xFF1D1813)
+      ..strokeCap = ui.StrokeCap.round
+      ..strokeWidth = 3.0;
+
+    for (final stroke in strokes) {
+      for (int i = 0; i < stroke.length - 1; i++) {
+        canvas.drawLine(stroke[i], stroke[i + 1], paint);
+      }
+    }
+    for (int i = 0; i < currentStroke.length - 1; i++) {
+      canvas.drawLine(currentStroke[i], currentStroke[i + 1], paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _SignaturePainter oldDelegate) => true;
+}
+
+/// Sawtooth Ticket Painter
 class SawtoothTicketPainter extends CustomPainter {
   final Color darkColor;
   final Color lightColor;
@@ -393,10 +950,8 @@ class SawtoothTicketPainter extends CustomPainter {
       ..color = lightColor
       ..style = PaintingStyle.fill;
 
-    // Fill background with light color
     canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), lightPaint);
 
-    // Draw dark top portion with triangular sawtooth teeth at bottom
     final path = Path();
     path.moveTo(0, 0);
     path.lineTo(0, size.height - 10);
@@ -426,7 +981,7 @@ class SawtoothTicketPainter extends CustomPainter {
   }
 }
 
-/// Custom painter for thin dashed line divider
+/// Dashed Line Painter
 class DashedLinePainter extends CustomPainter {
   final Color color;
 

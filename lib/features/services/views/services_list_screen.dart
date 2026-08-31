@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:timeless_detailing_customer_app/core/theme/app_theme.dart';
+import 'package:timeless_detailing_customer_app/core/network/odoo_client.dart';
 import 'package:timeless_detailing_customer_app/features/services/controllers/services_controller.dart';
 import 'package:timeless_detailing_customer_app/features/services/models/service_model.dart';
 import 'package:timeless_detailing_customer_app/features/services/views/service_interactive_detail_screen.dart';
@@ -34,9 +35,9 @@ class _ServicesListScreenState extends State<ServicesListScreen> {
     });
   }
 
-  Widget _buildChildServiceIcon(DetailService service) {
-    const baseUrl =
-        'https://keerthan-lfi-lfi-timeless-detailing-uat-36441944.dev.odoo.com';
+  Widget _buildChildServiceFullBleedImage(DetailService service) {
+    final odooService = Provider.of<BaseOdooService>(context, listen: false);
+    final baseUrl = odooService.baseUrl;
 
     Widget imageWidget;
 
@@ -46,7 +47,12 @@ class _ServicesListScreenState extends State<ServicesListScreen> {
         !service.mobileImage!.startsWith('http')) {
       try {
         final bytes = base64Decode(service.mobileImage!);
-        imageWidget = Image.memory(bytes, fit: BoxFit.contain);
+        imageWidget = Image.memory(
+          bytes,
+          fit: BoxFit.cover,
+          width: double.infinity,
+          height: double.infinity,
+        );
       } catch (_) {
         imageWidget = _buildFallbackChildServiceAsset(service);
       }
@@ -62,7 +68,9 @@ class _ServicesListScreenState extends State<ServicesListScreen> {
             : '$baseUrl$rawImgUrl';
         imageWidget = Image.network(
           fullUrl,
-          fit: BoxFit.contain,
+          fit: BoxFit.cover,
+          width: double.infinity,
+          height: double.infinity,
           errorBuilder: (context, error, stackTrace) =>
               _buildFallbackChildServiceAsset(service),
         );
@@ -71,7 +79,9 @@ class _ServicesListScreenState extends State<ServicesListScreen> {
             '$baseUrl/web/image?model=product.template&id=${service.odooProductId}&field=mobile_image';
         imageWidget = Image.network(
           odooImgUrl,
-          fit: BoxFit.contain,
+          fit: BoxFit.cover,
+          width: double.infinity,
+          height: double.infinity,
           errorBuilder: (context, error, stackTrace) =>
               _buildFallbackChildServiceAsset(service),
         );
@@ -90,7 +100,9 @@ class _ServicesListScreenState extends State<ServicesListScreen> {
     if (service.assetImagePath != null && service.assetImagePath!.isNotEmpty) {
       return Image.asset(
         service.assetImagePath!,
-        fit: BoxFit.contain,
+        fit: BoxFit.cover,
+        width: double.infinity,
+        height: double.infinity,
         errorBuilder: (context, error, stackTrace) =>
             _buildFallbackIcon(service.name),
       );
@@ -112,11 +124,12 @@ class _ServicesListScreenState extends State<ServicesListScreen> {
     }
 
     return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFFFBF9F5),
-        borderRadius: BorderRadius.circular(12),
+      width: double.infinity,
+      height: double.infinity,
+      color: const Color(0xFF1D1813),
+      child: Center(
+        child: Icon(iconData, size: 36, color: const Color(0xFFC4913F)),
       ),
-      child: Icon(iconData, size: 30, color: const Color(0xFFC4913F)),
     );
   }
 
@@ -285,56 +298,75 @@ class _ServicesListScreenState extends State<ServicesListScreen> {
         );
       },
       child: Container(
-        padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFEBE7DF), width: 1),
+          borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
+              color: Colors.black.withValues(alpha: 0.08),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
             ),
           ],
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        clipBehavior: Clip.antiAlias,
+        child: Stack(
           children: [
-            // Top Right Illustration / Icon (Matching Figma)
-            Align(
-              alignment: Alignment.topRight,
-              child: SizedBox(
-                width: 98,
-                height: 78,
-                child: _buildChildServiceIcon(service),
-              ),
+            // 1. Full-bleed Service Image from Odoo API / Fallback
+            Positioned.fill(
+              child: _buildChildServiceFullBleedImage(service),
             ),
-            const Spacer(),
 
-            // Service Title at Bottom Left in Elegant Serif
-            Text(
-              service.name,
-              style: GoogleFonts.lora(
-                fontSize: 18,
-                fontWeight: FontWeight.w400,
-                color: const Color(0xFF3A2F1E),
-                height: 1.2,
-              ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-            if (service.price > 0) ...[
-              const SizedBox(height: 4),
-              Text(
-                '\$${service.price.toStringAsFixed(0)}',
-                style: GoogleFonts.outfit(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: const Color(0xFFC4913F),
+            // 2. Bottom Dark Gradient Overlay matching Dashboard
+            Positioned.fill(
+              child: Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    stops: [0.35, 1.0],
+                    colors: [
+                      Colors.transparent,
+                      Color(0xCC000000), // Dark gradient for white text legibility
+                    ],
+                  ),
                 ),
               ),
-            ],
+            ),
+
+            // 3. Service Title and Price at Bottom Left over dark gradient
+            Positioned(
+              left: 14,
+              right: 14,
+              bottom: 14,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    service.name,
+                    style: GoogleFonts.lora(
+                      fontSize: 16.5,
+                      fontWeight: FontWeight.w400,
+                      color: Colors.white,
+                      height: 1.2,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  if (service.price > 0) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      '\$${service.price.toStringAsFixed(0)}',
+                      style: GoogleFonts.outfit(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFFC4913F),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
           ],
         ),
       ),

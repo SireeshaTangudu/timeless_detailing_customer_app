@@ -153,7 +153,11 @@ class Booking {
       if (dateStr.contains(' ') && !dateStr.contains('T')) {
         dateStr = dateStr.replaceAll(' ', 'T');
       }
-      bookingTime = DateTime.tryParse(dateStr) ?? DateTime.now();
+      final parsed = DateTime.tryParse(dateStr);
+      if (parsed != null) {
+        // Convert UTC timestamp from Odoo back to Johannesburg local time (UTC+2)
+        bookingTime = parsed.add(const Duration(hours: 2));
+      }
     }
 
     DateTime? stopTime;
@@ -163,7 +167,11 @@ class Booking {
       if (stopStr.contains(' ') && !stopStr.contains('T')) {
         stopStr = stopStr.replaceAll(' ', 'T');
       }
-      stopTime = DateTime.tryParse(stopStr);
+      final parsedStop = DateTime.tryParse(stopStr);
+      if (parsedStop != null) {
+        // Convert UTC timestamp from Odoo back to Johannesburg local time (UTC+2)
+        stopTime = parsedStop.add(const Duration(hours: 2));
+      }
     }
 
     // Collector & Phone extraction

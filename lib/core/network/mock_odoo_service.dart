@@ -10,6 +10,13 @@ import 'package:timeless_detailing_customer_app/features/tracking/models/project
 
 class MockOdooService implements BaseOdooService {
   @override
+  String get baseUrl =>
+      'https://keerthan-lfi-lfi-timeless-detailing-uat-36684365.dev.odoo.com';
+
+  @override
+  String get db => 'keerthan-lfi-lfi-timeless-detailing-uat-36684365';
+
+  @override
   Map<String, dynamic>? get savedUserInfo => _mockProfile;
 
   @override
@@ -646,5 +653,63 @@ class MockOdooService implements BaseOdooService {
         capacity: 1,
       ),
     );
+  }
+
+  @override
+  Future<Map<String, dynamic>?> getQuotationDetails(int orderId) async {
+    return {
+      'id': orderId,
+      'name': 'SO023 - Premium Detailing Quotation',
+      'state': 'sent',
+      'amount_untaxed': 1500.0,
+      'amount_tax': 225.0,
+      'amount_total': 1725.0,
+      'date_order': '2026-08-15 10:00:00',
+      'validity_date': '2026-09-15',
+      'vehicle_make': 'Porsche',
+      'vehicle_model': '911 GT3',
+      'vehicle_registration': 'TIMELESS-1',
+      'order_line': [
+        {
+          'id': 1,
+          'name': 'Signature Paint Correction & Ceramic Shield',
+          'product_uom_qty': 1.0,
+          'price_unit': 1500.0,
+          'price_subtotal': 1500.0,
+          'price_total': 1725.0,
+        }
+      ],
+    };
+  }
+
+  @override
+  Future<bool> acceptQuotation({
+    required int orderId,
+    required String name,
+    String? signatureBase64,
+  }) async {
+    return true;
+  }
+
+  @override
+  Future<bool> registerDeviceToken({
+    required String token,
+    String platform = 'android',
+  }) async {
+    return true;
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> getDeviceTokens() async {
+    return [
+      {
+        'id': 1,
+        'partner_id': [26, 'Alex Sterling'],
+        'user_id': [26, 'Alex Sterling'],
+        'platform': 'android',
+        'token': 'eYNuTm8fRZWeRUsC...',
+        'active': true,
+      }
+    ];
   }
 }

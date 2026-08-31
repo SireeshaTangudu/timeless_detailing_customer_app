@@ -154,7 +154,9 @@ class BookingsController extends ChangeNotifier {
         partnerIds: [partnerId],
         start: startStr,
         stop: stopStr,
-        duration: service.durationHours > 0 ? service.durationHours : 1.0,
+        duration: (service.durationHours > 0 && service.durationHours != 3.0)
+            ? service.durationHours
+            : 1.0,
         resourceId: effectiveResourceId,
         phone: phone,
         collectorName: collectorName,

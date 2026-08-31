@@ -13,6 +13,8 @@ import 'package:timeless_detailing_customer_app/features/tracking/controllers/tr
 import 'package:timeless_detailing_customer_app/features/tracking/controllers/projects_controller.dart';
 import 'package:timeless_detailing_customer_app/core/theme/theme_controller.dart';
 
+import 'package:timeless_detailing_customer_app/core/services/firebase_notification_service.dart';
+
 class MyHttpOverrides extends HttpOverrides {
   @override
   HttpClient createHttpClient(SecurityContext? context) {
@@ -21,10 +23,22 @@ class MyHttpOverrides extends HttpOverrides {
           (X509Certificate cert, String host, int port) => true;
   }
 }
- 
-void main() {
+
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   HttpOverrides.global = MyHttpOverrides();
+
+  // =========================================================================
+  // ODOO INTEGRATION CONFIGURATION
+  // =========================================================================
+  final odooService = OdooApiService(
+    baseUrl:
+        'https://keerthan-lfi-lfi-timeless-detailing-uat-36684365.dev.odoo.com',
+    db: 'keerthan-lfi-lfi-timeless-detailing-uat-36684365',
+  );
+
+  // Initialize Firebase & FCM with Odoo service for device token sync
+  await FirebaseNotificationService.initialize(odooService: odooService);
 
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
@@ -34,15 +48,6 @@ void main() {
       systemNavigationBarColor: Colors.transparent,
       systemNavigationBarIconBrightness: Brightness.dark,
     ),
-  );
-
-  // =========================================================================
-  // ODOO INTEGRATION CONFIGURATION
-  // =========================================================================
-  final odooService = OdooApiService(
-    baseUrl:
-        'https://keerthan-lfi-lfi-timeless-detailing-uat-36441944.dev.odoo.com',
-    db: 'keerthan-lfi-lfi-timeless-detailing-uat-36441944',
   );
 
   runApp(

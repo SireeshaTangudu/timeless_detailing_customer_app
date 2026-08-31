@@ -18,6 +18,8 @@ import 'package:timeless_detailing_customer_app/features/bookings/models/bookabl
 import 'package:timeless_detailing_customer_app/features/tracking/models/project_model.dart';
 
 abstract class BaseOdooService {
+  String get baseUrl;
+  String get db;
   Future<bool> login(String email, String password);
   Future<void> logout();
   Future<List<DetailService>> getServices();
@@ -84,7 +86,18 @@ abstract class BaseOdooService {
   Future<List<ProjectTaskModel>> getProjectTasks(int projectId);
   Future<List<Map<String, dynamic>>> getSentQuotations({int? partnerId});
   Future<List<Map<String, dynamic>>> getSaleOrders({int? partnerId});
+  Future<Map<String, dynamic>?> getQuotationDetails(int orderId);
+  Future<bool> acceptQuotation({
+    required int orderId,
+    required String name,
+    String? signatureBase64,
+  });
   Future<Map<String, dynamic>?> getCompanyLocationDetails();
+  Future<bool> registerDeviceToken({
+    required String token,
+    String platform = 'android',
+  });
+  Future<List<Map<String, dynamic>>> getDeviceTokens();
 }
 
 class OdooApiService implements BaseOdooService {
@@ -404,7 +417,7 @@ class OdooApiService implements BaseOdooService {
       return false;
     } catch (e) {
       print('Odoo authenticate caught exception: $e');
-      return false;
+      rethrow;
     }
   }
 
@@ -1203,6 +1216,26 @@ class OdooApiService implements BaseOdooService {
     }
   }
 
+  String _formatToUtcFromJohannesburg(String dateStr) {
+    final trimmed = dateStr.trim();
+    if (trimmed.isEmpty) return trimmed;
+
+    String cleanStr = trimmed;
+    if (cleanStr.contains('+02:00')) {
+      cleanStr = cleanStr.replaceAll('+02:00', '').trim();
+    } else if (RegExp(r'(\+|\-)\d{2}:?\d{2}$').hasMatch(cleanStr)) {
+      cleanStr = cleanStr.replaceAll(RegExp(r'(\+|\-)\d{2}:?\d{2}$'), '').trim();
+    }
+
+    final parsed = DateTime.tryParse(cleanStr.replaceAll(' ', 'T'));
+    if (parsed != null) {
+      // Subtract 2 hours to convert Johannesburg local time (UTC+2) to UTC for Odoo
+      final utcTime = parsed.subtract(const Duration(hours: 2));
+      return DateFormat('yyyy-MM-dd HH:mm:ss').format(utcTime);
+    }
+    return cleanStr;
+  }
+
   /// ENDPOINT 4: Book Appointment (`calendar.event/web_save`)
   @override
   Future<Map<String, dynamic>?> bookAppointment({
@@ -1387,15 +1420,27 @@ class OdooApiService implements BaseOdooService {
             }).toList()
           : [];
 
+      final formattedStart = _formatToUtcFromJohannesburg(start);
+      String formattedStop = _formatToUtcFromJohannesburg(stop);
+
+      final effectiveDuration = (duration <= 0 || duration == 3.0) ? 1.0 : duration;
+
+      final startUtcDt = DateTime.tryParse(formattedStart.replaceAll(' ', 'T'));
+      if (startUtcDt != null) {
+        final durationMinutes = (effectiveDuration * 60).round();
+        final calcStopDt = startUtcDt.add(Duration(minutes: durationMinutes));
+        formattedStop = DateFormat('yyyy-MM-dd HH:mm:ss').format(calcStopDt);
+      }
+
       final payload = {
         'name': name,
         'appointment_type_id': effectiveAppointmentTypeId,
         if (effectiveProductId != null) 'product_id': effectiveProductId,
         'appointment_booker_id': appointmentBookerId,
         'partner_ids': formattedPartnerIds,
-        'start': start,
-        'stop': stop,
-        'duration': duration,
+        'start': formattedStart,
+        'stop': formattedStop,
+        'duration': effectiveDuration,
         'booking_line_ids': bookingLines,
         if (phone != null) 'phone': phone,
         if (collectorName != null) 'collector_name': collectorName,
@@ -1671,16 +1716,29 @@ class OdooApiService implements BaseOdooService {
             [
               'state',
               'in',
-              ['sent', 'draft'],
+              ['sent', 'sale', 'cancel'],
             ],
           ],
           'specification': {
             'id': {},
             'name': {},
-            'state': {},
-            'amount_total': {},
             'date_order': {},
-            'note': {},
+            'validity_date': {},
+            'amount_untaxed': {},
+            'amount_tax': {},
+            'amount_total': {},
+            'currency_id': {},
+            'state': {},
+            'is_subscription': {},
+            'subscription_state': {},
+            'plan_id': {
+              'fields': {'id': {}, 'name': {}},
+            },
+            'next_invoice_date': {},
+            'recurring_total': {},
+            'partner_id': {
+              'fields': {'id': {}, 'name': {}},
+            },
           },
           'order': 'date_order desc',
         },
@@ -1742,7 +1800,180 @@ class OdooApiService implements BaseOdooService {
     }
   }
 
-  /// STEP 15: Get Company Location Details (`res.company/web_read`)
+  /// STEP 14b: Get Specific Quotation Details (`sale.order/web_read`)
+  @override
+  Future<Map<String, dynamic>?> getQuotationDetails(int orderId) async {
+    try {
+      final response = await _callKw(
+        model: 'sale.order',
+        method: 'web_read',
+        args: [
+          [orderId],
+        ],
+        kwargs: {
+          'specification': {
+            'id': {},
+            'name': {},
+            'date_order': {},
+            'validity_date': {},
+            'amount_untaxed': {},
+            'amount_tax': {},
+            'amount_total': {},
+            'state': {},
+            'vehicle_make': {},
+            'vehicle_model': {},
+            'vehicle_registration': {},
+            'service_billing_status': {},
+            'is_subscription': {},
+            'subscription_state': {},
+            'plan_id': {
+              'fields': {'id': {}, 'name': {}},
+            },
+            'start_date': {},
+            'end_date': {},
+            'next_invoice_date': {},
+            'recurring_total': {},
+            'order_line': {
+              'fields': {
+                'product_id': {
+                  'fields': {'id': {}, 'display_name': {}},
+                },
+                'name': {},
+                'product_uom_qty': {},
+                'price_unit': {},
+                'discount': {},
+                'price_subtotal': {},
+                'price_total': {},
+                'recurring_invoice': {},
+                'project_id': {
+                  'fields': {'id': {}, 'name': {}},
+                },
+              },
+            },
+            'access_url': {},
+            'access_token': {},
+            'warranty_ids': {
+              'fields': {
+                'id': {},
+                'name': {},
+                'product_id': {
+                  'fields': {'id': {}, 'display_name': {}},
+                },
+                'vehicle_make': {},
+                'vehicle_model': {},
+                'vehicle_registration': {},
+                'warranty_start': {},
+                'warranty_end': {},
+                'status': {},
+              },
+            },
+            'vehicle_id': {
+              'fields': {
+                'id': {},
+                'vin': {},
+                'make': {},
+                'model': {},
+                'registration': {},
+              },
+            },
+            'vehicle_history_order_ids': {
+              'fields': {
+                'id': {},
+                'name': {},
+                'date_order': {},
+                'state': {},
+                'amount_total': {},
+              },
+            },
+          },
+        },
+      );
+      if (response is List && response.isNotEmpty) {
+        return Map<String, dynamic>.from(response.first as Map);
+      }
+      return null;
+    } catch (e) {
+      debugPrint('getQuotationDetails error: $e');
+      return null;
+    }
+  }
+
+  /// STEP 15: Accept Quotation (`sale.order/action_confirm` or signature RPC)
+  @override
+  Future<bool> acceptQuotation({
+    required int orderId,
+    required String name,
+    String? signatureBase64,
+  }) async {
+    try {
+      await _callKw(
+        model: 'sale.order',
+        method: 'action_confirm',
+        args: [
+          [orderId],
+        ],
+        kwargs: {
+          if (name.isNotEmpty) 'name': name,
+          if (signatureBase64 != null) 'signature': signatureBase64,
+        },
+      );
+      debugPrint('🟢 [OdooApiService] acceptQuotation successful for orderId=$orderId');
+      return true;
+    } catch (e) {
+      debugPrint('🔴 [OdooApiService] acceptQuotation error: $e');
+      return false;
+    }
+  }
+
+  /// STEP 15b: Register Device Token (`timeless.device.token/register_device`)
+  @override
+  Future<bool> registerDeviceToken({
+    required String token,
+    String platform = 'android',
+  }) async {
+    try {
+      final res = await _callKw(
+        model: 'timeless.device.token',
+        method: 'register_device',
+        args: [token, platform],
+        kwargs: {},
+      );
+      debugPrint('🟢 [OdooApiService] registerDeviceToken success: $res');
+      return res != null && res != false;
+    } catch (e) {
+      debugPrint('🔴 [OdooApiService] registerDeviceToken error: $e');
+      return false;
+    }
+  }
+
+  /// STEP 15c: Get Device Tokens (`timeless.device.token/search_read`)
+  @override
+  Future<List<Map<String, dynamic>>> getDeviceTokens() async {
+    try {
+      final response = await _callKw(
+        model: 'timeless.device.token',
+        method: 'search_read',
+        args: [[]],
+        kwargs: {
+          'fields': [
+            'id',
+            'partner_id',
+            'user_id',
+            'platform',
+            'token',
+            'active',
+          ],
+        },
+      );
+      final List records = response is List ? response : [];
+      return records.map((r) => Map<String, dynamic>.from(r as Map)).toList();
+    } catch (e) {
+      debugPrint('🔴 [OdooApiService] getDeviceTokens error: $e');
+      return [];
+    }
+  }
+
+  /// STEP 16: Get Company Location Details (`res.company/web_read`)
   @override
   Future<Map<String, dynamic>?> getCompanyLocationDetails() async {
     try {
