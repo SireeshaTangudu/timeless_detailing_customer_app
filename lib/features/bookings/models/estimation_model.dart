@@ -43,6 +43,7 @@ class EstimationModel {
   final String serviceDate;
   final String serviceTime;
   final String disclaimerText;
+  final String state; // 'draft', 'sent', 'sale', 'cancel'
   final List<EstimationStepModel> nextSteps;
 
   const EstimationModel({
@@ -56,6 +57,7 @@ class EstimationModel {
     required this.serviceDate,
     required this.serviceTime,
     required this.disclaimerText,
+    this.state = 'sent',
     required this.nextSteps,
   });
 
@@ -73,6 +75,7 @@ class EstimationModel {
       serviceTime: '12:00 PM',
       disclaimerText:
           'The above mentioned amount is the base price. We will share the final pricing after completing our inspection on 12th August at 12:00 PM.',
+      state: 'sent',
       nextSteps: [
         EstimationStepModel(
           stepNumber: 1,
@@ -103,6 +106,7 @@ class EstimationModel {
   factory EstimationModel.fromBooking(
     Booking booking, {
     String? vehicleType,
+    bool isDraft = true,
   }) {
     final dateStr =
         '${booking.bookingDateTime.day} ${_monthName(booking.bookingDateTime.month)}';
@@ -128,6 +132,7 @@ class EstimationModel {
       serviceTime: timeStr,
       disclaimerText:
           'The above mentioned amount is the base price. We will share the final pricing after completing our inspection on $dateStr at $timeStr.',
+      state: isDraft ? 'draft' : 'sent',
       nextSteps: const [
         EstimationStepModel(
           stepNumber: 1,
@@ -154,8 +159,89 @@ class EstimationModel {
     );
   }
 
-  /// Factory for API response parsing (Odoo / REST API integration)
+  /// Factory for parsing sale.order / quotation from Odoo
+  factory EstimationModel.fromOdooJson(Map<String, dynamic> json) {
+    final rawAmount = json['amount_total'] ?? json['estimated_amount'];
+    final amountVal = (rawAmount is num) ? rawAmount.toDouble() : 2800.0;
+    final orderState = json['state']?.toString() ?? 'sent';
+    final nameStr = json['name']?.toString() ?? 'SO-001';
+
+    String serviceNameStr = 'Vehicle Detailing Service';
+    if (json['order_lines_detail'] is List && (json['order_lines_detail'] as List).isNotEmpty) {
+      final firstLine = (json['order_lines_detail'] as List).first;
+      if (firstLine is Map && firstLine['name'] != null) {
+        serviceNameStr = firstLine['name'].toString();
+      }
+    }
+
+    String vehicleNameStr = 'Client Vehicle';
+    if (json['vehicle_make'] != null || json['vehicle_model'] != null) {
+      final make = json['vehicle_make']?.toString() ?? '';
+      final model = json['vehicle_model']?.toString() ?? '';
+      vehicleNameStr = '$make $model'.trim();
+    }
+
+    String dateStr = 'Today';
+    String timeStr = '12:00 PM';
+    if (json['date_order'] != null) {
+      final dt = DateTime.tryParse(json['date_order'].toString().replaceAll(' ', 'T'));
+      if (dt != null) {
+        final localDt = dt.add(const Duration(hours: 2));
+        dateStr = '${localDt.day} ${_monthName(localDt.month)}';
+        final hour = localDt.hour % 12 == 0 ? 12 : localDt.hour % 12;
+        final amPm = localDt.hour >= 12 ? 'PM' : 'AM';
+        final minStr = localDt.minute.toString().padLeft(2, '0');
+        timeStr = '$hour:$minStr $amPm';
+      }
+    }
+
+    return EstimationModel(
+      id: nameStr,
+      serviceName: serviceNameStr,
+      serviceDescription: 'Final quotation sent by Timeless Detailing Technician',
+      estimatedAmount: amountVal,
+      currencySymbol: 'R',
+      vehicleName: vehicleNameStr,
+      vehicleType: 'Hatch Back',
+      serviceDate: dateStr,
+      serviceTime: timeStr,
+      disclaimerText:
+          'Please review the breakdown above and click Accept & Sign below to confirm your estimate.',
+      state: orderState,
+      nextSteps: [
+        const EstimationStepModel(
+          stepNumber: 1,
+          title: 'Book your slot with us',
+          isCompleted: true,
+        ),
+        const EstimationStepModel(
+          stepNumber: 2,
+          title: 'Inspection of your car on the booked slot',
+          isCompleted: true,
+        ),
+        EstimationStepModel(
+          stepNumber: 3,
+          title: 'New quote with the updated amount post inspection',
+          isCompleted: orderState == 'sent' || orderState == 'sale',
+        ),
+        EstimationStepModel(
+          stepNumber: 4,
+          title: 'Accept the quote',
+          isCompleted: orderState == 'sale',
+        ),
+        const EstimationStepModel(
+          stepNumber: 5,
+          title: 'Get your car serviced!',
+        ),
+      ],
+    );
+  }
+
+  /// Factory for API response parsing
   factory EstimationModel.fromJson(Map<String, dynamic> json) {
+    if (json.containsKey('order_line') || json.containsKey('amount_total')) {
+      return EstimationModel.fromOdooJson(json);
+    }
     var stepsList = <EstimationStepModel>[];
     if (json['next_steps'] is List) {
       stepsList = (json['next_steps'] as List)
@@ -178,6 +264,7 @@ class EstimationModel {
       serviceTime: json['service_time'] as String? ?? '12:00 PM',
       disclaimerText: json['disclaimer_text'] as String? ??
           'The above mentioned amount is the base price. We will share the final pricing after completing our inspection on 12th August at 12:00 PM.',
+      state: json['state']?.toString() ?? 'sent',
       nextSteps: stepsList,
     );
   }

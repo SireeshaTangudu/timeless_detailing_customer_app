@@ -604,8 +604,24 @@ class OdooApiService implements BaseOdooService {
   @override
   Future<void> logout() async {
     try {
+      if (_registeredTokenId != null) {
+        try {
+          await _callKw(
+            model: 'timeless.device.token',
+            method: 'deactivate',
+            args: [
+              [_registeredTokenId],
+            ],
+            kwargs: {},
+          );
+          debugPrint('🟢 [OdooApiService] Deactivated device token id=$_registeredTokenId');
+        } catch (e) {
+          debugPrint('🟡 Deactivate device token warning: $e');
+        }
+      }
       await _clearSession();
       _dio = null;
+      _registeredTokenId = null;
     } catch (e) {
       print('Odoo logout error: $e');
     }
@@ -1925,21 +1941,63 @@ class OdooApiService implements BaseOdooService {
     }
   }
 
-  /// STEP 15b: Register Device Token (`timeless.device.token/register_device`)
+  int? _registeredTokenId;
+
+  /// STEP 15b: Register Device Token (`timeless.device.token` & `res.partner`)
   @override
   Future<bool> registerDeviceToken({
     required String token,
     String platform = 'android',
   }) async {
     try {
-      final res = await _callKw(
-        model: 'timeless.device.token',
-        method: 'register_device',
-        args: [token, platform],
-        kwargs: {},
+      final partnerId = _partnerId ?? _uid;
+      debugPrint(
+        '🔵 [OdooApiService] Registering FCM Device Token "$token" (platform: $platform, partnerId: $partnerId)...',
       );
-      debugPrint('🟢 [OdooApiService] registerDeviceToken success: $res');
-      return res != null && res != false;
+
+      bool registered = false;
+
+      // 1. Try custom method timeless.device.token/register_device
+      try {
+        final res = await _callKw(
+          model: 'timeless.device.token',
+          method: 'register_device',
+          args: [token, platform],
+          kwargs: {},
+        );
+        if (res != null && res != false) {
+          debugPrint('🟢 [OdooApiService] registerDeviceToken via register_device success: $res');
+          if (res is int) _registeredTokenId = res;
+          registered = true;
+        }
+      } catch (e) {
+        debugPrint('🟡 [OdooApiService] register_device method failed: $e. Trying create/write fallback...');
+      }
+
+      // 2. Try timeless.device.token create/write
+      if (!registered) {
+        try {
+          final createResp = await _callKw(
+            model: 'timeless.device.token',
+            method: 'create',
+            args: [
+              {
+                'token': token,
+                'platform': platform,
+                if (partnerId != null) 'partner_id': partnerId,
+              },
+            ],
+            kwargs: {},
+          );
+          debugPrint('🟢 [OdooApiService] Registered device token via create: $createResp');
+          if (createResp is int) _registeredTokenId = createResp;
+          registered = true;
+        } catch (e) {
+          debugPrint('🟡 [OdooApiService] timeless.device.token create failed: $e');
+        }
+      }
+
+      return registered;
     } catch (e) {
       debugPrint('🔴 [OdooApiService] registerDeviceToken error: $e');
       return false;
@@ -2388,27 +2446,6 @@ class OdooApiService implements BaseOdooService {
 
       if (writeData.isEmpty) return true;
 
-      if (_uid != null) {
-        try {
-          final userResp = await _callKw(
-            model: 'res.users',
-            method: 'write',
-            args: [
-              [_uid],
-              writeData,
-            ],
-            kwargs: {},
-          );
-          if (userResp == true) {
-            return true;
-          }
-        } catch (e) {
-          debugPrint(
-            'Odoo updateCustomerProfile via res.users failed: $e. Trying res.partner fallback.',
-          );
-        }
-      }
-
       final response = await _callKw(
         model: 'res.partner',
         method: 'write',
@@ -2444,27 +2481,6 @@ class OdooApiService implements BaseOdooService {
         _savedUserInfo = {'image_1920': base64Image};
       }
 
-      if (_uid != null) {
-        try {
-          final userResp = await _callKw(
-            model: 'res.users',
-            method: 'write',
-            args: [
-              [_uid],
-              {'image_1920': base64Image},
-            ],
-            kwargs: {},
-          );
-          if (userResp == true) {
-            return true;
-          }
-        } catch (e) {
-          debugPrint(
-            'Odoo uploadProfileImage via res.users failed: $e. Trying res.partner fallback.',
-          );
-        }
-      }
-
       final response = await _callKw(
         model: 'res.partner',
         method: 'write',
@@ -2489,26 +2505,7 @@ class OdooApiService implements BaseOdooService {
       final partnerId = _partnerId ?? _uid;
       bool success = false;
 
-      if (_uid != null) {
-        try {
-          final userResp = await _callKw(
-            model: 'res.users',
-            method: 'write',
-            args: [
-              [_uid],
-              {'active': false},
-            ],
-            kwargs: {},
-          );
-          if (userResp == true) success = true;
-        } catch (e) {
-          debugPrint(
-            'Odoo deleteAccount via res.users failed: $e. Trying res.partner fallback.',
-          );
-        }
-      }
-
-      if (!success && partnerId != null) {
+      if (partnerId != null) {
         try {
           final partnerResp = await _callKw(
             model: 'res.partner',
@@ -2542,27 +2539,6 @@ class OdooApiService implements BaseOdooService {
     try {
       await _ensureInitialized();
       final partnerId = int.tryParse(customerId) ?? _partnerId ?? _uid ?? 1;
-
-      if (_uid != null) {
-        try {
-          final userResp = await _callKw(
-            model: 'res.users',
-            method: 'write',
-            args: [
-              [_uid],
-              {'image_1920': false},
-            ],
-            kwargs: {},
-          );
-          if (userResp == true) {
-            return true;
-          }
-        } catch (e) {
-          debugPrint(
-            'Odoo clearProfilePicture via res.users failed: $e. Trying res.partner fallback.',
-          );
-        }
-      }
 
       final response = await _callKw(
         model: 'res.partner',

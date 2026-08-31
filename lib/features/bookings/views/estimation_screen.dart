@@ -548,7 +548,7 @@ class _EstimationScreenState extends State<EstimationScreen> {
                 const SizedBox(height: 22),
 
                 // Status or Action Buttons
-                if (_status == 'accepted')
+                if (_status == 'accepted' || data.state == 'sale')
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.symmetric(vertical: 14),
@@ -577,7 +577,7 @@ class _EstimationScreenState extends State<EstimationScreen> {
                       ],
                     ),
                   )
-                else if (_status == 'declined')
+                else if (_status == 'declined' || data.state == 'cancel')
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.symmetric(vertical: 14),
@@ -606,10 +606,89 @@ class _EstimationScreenState extends State<EstimationScreen> {
                       ],
                     ),
                   )
+                else if (data.state == 'draft')
+                  Column(
+                    children: [
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFF8E1),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFFFFE082)),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.access_time_filled_rounded,
+                              color: Color(0xFFF57F17),
+                              size: 24,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Draft Estimate Created',
+                                    style: GoogleFonts.outfit(
+                                      fontSize: 14.5,
+                                      fontWeight: FontWeight.bold,
+                                      color: const Color(0xFFF57F17),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    'Our detailer will inspect your vehicle and send a finalized quotation. You will receive a notification when ready.',
+                                    style: GoogleFonts.montserrat(
+                                      fontSize: 11.5,
+                                      color: const Color(0xFF5D4037),
+                                      height: 1.35,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 48,
+                        child: OutlinedButton.icon(
+                          onPressed: () => _openGoogleMapsDirections(context),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: const Color(0xFF1D1813),
+                            side: const BorderSide(
+                              color: Color(0xFFD6C8B4),
+                              width: 1,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                          icon: const Icon(
+                            Icons.near_me_outlined,
+                            size: 16,
+                            color: Color(0xFF1D1813),
+                          ),
+                          label: Text(
+                            'Get Directions to Garage',
+                            style: GoogleFonts.outfit(
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.w600,
+                              color: const Color(0xFF1D1813),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  )
                 else
                   Column(
                     children: [
-                      // Accept & Sign Button (Replaces Pay Button)
+                      // Accept & Sign Button (For Sent Quotations)
                       SizedBox(
                         width: double.infinity,
                         height: 50,

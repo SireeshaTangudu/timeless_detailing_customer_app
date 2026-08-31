@@ -7,7 +7,6 @@ import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:timeless_detailing_customer_app/core/theme/app_theme.dart';
-import 'package:timeless_detailing_customer_app/core/widgets/custom_button.dart';
 import 'package:timeless_detailing_customer_app/core/widgets/custom_textfield.dart';
 import 'package:timeless_detailing_customer_app/core/widgets/custom_app_bar.dart';
 import 'package:timeless_detailing_customer_app/features/services/models/service_model.dart';
@@ -15,7 +14,6 @@ import 'package:timeless_detailing_customer_app/features/bookings/controllers/bo
 import 'package:timeless_detailing_customer_app/features/bookings/models/estimation_model.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/views/estimation_screen.dart';
 import 'package:timeless_detailing_customer_app/features/services/controllers/services_controller.dart';
-import 'package:timeless_detailing_customer_app/features/dashboard/views/main_navigation_scaffold.dart';
 import 'package:timeless_detailing_customer_app/core/widgets/custom_loader.dart';
 
 class BookServiceScreen extends StatefulWidget {
@@ -369,89 +367,17 @@ class _BookServiceScreenState extends State<BookServiceScreen> {
     if (!mounted) return;
 
     if (result != null) {
-      final theme = Theme.of(context);
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) {
-          return AlertDialog(
-            backgroundColor: AppTheme.surface,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => EstimationScreen(
+            estimation: EstimationModel.fromBooking(
+              result,
+              vehicleType: 'Hatch Back',
+              isDraft: true,
             ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const SizedBox(height: 10),
-                const Icon(
-                  Icons.check_circle,
-                  color: AppTheme.success,
-                  size: 70,
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  'Appointment Booked!',
-                  style: GoogleFonts.outfit(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  'Your ${widget.initialService.name} detailing has been scheduled. Track details live in your home portal dashboard.',
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.bodyMedium,
-                ),
-                const SizedBox(height: 24),
-                CustomButton(
-                  text: 'VIEW ESTIMATION',
-                  height: 48,
-                  onPressed: () {
-                    Navigator.pop(context); // Close dialog
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => EstimationScreen(
-                          estimation: EstimationModel.fromBooking(
-                            result,
-                            vehicleType: 'Hatch Back',
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-                const SizedBox(height: 10),
-                OutlinedButton(
-                  onPressed: () {
-                    Navigator.of(context).pushAndRemoveUntil(
-                      MaterialPageRoute(
-                        builder: (context) => const MainNavigationScaffold(),
-                      ),
-                      (route) => false,
-                    );
-                  },
-                  style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: AppTheme.primary, width: 1.5),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    minimumSize: const Size(double.infinity, 48),
-                  ),
-                  child: Text(
-                    'Go To Home',
-                    style: GoogleFonts.outfit(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: AppTheme.primary,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          );
-        },
+          ),
+        ),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
