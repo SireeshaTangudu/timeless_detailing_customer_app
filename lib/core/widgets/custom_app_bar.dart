@@ -34,8 +34,8 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Size get preferredSize {
-    if (_hasTitle && _hasSubtitle) return const Size.fromHeight(140);
-    if (_hasTitle || _hasSubtitle) return const Size.fromHeight(100);
+    if (_hasTitle && _hasSubtitle) return const Size.fromHeight(160);
+    if (_hasTitle || _hasSubtitle) return const Size.fromHeight(124);
     return const Size.fromHeight(66);
   }
 

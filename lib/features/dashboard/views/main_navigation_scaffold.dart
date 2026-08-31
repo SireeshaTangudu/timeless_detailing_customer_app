@@ -10,6 +10,7 @@ import 'package:timeless_detailing_customer_app/features/bookings/views/bookings
 import 'package:timeless_detailing_customer_app/features/auth/views/profile_screen.dart';
 import 'package:timeless_detailing_customer_app/features/auth/views/login_screen.dart';
 import 'package:timeless_detailing_customer_app/features/about/views/about_us_screen.dart';
+import 'package:timeless_detailing_customer_app/features/notifications/views/notifications_screen.dart';
 
 class MainNavigationScaffold extends StatefulWidget {
   const MainNavigationScaffold({super.key});
@@ -63,8 +64,9 @@ class _MainNavigationScaffoldState extends State<MainNavigationScaffold>
     required IconData activeIcon,
     required String title,
     required int index,
+    VoidCallback? customOnTap,
   }) {
-    final isSelected = _currentIndex == index;
+    final isSelected = customOnTap == null && _currentIndex == index;
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       decoration: BoxDecoration(
@@ -88,7 +90,7 @@ class _MainNavigationScaffoldState extends State<MainNavigationScaffold>
           ),
         ),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        onTap: () => _onSelectItem(index),
+        onTap: customOnTap ?? () => _onSelectItem(index),
       ),
     );
   }
@@ -183,6 +185,21 @@ class _MainNavigationScaffoldState extends State<MainNavigationScaffold>
                 activeIcon: Icons.calendar_month,
                 title: 'Bookings',
                 index: 2,
+              ),
+              _buildDrawerItem(
+                icon: Icons.notifications_outlined,
+                activeIcon: Icons.notifications,
+                title: 'Notifications',
+                index: 99,
+                customOnTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const NotificationsScreen(),
+                    ),
+                  );
+                },
               ),
               _buildDrawerItem(
                 icon: Icons.person_outline,

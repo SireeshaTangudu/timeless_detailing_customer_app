@@ -712,4 +712,37 @@ class MockOdooService implements BaseOdooService {
       }
     ];
   }
+
+  @override
+  Future<List<Map<String, dynamic>>> getUserNotifications({int? partnerId}) async {
+    return [
+      {
+        'id': 1,
+        'title': 'New Quotation Received',
+        'body': 'Your technician has completed vehicle inspection and generated your final quotation.',
+        'date': DateTime.now().subtract(const Duration(hours: 2)).toIso8601String(),
+        'read': false,
+        'order_id': 20,
+      },
+      {
+        'id': 2,
+        'title': 'Appointment Confirmed',
+        'body': 'Your appointment for Paint Protection Film (PPF) is confirmed.',
+        'date': DateTime.now().subtract(const Duration(days: 1)).toIso8601String(),
+        'read': true,
+      },
+    ];
+  }
+
+  @override
+  Future<Map<String, dynamic>?> getNotificationDetail(int notificationId) async {
+    return {
+      'id': notificationId,
+      'title': 'New Quotation Received',
+      'body': 'Your technician has completed vehicle inspection and generated your final quotation.',
+      'date': DateTime.now().subtract(const Duration(hours: 2)).toIso8601String(),
+      'read': true,
+      'order_id': 20,
+    };
+  }
 }

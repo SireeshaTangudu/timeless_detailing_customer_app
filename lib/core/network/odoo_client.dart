@@ -98,6 +98,8 @@ abstract class BaseOdooService {
     String platform = 'android',
   });
   Future<List<Map<String, dynamic>>> getDeviceTokens();
+  Future<List<Map<String, dynamic>>> getUserNotifications({int? partnerId});
+  Future<Map<String, dynamic>?> getNotificationDetail(int notificationId);
 }
 
 class OdooApiService implements BaseOdooService {
@@ -2028,6 +2030,118 @@ class OdooApiService implements BaseOdooService {
     } catch (e) {
       debugPrint('🔴 [OdooApiService] getDeviceTokens error: $e');
       return [];
+    }
+  }
+
+  /// STEP 15d: Get User Notifications (`timeless.notification` or `mail.message` fallback)
+  @override
+  Future<List<Map<String, dynamic>>> getUserNotifications({int? partnerId}) async {
+    try {
+      final pid = partnerId ?? _partnerId ?? _uid;
+
+      // 1. Try custom timeless.notification model
+      try {
+        final response = await _callKw(
+          model: 'timeless.notification',
+          method: 'search_read',
+          args: [
+            if (pid != null)
+              [
+                '|',
+                ['partner_id', '=', pid],
+                ['partner_id', '=', false]
+              ]
+            else
+              []
+          ],
+          kwargs: {
+            'fields': ['id', 'name', 'title', 'body', 'message', 'date', 'create_date', 'read', 'is_read', 'order_id'],
+            'order': 'id desc',
+            'limit': 50,
+          },
+        );
+        if (response is List && response.isNotEmpty) {
+          return response.map((r) => Map<String, dynamic>.from(r as Map)).toList();
+        }
+      } catch (e) {
+        debugPrint('🟡 [OdooApiService] timeless.notification search_read fallback: $e');
+      }
+
+      // 2. Fallback to mail.message model
+      if (pid != null) {
+        try {
+          final response = await _callKw(
+            model: 'mail.message',
+            method: 'search_read',
+            args: [
+              [
+                ['partner_ids', 'in', [pid]]
+              ]
+            ],
+            kwargs: {
+              'fields': ['id', 'subject', 'body', 'date', 'model', 'res_id'],
+              'order': 'id desc',
+              'limit': 30,
+            },
+          );
+          if (response is List) {
+            return response.map((r) => Map<String, dynamic>.from(r as Map)).toList();
+          }
+        } catch (_) {}
+      }
+      return [];
+    } catch (e) {
+      debugPrint('🔴 [OdooApiService] getUserNotifications error: $e');
+      return [];
+    }
+  }
+
+  /// STEP 15e: Get Notification Detail (`timeless.notification` or `mail.message`)
+  @override
+  Future<Map<String, dynamic>?> getNotificationDetail(int notificationId) async {
+    try {
+      // 1. Try timeless.notification
+      try {
+        final response = await _callKw(
+          model: 'timeless.notification',
+          method: 'search_read',
+          args: [
+            [
+              ['id', '=', notificationId]
+            ]
+          ],
+          kwargs: {
+            'fields': ['id', 'name', 'title', 'body', 'message', 'date', 'create_date', 'read', 'is_read', 'order_id'],
+          },
+        );
+        if (response is List && response.isNotEmpty) {
+          return Map<String, dynamic>.from(response.first as Map);
+        }
+      } catch (_) {}
+
+      // 2. Fallback to mail.message
+      try {
+        final response = await _callKw(
+          model: 'mail.message',
+          method: 'search_read',
+          args: [
+            [
+              ['id', '=', notificationId]
+            ]
+          ],
+          kwargs: {
+            'fields': ['id', 'subject', 'body', 'date', 'model', 'res_id'],
+          },
+        );
+        if (response is List && response.isNotEmpty) {
+          return Map<String, dynamic>.from(response.first as Map);
+        }
+      } catch (_) {}
+
+      return null;
+    } catch (e) {
+      debugPrint('🔴 [OdooApiService] getNotificationDetail error: $e');
+      return null;
     }
   }
 

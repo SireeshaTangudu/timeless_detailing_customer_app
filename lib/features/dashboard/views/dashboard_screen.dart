@@ -18,6 +18,8 @@ import 'package:timeless_detailing_customer_app/features/bookings/controllers/bo
 import 'package:timeless_detailing_customer_app/features/bookings/models/booking_model.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/views/bookings_history_screen.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/views/upcoming_appointment_details_screen.dart';
+import 'package:timeless_detailing_customer_app/features/bookings/models/estimation_model.dart';
+import 'package:timeless_detailing_customer_app/features/bookings/views/estimation_screen.dart';
 import 'package:timeless_detailing_customer_app/core/widgets/custom_loader.dart';
 import 'package:timeless_detailing_customer_app/core/utils/app_animations.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -475,8 +477,42 @@ class _DashboardScreenState extends State<DashboardScreen> {
         booking.notes.toLowerCase().contains('quote') ||
         booking.notes.toLowerCase().contains('estimate');
 
+    final bool isDraft =
+        booking.status == BookingStatus.confirmed &&
+        (booking.notes.toLowerCase().contains('draft') ||
+            booking.notes.toLowerCase().contains('inspection'));
+
+    final bool isAccepted = booking.status == BookingStatus.completed ||
+        booking.notes.toLowerCase().contains('accepted') ||
+        booking.notes.toLowerCase().contains('signed');
+
     final dateDayStr = DateFormat('d MMMM').format(booking.bookingDateTime);
     final timeStr = DateFormat('hh:mm a').format(booking.bookingDateTime);
+
+    String stageTitle = 'Upcoming Appointment';
+    String stageSubtitle = 'You have an appointment booked for $dateDayStr, $timeStr';
+    String buttonText = 'View Details';
+    Color badgeColor = const Color(0xFFC4913F);
+
+    if (isQuoteReceived) {
+      stageTitle = 'New Quote Received';
+      stageSubtitle =
+          'Our technician completed inspection and updated your quote for ${booking.service.name}. Tap to review & accept.';
+      buttonText = 'Review & Accept';
+      badgeColor = const Color(0xFFC4913F);
+    } else if (isDraft) {
+      stageTitle = 'Draft Estimate Created';
+      stageSubtitle =
+          'Base estimate generated. Technician inspection scheduled for $dateDayStr, $timeStr.';
+      buttonText = 'View Draft Estimate';
+      badgeColor = const Color(0xFFF57F17);
+    } else if (isAccepted) {
+      stageTitle = 'Quotation Accepted & Signed';
+      stageSubtitle =
+          'Your estimate is confirmed and signed. Detailing appointment set for $dateDayStr at $timeStr.';
+      buttonText = 'View Details';
+      badgeColor = const Color(0xFF2E7D32);
+    }
 
     return Container(
       width: double.infinity,
@@ -487,7 +523,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           end: Alignment.bottomCenter,
           colors: [Color(0xFF121212), Color(0xFF22190C)],
         ),
-        borderRadius: BorderRadius.circular(8), // Figma Radius 8px
+        borderRadius: BorderRadius.circular(8),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.2),
@@ -499,34 +535,58 @@ class _DashboardScreenState extends State<DashboardScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Title in Gold Serif (Figma) with Pulsing Glow Dot
+          // Title with Pulsing Glow Dot and Stage Badge
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const PulseGlow(
-                child: Icon(Icons.circle, size: 8, color: Color(0xFFC4913F)),
+              Row(
+                children: [
+                  PulseGlow(
+                    child: Icon(Icons.circle, size: 8, color: badgeColor),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    stageTitle,
+                    style: GoogleFonts.lora(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                      color: badgeColor,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 8),
-              Text(
-                isQuoteReceived ? 'New Quote Received' : 'Upcoming Appointment',
-                style: GoogleFonts.lora(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w500,
-                  color: const Color(0xFFC4913F),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: badgeColor.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: badgeColor.withValues(alpha: 0.4), width: 0.8),
+                ),
+                child: Text(
+                  isQuoteReceived
+                      ? 'ACTION REQUIRED'
+                      : isDraft
+                          ? 'PENDING INSPECTION'
+                          : 'CONFIRMED',
+                  style: GoogleFonts.outfit(
+                    fontSize: 9.5,
+                    fontWeight: FontWeight.bold,
+                    color: badgeColor,
+                    letterSpacing: 0.5,
+                  ),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 8),
 
-          // Line 4 Divider (Figma)
+          // Divider
           const Divider(color: Color(0xFF332A1F), height: 1, thickness: 1),
           const SizedBox(height: 12),
 
-          // Subtitle (Figma)
+          // Stage Subtitle
           Text(
-            isQuoteReceived
-                ? 'Based on our inspection, we\'ve share you the updated quote, please have a review.'
-                : 'You have an appointment booked for $dateDayStr, $timeStr',
+            stageSubtitle,
             style: GoogleFonts.montserrat(
               fontSize: 11.5,
               fontWeight: FontWeight.w400,
@@ -536,18 +596,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
           const SizedBox(height: 14),
 
-          // View Details Button at Bottom Right (Figma Filled Gold Button with White Text)
+          // Stage Action Button
           Align(
             alignment: Alignment.centerRight,
             child: SizedBox(
               height: 38,
               child: AnimatedPressable(
                 onTap: () {
-                  if (isQuoteReceived) {
+                  if (isQuoteReceived || isDraft) {
                     Navigator.push(
                       context,
                       FadeSlidePageRoute(
-                        page: NewEstimateScreen(bookingItem: booking),
+                        page: EstimationScreen(
+                          estimation: EstimationModel.fromBooking(
+                            booking,
+                            isDraft: isDraft,
+                          ),
+                        ),
                       ),
                     );
                   } else {
@@ -563,11 +628,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 },
                 child: ElevatedButton(
                   onPressed: () {
-                    if (isQuoteReceived) {
+                    if (isQuoteReceived || isDraft) {
                       Navigator.push(
                         context,
                         FadeSlidePageRoute(
-                          page: NewEstimateScreen(bookingItem: booking),
+                          page: EstimationScreen(
+                            estimation: EstimationModel.fromBooking(
+                              booking,
+                              isDraft: isDraft,
+                            ),
+                          ),
                         ),
                       );
                     } else {
@@ -591,7 +661,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                   ),
                   child: Text(
-                    'View Details',
+                    buttonText,
                     style: GoogleFonts.outfit(
                       fontSize: 12.5,
                       fontWeight: FontWeight.w600,
