@@ -7,11 +7,21 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <application
         android:label="timeless_detailing_customer_app"
         android:name="${applicationName}"
         android:icon="@mipmap/launcher_icon">
+
+        <!-- FCM Background Messaging Service for Killed / Terminated state -->
+        <service
+            android:name="io.flutter.plugins.firebase.messaging.FlutterFirebaseMessagingBackgroundService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
 
         <!-- Default FCM notification channel for Android 8.0+ -->
         <meta-data

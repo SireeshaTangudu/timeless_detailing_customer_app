@@ -1,8 +1,9 @@
+import 'dart:convert';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timeless_detailing_customer_app/core/network/odoo_client.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/models/estimation_model.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/views/estimation_screen.dart';
@@ -11,11 +12,76 @@ import 'package:timeless_detailing_customer_app/main.dart';
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
-  debugPrint('Handling background message: ${message.messageId}');
+  debugPrint('🌙 Handling background/killed message: ${message.messageId}, Data: ${message.data}');
+
+  try {
+    final title = message.notification?.title ??
+        message.data['title'] ??
+        'New Quotation Received!';
+    final body = message.notification?.body ??
+        message.data['body'] ??
+        message.data['message'] ??
+        'Your technician has generated your vehicle estimate.';
+
+    const AndroidNotificationChannel channel = AndroidNotificationChannel(
+      'high_importance_channel',
+      'High Importance Notifications',
+      description: 'This channel is used for important notifications.',
+      importance: Importance.max,
+      playSound: true,
+    );
+
+    final FlutterLocalNotificationsPlugin backgroundLocalNotifications =
+        FlutterLocalNotificationsPlugin();
+
+    const AndroidInitializationSettings initializationSettingsAndroid =
+        AndroidInitializationSettings('@mipmap/launcher_icon');
+
+    const InitializationSettings initializationSettings = InitializationSettings(
+      android: initializationSettingsAndroid,
+      iOS: DarwinInitializationSettings(),
+    );
+
+    await backgroundLocalNotifications.initialize(settings: initializationSettings);
+
+    final int notificationId = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+
+    await backgroundLocalNotifications.show(
+      id: notificationId,
+      title: title,
+      body: body,
+      notificationDetails: NotificationDetails(
+        android: AndroidNotificationDetails(
+          channel.id,
+          channel.name,
+          channelDescription: channel.description,
+          importance: Importance.max,
+          priority: Priority.high,
+          icon: '@mipmap/launcher_icon',
+          playSound: true,
+          styleInformation: BigTextStyleInformation(
+            body,
+            contentTitle: title,
+            htmlFormatBigText: true,
+            htmlFormatContentTitle: true,
+          ),
+        ),
+        iOS: const DarwinNotificationDetails(
+          presentAlert: true,
+          presentBadge: true,
+          presentSound: true,
+        ),
+      ),
+      payload: jsonEncode(message.data),
+    );
+  } catch (e) {
+    debugPrint('Error in background message notification display: $e');
+  }
 }
 
 class FirebaseNotificationService {
   static String? fcmToken;
+  static final FlutterLocalNotificationsPlugin _localNotifications = FlutterLocalNotificationsPlugin();
 
   static Future<String?> fetchFcmToken({bool forceRefresh = false}) async {
     if (!forceRefresh && fcmToken != null && fcmToken!.isNotEmpty) {
@@ -95,6 +161,50 @@ class FirebaseNotificationService {
 
       FirebaseMessaging messaging = FirebaseMessaging.instance;
 
+      // Create Android high-importance notification channel
+      const AndroidNotificationChannel channel = AndroidNotificationChannel(
+        'high_importance_channel',
+        'High Importance Notifications',
+        description: 'This channel is used for important notifications.',
+        importance: Importance.max,
+        playSound: true,
+      );
+
+      const AndroidInitializationSettings initializationSettingsAndroid =
+          AndroidInitializationSettings('@mipmap/launcher_icon');
+
+      const InitializationSettings initializationSettings = InitializationSettings(
+        android: initializationSettingsAndroid,
+        iOS: DarwinInitializationSettings(
+          requestAlertPermission: true,
+          requestBadgePermission: true,
+          requestSoundPermission: true,
+        ),
+      );
+
+      await _localNotifications.initialize(
+        settings: initializationSettings,
+        onDidReceiveNotificationResponse: (NotificationResponse response) {
+          debugPrint('🔔 System notification tapped! Payload: ${response.payload}');
+          if (response.payload != null && response.payload!.isNotEmpty) {
+            try {
+              final Map<String, dynamic> data = Map<String, dynamic>.from(jsonDecode(response.payload!));
+              final message = RemoteMessage(data: data);
+              handleNotificationNavigation(message, odooService);
+            } catch (e) {
+              debugPrint('Error parsing notification payload: $e');
+            }
+          }
+        },
+      );
+
+      // Create high-importance channel on Android
+      final androidImplementation = _localNotifications.resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>();
+      if (androidImplementation != null) {
+        await androidImplementation.createNotificationChannel(channel);
+      }
+
       // Foreground presentation options for iOS / Android
       await messaging.setForegroundNotificationPresentationOptions(
         alert: true,
@@ -146,7 +256,7 @@ class FirebaseNotificationService {
         }
       });
 
-      // Foreground message listener
+      // Foreground message listener - Triggers native top status bar heads-up banner
       FirebaseMessaging.onMessage.listen((RemoteMessage message) {
         debugPrint('🟢 [FCM] Got a message whilst in the foreground! Data: ${message.data}');
 
@@ -160,79 +270,36 @@ class FirebaseNotificationService {
 
         debugPrint('Title: $title, Body: $body');
 
-        final context = navigatorKey.currentContext;
-        if (context != null) {
-          showDialog(
-            context: context,
-            builder: (dialogCtx) {
-              return AlertDialog(
-                backgroundColor: const Color(0xFF1D1813),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  side: const BorderSide(color: Color(0xFFC4913F), width: 1),
-                ),
-                title: Row(
-                  children: [
-                    const Icon(
-                      Icons.notifications_active_outlined,
-                      color: Color(0xFFC4913F),
-                      size: 24,
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        title,
-                        style: GoogleFonts.outfit(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                content: Text(
-                  body,
-                  style: GoogleFonts.montserrat(
-                    fontSize: 13.5,
-                    color: const Color(0xFFC5B7A1),
-                  ),
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(dialogCtx),
-                    child: Text(
-                      'DISMISS',
-                      style: GoogleFonts.outfit(
-                        color: const Color(0xFF8C8273),
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                  ElevatedButton(
-                    onPressed: () {
-                      Navigator.pop(dialogCtx);
-                      handleNotificationNavigation(message, odooService);
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFC4913F),
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    child: Text(
-                      'VIEW ESTIMATE',
-                      style: GoogleFonts.outfit(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ],
-              );
-            },
-          );
-        }
+        final int notificationId = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+
+        _localNotifications.show(
+          id: notificationId,
+          title: title,
+          body: body,
+          notificationDetails: NotificationDetails(
+            android: AndroidNotificationDetails(
+              channel.id,
+              channel.name,
+              channelDescription: channel.description,
+              importance: Importance.max,
+              priority: Priority.high,
+              icon: '@mipmap/launcher_icon',
+              playSound: true,
+              styleInformation: BigTextStyleInformation(
+                body,
+                contentTitle: title,
+                htmlFormatBigText: true,
+                htmlFormatContentTitle: true,
+              ),
+            ),
+            iOS: const DarwinNotificationDetails(
+              presentAlert: true,
+              presentBadge: true,
+              presentSound: true,
+            ),
+          ),
+          payload: jsonEncode(message.data),
+        );
       });
     } catch (e, stack) {
       debugPrint('Error initializing Firebase / FCM: $e');

@@ -217,6 +217,24 @@ class _BookServiceScreenState extends State<BookServiceScreen> {
     final vehicleMake = _vehicleMakeController.text.trim();
     final vehicleModel = _vehicleModelController.text.trim();
 
+    final bookingsCtrl = Provider.of<BookingsController>(
+      context,
+      listen: false,
+    );
+
+    if (bookingsCtrl.currentBookableSlots != null &&
+        bookingsCtrl.currentBookableSlots!.slots.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'No time slots available on ${DateFormat('dd-MM-yyyy').format(_selectedDate)}. Please select another date.',
+          ),
+          backgroundColor: AppTheme.error,
+        ),
+      );
+      return;
+    }
+
     if (vehicleMake.isEmpty || vehicleModel.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -550,6 +568,59 @@ class _BookServiceScreenState extends State<BookServiceScreen> {
                           final isLoadingSlots =
                               bookingsController.isLoadingSlots;
 
+                          if (isLoadingSlots) {
+                            return const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 24),
+                              child: FourRotatingDotsLoader(),
+                            );
+                          }
+
+                          if (slotsResult != null && slotsResult.slots.isEmpty) {
+                            return Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFFF8E1),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: const Color(0xFFFFE082)),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(
+                                    Icons.event_busy_rounded,
+                                    color: Color(0xFFF57F17),
+                                    size: 26,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'No Available Slots',
+                                          style: GoogleFonts.outfit(
+                                            fontSize: 14.5,
+                                            fontWeight: FontWeight.bold,
+                                            color: const Color(0xFFF57F17),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          'There are no time slots available for ${DateFormat('dd-MM-yyyy').format(_selectedDate)}. Please select a different date above.',
+                                          style: GoogleFonts.inter(
+                                            fontSize: 12,
+                                            color: const Color(0xFF5D4037),
+                                            height: 1.35,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }
+
                           List<String> dynamicSlots = [
                             '9:00 AM',
                             '10:00 AM',
@@ -565,13 +636,6 @@ class _BookServiceScreenState extends State<BookServiceScreen> {
                             dynamicSlots = slotsResult.slots
                                 .map((s) => s.formattedTime)
                                 .toList();
-                          }
-
-                          if (isLoadingSlots) {
-                            return const Padding(
-                              padding: EdgeInsets.symmetric(vertical: 24),
-                              child: FourRotatingDotsLoader(),
-                            );
                           }
 
                           return Wrap(
