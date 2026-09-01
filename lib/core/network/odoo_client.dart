@@ -91,6 +91,7 @@ abstract class BaseOdooService {
     required int orderId,
     required String name,
     String? signatureBase64,
+    String? accessToken,
   });
   Future<Map<String, dynamic>?> getCompanyLocationDetails();
   Future<bool> registerDeviceToken({
@@ -157,7 +158,7 @@ class OdooApiService implements BaseOdooService {
       BaseOptions(
         baseUrl: cleanUrl,
         connectTimeout: const Duration(seconds: 30),
-        receiveTimeout: const Duration(seconds: 30),
+        receiveTimeout: const Duration(seconds: 90),
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
@@ -245,7 +246,7 @@ class OdooApiService implements BaseOdooService {
           },
           options: Options(
             sendTimeout: const Duration(seconds: 30),
-            receiveTimeout: const Duration(seconds: 30),
+            receiveTimeout: const Duration(seconds: 90),
           ),
         );
       } catch (e) {
@@ -266,7 +267,7 @@ class OdooApiService implements BaseOdooService {
           },
           options: Options(
             sendTimeout: const Duration(seconds: 30),
-            receiveTimeout: const Duration(seconds: 30),
+            receiveTimeout: const Duration(seconds: 90),
           ),
         );
       }
@@ -1917,12 +1918,13 @@ class OdooApiService implements BaseOdooService {
     }
   }
 
-  /// STEP 15: Accept Quotation (`sale.order/action_confirm` or signature RPC)
+  /// STEP 15: Accept Quotation (`/my/orders/<id>/accept`, verification & RPC fallback)
   @override
   Future<bool> acceptQuotation({
     required int orderId,
     required String name,
     String? signatureBase64,
+    String? accessToken,
   }) async {
     debugPrint('🔵 [OdooApiService] acceptQuotation called for orderId=$orderId, name=$name');
     await _ensureInitialized();
@@ -1931,10 +1933,40 @@ class OdooApiService implements BaseOdooService {
         ? (signatureBase64.contains(',') ? signatureBase64.split(',').last : signatureBase64)
         : '';
 
+    String token = accessToken ?? '';
+    if (token.isEmpty && orderId > 0) {
+      try {
+        final details = await getQuotationDetails(orderId);
+        if (details != null && details['access_token'] is String && (details['access_token'] as String).isNotEmpty) {
+          token = details['access_token'];
+        }
+      } catch (_) {}
+    }
+
+    // Helper to check if quotation state was changed to sale/done in Odoo
+    Future<bool> isOrderConfirmedInOdoo() async {
+      try {
+        final details = await getQuotationDetails(orderId);
+        if (details != null) {
+          final state = details['state']?.toString().toLowerCase() ?? '';
+          debugPrint('🔍 [OdooApiService] Checked order $orderId state in Odoo: "$state"');
+          if (state == 'sale' || state == 'done' || (state.isNotEmpty && state != 'draft' && state != 'sent')) {
+            return true;
+          }
+        }
+      } catch (e) {
+        debugPrint('⚠️ [OdooApiService] Failed to verify order state in Odoo: $e');
+      }
+      return false;
+    }
+
     // 1. Primary Strategy: Post JSON-RPC payload directly to dynamic /my/orders/$orderId/accept
     if (_dio != null && orderId > 0) {
       try {
-        final portalUrl = '/my/orders/$orderId/accept';
+        String portalUrl = '/my/orders/$orderId/accept';
+        if (token.isNotEmpty) {
+          portalUrl += '?access_token=$token';
+        }
         debugPrint('🔵 [OdooApiService] Posting JSON-RPC payload to: $portalUrl');
 
         final payload = {
@@ -1943,6 +1975,7 @@ class OdooApiService implements BaseOdooService {
           "params": {
             "name": name,
             "signature": cleanSig,
+            if (token.isNotEmpty) "access_token": token,
           }
         };
 
@@ -1952,6 +1985,8 @@ class OdooApiService implements BaseOdooService {
           options: Options(
             headers: {'Content-Type': 'application/json'},
             followRedirects: true,
+            sendTimeout: const Duration(seconds: 30),
+            receiveTimeout: const Duration(seconds: 90), // Increased receive timeout to 90s
           ),
         );
 
@@ -1960,18 +1995,32 @@ class OdooApiService implements BaseOdooService {
         if (response.data is Map && response.data['result'] != null) {
           final result = response.data['result'];
           if (result is Map) {
-            final bool success = result['success'] == true || result['status'] == 'accepted';
+            final bool success = result['success'] == true ||
+                result['status'] == 'accepted' ||
+                result['redirect_url'] != null ||
+                result['force_refresh'] == true;
             if (success) {
-              debugPrint('🟢 [OdooApiService] Quotation $orderId successfully accepted! Status: ${result['status']}, Redirect: ${result['redirect_url']}');
+              debugPrint('🟢 [OdooApiService] Quotation $orderId successfully accepted! Result: $result');
               return true;
             }
+          } else if (result == true) {
+            debugPrint('🟢 [OdooApiService] Quotation $orderId successfully accepted! Result: true');
+            return true;
           }
         }
         if (response.statusCode == 200) {
-          return true;
+          // Verify if order status updated to confirmed in Odoo
+          if (await isOrderConfirmedInOdoo()) {
+            debugPrint('🟢 [OdooApiService] Verified order state in Odoo is confirmed after portal accept 200');
+            return true;
+          }
         }
       } catch (portalErr) {
-        debugPrint('⚠️ [OdooApiService] Direct portal accept URL failed ($portalErr). Trying fallback search...');
+        debugPrint('⚠️ [OdooApiService] Direct portal accept URL failed/timed out ($portalErr). Checking if order was confirmed during request...');
+        if (await isOrderConfirmedInOdoo()) {
+          debugPrint('🟢 [OdooApiService] Order $orderId WAS confirmed in Odoo despite client timeout!');
+          return true;
+        }
       }
     }
 
@@ -2005,11 +2054,19 @@ class OdooApiService implements BaseOdooService {
             'subtype_xmlid': 'mail.mt_comment',
           },
         );
-        debugPrint('🟢 [OdooApiService] Posted acceptance message to sale.order $orderId successfully');
+        debugPrint('🟢 [OdooApiService] Posted acceptance message to sale.order $orderId');
       } catch (msgErr) {
         debugPrint('⚠️ [OdooApiService] Could not post message: $msgErr');
       }
-      return true;
+
+      // Check if order was confirmed in Odoo despite action_confirm error
+      if (await isOrderConfirmedInOdoo()) {
+        debugPrint('🟢 [OdooApiService] Verified order $orderId is confirmed in Odoo.');
+        return true;
+      }
+
+      debugPrint('🔴 [OdooApiService] Quotation $orderId could not be confirmed in Odoo.');
+      return false;
     }
   }
 

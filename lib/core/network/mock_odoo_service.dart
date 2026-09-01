@@ -687,6 +687,7 @@ class MockOdooService implements BaseOdooService {
     required int orderId,
     required String name,
     String? signatureBase64,
+    String? accessToken,
   }) async {
     return true;
   }

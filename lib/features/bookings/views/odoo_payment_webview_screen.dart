@@ -84,16 +84,19 @@ class _OdooPaymentWebviewScreenState extends State<OdooPaymentWebviewScreen> {
     final bool isSuccess = lowerUrl.contains('message=pay_ok') ||
         lowerUrl.contains('message=sign_ok') ||
         lowerUrl.contains('payment/status') ||
+        lowerUrl.contains('payment/done') ||
         lowerUrl.contains('payment_success') ||
         lowerUrl.contains('status=paid') ||
         lowerUrl.contains('payment_status=paid') ||
         lowerUrl.contains('state=paid') ||
+        lowerUrl.contains('tx_status=done') ||
+        lowerUrl.contains('tx_status=authorized') ||
         lowerUrl.contains('/payment/confirmation') ||
         lowerUrl.contains('success=true');
 
     if (isSuccess) {
       _hasTriggeredSuccess = true;
-      debugPrint('🟢 [WebView] Payment success detected in URL: $url');
+      debugPrint('🟢 [WebView] Payment completion detected in URL: $url');
       _completePaymentAndReturn();
       return true;
     }
@@ -148,7 +151,9 @@ class _OdooPaymentWebviewScreenState extends State<OdooPaymentWebviewScreen> {
       ),
       body: Stack(
         children: [
-          WebViewWidget(controller: _controller),
+          Positioned.fill(
+            child: WebViewWidget(controller: _controller),
+          ),
           if (_isLoading && _loadingProgress < 30)
             const Center(
               child: CircularProgressIndicator(

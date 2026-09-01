@@ -63,19 +63,38 @@ class _UpcomingAppointmentDetailsScreenState
 
   Future<void> _openInvoicePaymentWebview(BuildContext context, Booking b) async {
     String baseUrl = 'https://keerthan-lfi-lfi-timeless-detailing-uat-36684365.dev.odoo.com';
+    BaseOdooService? odooService;
     try {
-      final odooService = Provider.of<BaseOdooService>(context, listen: false);
+      odooService = Provider.of<BaseOdooService>(context, listen: false);
       if (odooService.baseUrl.isNotEmpty) {
         baseUrl = odooService.baseUrl;
       }
     } catch (_) {}
 
     final int? invId = b.invoiceId ?? int.tryParse(b.id.replaceAll(RegExp(r'[^\d]'), ''));
-    final String accToken = b.invoiceAccessToken ?? '';
+    String accToken = b.invoiceAccessToken ?? '';
+    String? accessUrl = b.invoiceAccessUrl;
+
+    // Fetch fresh access_token & access_url if not present
+    if ((accToken.isEmpty || accessUrl == null || accessUrl.isEmpty) && invId != null && odooService != null) {
+      try {
+        final invDetails = await odooService.getInvoiceDetails(invId);
+        if (invDetails != null) {
+          if (invDetails['access_token'] is String && (invDetails['access_token'] as String).isNotEmpty) {
+            accToken = invDetails['access_token'];
+          }
+          if (invDetails['access_url'] is String && (invDetails['access_url'] as String).isNotEmpty) {
+            accessUrl = invDetails['access_url'];
+          }
+        }
+      } catch (e) {
+        debugPrint('Error fetching invoice details for payment webview: $e');
+      }
+    }
 
     String payUrl;
-    if (b.invoiceAccessUrl != null && b.invoiceAccessUrl!.isNotEmpty) {
-      payUrl = '$baseUrl${b.invoiceAccessUrl}';
+    if (accessUrl != null && accessUrl.isNotEmpty) {
+      payUrl = accessUrl.startsWith('http') ? accessUrl : '$baseUrl$accessUrl';
       if (accToken.isNotEmpty && !payUrl.contains('access_token=')) {
         payUrl += payUrl.contains('?') ? '&access_token=$accToken' : '?access_token=$accToken';
       }
@@ -86,7 +105,7 @@ class _UpcomingAppointmentDetailsScreenState
       }
     }
 
-    debugPrint('🔵 Opening Odoo Payment Portal in Webview: $payUrl');
+    if (!context.mounted) return;
 
     final bool? paymentDone = await Navigator.push<bool>(
       context,

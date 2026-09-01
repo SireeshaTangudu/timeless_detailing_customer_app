@@ -305,6 +305,7 @@ class _EstimationScreenState extends State<EstimationScreen> {
                                     );
 
                                 setModalState(() => isSubmitting = true);
+                                bool isSuccess = false;
                                 try {
                                   final sigB64 = await signatureKey.currentState
                                       ?.toBase64Png();
@@ -318,27 +319,41 @@ class _EstimationScreenState extends State<EstimationScreen> {
                                   if (orderId == null || orderId <= 0) {
                                     throw Exception('Dynamic quotation ID missing or invalid.');
                                   }
-                                  await odooService.acceptQuotation(
+                                  isSuccess = await odooService.acceptQuotation(
                                     orderId: orderId,
                                     name: name,
                                     signatureBase64: sigB64,
                                   );
-                                  if (context.mounted) {
+                                  if (context.mounted && isSuccess) {
                                     Provider.of<BookingsController>(context, listen: false).loadBookings();
                                   }
-                                } catch (_) {}
+                                } catch (e) {
+                                  debugPrint('Error accepting quotation: $e');
+                                }
 
                                 if (mounted) {
-                                  setState(() => _status = 'accepted');
-                                  nav.pop();
-                                  messenger.showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
-                                        'Quotation accepted & signed successfully!',
+                                  setModalState(() => isSubmitting = false);
+                                  if (isSuccess) {
+                                    setState(() => _status = 'accepted');
+                                    nav.pop();
+                                    messenger.showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          'Quotation accepted & signed successfully!',
+                                        ),
+                                        backgroundColor: Color(0xFF2E7D32),
                                       ),
-                                      backgroundColor: Color(0xFF2E7D32),
-                                    ),
-                                  );
+                                    );
+                                  } else {
+                                    messenger.showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          'Could not confirm quotation in Odoo. Please try again or contact support.',
+                                        ),
+                                        backgroundColor: Color(0xFFC62828),
+                                      ),
+                                    );
+                                  }
                                 }
                               },
                               style: ElevatedButton.styleFrom(

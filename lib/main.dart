@@ -37,8 +37,10 @@ void main() async {
     db: 'keerthan-lfi-lfi-timeless-detailing-uat-36684365',
   );
 
-  // Initialize Firebase & FCM with Odoo service for device token sync
-  await FirebaseNotificationService.initialize(odooService: odooService);
+  // Initialize Firebase & FCM asynchronously so runApp is NEVER blocked on startup
+  FirebaseNotificationService.initialize(odooService: odooService).catchError((e) {
+    debugPrint('⚠️ FirebaseNotificationService initialize error: $e');
+  });
 
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(

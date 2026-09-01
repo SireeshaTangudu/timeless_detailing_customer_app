@@ -57,13 +57,17 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   Future<void> _navigateWhenReady() async {
-    const minSplashDuration = Duration(milliseconds: 600);
+    const minSplashDuration = Duration(milliseconds: 1000);
     final minSplashFuture = Future.delayed(minSplashDuration);
 
-    await Future.wait([
-      minSplashFuture,
-      _authFuture ?? Future.value(false),
-    ]);
+    try {
+      await Future.wait([
+        minSplashFuture,
+        _authFuture?.timeout(const Duration(seconds: 3), onTimeout: () => false) ?? Future.value(false),
+      ]).timeout(const Duration(seconds: 4), onTimeout: () => [null, false]);
+    } catch (e) {
+      debugPrint('⚠️ Splash navigation wait exception: $e');
+    }
 
     if (!mounted) return;
 
