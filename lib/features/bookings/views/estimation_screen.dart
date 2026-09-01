@@ -308,14 +308,16 @@ class _EstimationScreenState extends State<EstimationScreen> {
                                 try {
                                   final sigB64 = await signatureKey.currentState
                                       ?.toBase64Png();
-                                  final orderId =
+                                  final orderId = data.odooSaleOrderId ??
                                       int.tryParse(
                                         data.id.replaceAll(
                                           RegExp(r'[^\d]'),
                                           '',
                                         ),
-                                      ) ??
-                                      23;
+                                      );
+                                  if (orderId == null || orderId <= 0) {
+                                    throw Exception('Dynamic quotation ID missing or invalid.');
+                                  }
                                   await odooService.acceptQuotation(
                                     orderId: orderId,
                                     name: name,

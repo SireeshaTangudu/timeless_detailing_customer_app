@@ -34,6 +34,7 @@ class EstimationStepModel {
 
 class EstimationModel {
   final String id;
+  final int? odooSaleOrderId;
   final String serviceName;
   final String serviceDescription;
   final double estimatedAmount;
@@ -48,6 +49,7 @@ class EstimationModel {
 
   const EstimationModel({
     required this.id,
+    this.odooSaleOrderId,
     required this.serviceName,
     required this.serviceDescription,
     required this.estimatedAmount,
@@ -165,6 +167,7 @@ class EstimationModel {
     final amountVal = (rawAmount is num) ? rawAmount.toDouble() : 2800.0;
     final orderState = json['state']?.toString() ?? 'sent';
     final nameStr = json['name']?.toString() ?? 'SO-001';
+    final int? saleOrderId = json['id'] is int ? json['id'] as int : int.tryParse(json['id']?.toString() ?? '');
 
     String serviceNameStr = 'Vehicle Detailing Service';
     if (json['order_lines_detail'] is List && (json['order_lines_detail'] as List).isNotEmpty) {
@@ -197,6 +200,7 @@ class EstimationModel {
 
     return EstimationModel(
       id: nameStr,
+      odooSaleOrderId: saleOrderId,
       serviceName: serviceNameStr,
       serviceDescription: 'Final quotation sent by Timeless Detailing Technician',
       estimatedAmount: amountVal,

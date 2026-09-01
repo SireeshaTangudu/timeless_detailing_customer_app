@@ -1926,42 +1926,16 @@ class OdooApiService implements BaseOdooService {
   }) async {
     debugPrint('🔵 [OdooApiService] acceptQuotation called for orderId=$orderId, name=$name');
     await _ensureInitialized();
-    int targetId = orderId;
-
-    try {
-      final partnerId = _partnerId ?? _uid;
-      final searchDomain = [
-        if (partnerId != null) ['partner_id', '=', partnerId],
-        ['state', 'in', ['draft', 'sent']],
-      ];
-      final openOrders = await _callKw(
-        model: 'sale.order',
-        method: 'search_read',
-        args: [searchDomain],
-        kwargs: {
-          'fields': ['id', 'name', 'state'],
-          'order': 'id desc',
-          'limit': 1,
-        },
-      );
-
-      if (openOrders is List && openOrders.isNotEmpty) {
-        targetId = openOrders[0]['id'] as int;
-        debugPrint('🟢 [OdooApiService] Found open sale order ID in Odoo: $targetId');
-      }
-    } catch (e) {
-      debugPrint('⚠️ [OdooApiService] Error searching for open sale order: $e');
-    }
 
     final String cleanSig = (signatureBase64 != null && signatureBase64.isNotEmpty)
         ? (signatureBase64.contains(',') ? signatureBase64.split(',').last : signatureBase64)
         : '';
 
-    // 1. Primary Strategy: Call Odoo Portal Accept Endpoint (/my/orders/$targetId/accept) with JSON-RPC payload
-    if (_dio != null) {
+    // 1. Primary Strategy: Post JSON-RPC payload directly to dynamic /my/orders/$orderId/accept
+    if (_dio != null && orderId > 0) {
       try {
-        final portalUrl = '/my/orders/$targetId/accept';
-        debugPrint('🔵 [OdooApiService] Posting JSON-RPC payload to Odoo Portal accept URL: $portalUrl');
+        final portalUrl = '/my/orders/$orderId/accept';
+        debugPrint('🔵 [OdooApiService] Posting JSON-RPC payload to: $portalUrl');
 
         final payload = {
           "jsonrpc": "2.0",
@@ -1988,7 +1962,7 @@ class OdooApiService implements BaseOdooService {
           if (result is Map) {
             final bool success = result['success'] == true || result['status'] == 'accepted';
             if (success) {
-              debugPrint('🟢 [OdooApiService] Quotation $targetId successfully accepted! Status: ${result['status']}, Redirect: ${result['redirect_url']}');
+              debugPrint('🟢 [OdooApiService] Quotation $orderId successfully accepted! Status: ${result['status']}, Redirect: ${result['redirect_url']}');
               return true;
             }
           }
@@ -1997,7 +1971,7 @@ class OdooApiService implements BaseOdooService {
           return true;
         }
       } catch (portalErr) {
-        debugPrint('⚠️ [OdooApiService] Odoo Portal accept URL POST failed ($portalErr). Trying RPC fallbacks...');
+        debugPrint('⚠️ [OdooApiService] Direct portal accept URL failed ($portalErr). Trying fallback search...');
       }
     }
 
@@ -2007,14 +1981,14 @@ class OdooApiService implements BaseOdooService {
         model: 'sale.order',
         method: 'action_confirm',
         args: [
-          [targetId],
+          [orderId],
         ],
         kwargs: {
           if (name.isNotEmpty) 'name': name,
           if (cleanSig.isNotEmpty) 'signature': cleanSig,
         },
       );
-      debugPrint('🟢 [OdooApiService] acceptQuotation action_confirm successful for orderId=$targetId');
+      debugPrint('🟢 [OdooApiService] acceptQuotation action_confirm successful for orderId=$orderId');
       return true;
     } catch (e) {
       debugPrint('⚠️ [OdooApiService] action_confirm not allowed or failed ($e). Posting acceptance message...');
@@ -2023,7 +1997,7 @@ class OdooApiService implements BaseOdooService {
           model: 'sale.order',
           method: 'message_post',
           args: [
-            [targetId],
+            [orderId],
           ],
           kwargs: {
             'body': '<p><b>Quotation Accepted & Digitally Signed</b><br/>Customer Name: $name</p>',
@@ -2031,7 +2005,7 @@ class OdooApiService implements BaseOdooService {
             'subtype_xmlid': 'mail.mt_comment',
           },
         );
-        debugPrint('🟢 [OdooApiService] Posted acceptance message to sale.order $targetId successfully');
+        debugPrint('🟢 [OdooApiService] Posted acceptance message to sale.order $orderId successfully');
       } catch (msgErr) {
         debugPrint('⚠️ [OdooApiService] Could not post message: $msgErr');
       }

@@ -70,7 +70,7 @@ class _UpcomingAppointmentDetailsScreenState
       }
     } catch (_) {}
 
-    final int invId = b.invoiceId ?? int.tryParse(b.id) ?? 101;
+    final int? invId = b.invoiceId ?? int.tryParse(b.id.replaceAll(RegExp(r'[^\d]'), ''));
     final String accToken = b.invoiceAccessToken ?? '';
 
     String payUrl;
