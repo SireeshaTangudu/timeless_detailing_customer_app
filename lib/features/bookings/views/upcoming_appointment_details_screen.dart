@@ -11,11 +11,17 @@ import 'package:timeless_detailing_customer_app/core/utils/map_launcher_util.dar
 import 'package:timeless_detailing_customer_app/features/bookings/models/garage_location_model.dart';
 
 import 'package:timeless_detailing_customer_app/core/network/odoo_client.dart';
+import 'package:timeless_detailing_customer_app/features/bookings/views/odoo_payment_webview_screen.dart';
 
 class UpcomingAppointmentDetailsScreen extends StatefulWidget {
   final Booking booking;
+  final bool isDownPaymentInvoice;
 
-  const UpcomingAppointmentDetailsScreen({super.key, required this.booking});
+  const UpcomingAppointmentDetailsScreen({
+    super.key,
+    required this.booking,
+    this.isDownPaymentInvoice = false,
+  });
 
   @override
   State<UpcomingAppointmentDetailsScreen> createState() =>
@@ -52,6 +58,62 @@ class _UpcomingAppointmentDetailsScreenState
         longitude: 28.18122,
       );
       await MapLauncherUtil.openGoogleMapsDirections(fallbackGarage);
+    }
+  }
+
+  Future<void> _openInvoicePaymentWebview(BuildContext context, Booking b) async {
+    String baseUrl = 'https://keerthan-lfi-lfi-timeless-detailing-uat-36684365.dev.odoo.com';
+    try {
+      final odooService = Provider.of<BaseOdooService>(context, listen: false);
+      if (odooService.baseUrl.isNotEmpty) {
+        baseUrl = odooService.baseUrl;
+      }
+    } catch (_) {}
+
+    final int invId = b.invoiceId ?? int.tryParse(b.id) ?? 101;
+    final String accToken = b.invoiceAccessToken ?? '';
+
+    String payUrl;
+    if (b.invoiceAccessUrl != null && b.invoiceAccessUrl!.isNotEmpty) {
+      payUrl = '$baseUrl${b.invoiceAccessUrl}';
+      if (accToken.isNotEmpty && !payUrl.contains('access_token=')) {
+        payUrl += payUrl.contains('?') ? '&access_token=$accToken' : '?access_token=$accToken';
+      }
+    } else {
+      payUrl = '$baseUrl/my/invoices/$invId';
+      if (accToken.isNotEmpty) {
+        payUrl += '?access_token=$accToken';
+      }
+    }
+
+    debugPrint('🔵 Opening Odoo Payment Portal in Webview: $payUrl');
+
+    final bool? paymentDone = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (ctx) => OdooPaymentWebviewScreen(
+          url: payUrl,
+          title: b.notes.isNotEmpty ? 'Invoice (${b.notes})' : 'Invoice Payment',
+          onPaymentSuccess: () {
+            debugPrint('🟢 [Payment] Payment detected! Refreshing bookings...');
+            try {
+              final controller = Provider.of<BookingsController>(context, listen: false);
+              controller.loadBookings();
+            } catch (_) {}
+          },
+        ),
+      ),
+    );
+
+    if (paymentDone == true && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Payment completed successfully! Redirected to mobile app.'),
+          backgroundColor: Color(0xFF2E7D32),
+          duration: Duration(seconds: 4),
+        ),
+      );
+      Navigator.pop(context); // Return to Dashboard Screen
     }
   }
 
@@ -150,6 +212,8 @@ class _UpcomingAppointmentDetailsScreenState
     ).format(b.bookingDateTime);
     final String slotTimeStr = DateFormat('hh:mm a').format(b.bookingDateTime);
 
+    final bool showInvoiceView = widget.isDownPaymentInvoice || b.isDownPaymentInvoice;
+
     return Scaffold(
       backgroundColor: const Color(0xFFF7F5F0),
       body: Column(
@@ -167,8 +231,10 @@ class _UpcomingAppointmentDetailsScreenState
             child: SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-              child: Column(
-                children: [
+              child: showInvoiceView
+                  ? _buildDownPaymentInvoiceBody(context, b, selectedCar, carType, fullDateStr, slotTimeStr)
+                  : Column(
+                      children: [
                   // Two-tone saw-tooth ticket card matching NewEstimateScreen & Figma
                   Container(
                     decoration: BoxDecoration(
@@ -438,6 +504,256 @@ class _UpcomingAppointmentDetailsScreenState
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildDownPaymentInvoiceBody(
+    BuildContext context,
+    Booking b,
+    String selectedCar,
+    String carType,
+    String fullDateStr,
+    String slotTimeStr,
+  ) {
+    final bool isDroppedOff = b.carDropOffStatus.toLowerCase().contains('dropped');
+    final double addOnsTotal = b.addOns.fold(
+      0.0,
+      (sum, item) => sum + ((item['price'] as num?)?.toDouble() ?? 0.0),
+    );
+    final double totalToPay = b.pendingAmount + addOnsTotal;
+    final bool hasAddOns = b.addOns.isNotEmpty;
+
+    return Column(
+      children: [
+        // 1. Top Appointment Details Card
+        Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: const Color(0xFFEBE7E0)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 14,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            children: [
+              _buildLightDetailRow('Selected Car', selectedCar),
+              const SizedBox(height: 12),
+              _buildLightDetailRow('Car Type', carType),
+              const SizedBox(height: 12),
+              _buildLightDetailRow('Service', b.service.name),
+              const SizedBox(height: 14),
+
+              CustomPaint(
+                size: const Size(double.infinity, 1),
+                painter: DashedLinePainter(color: const Color(0xFFE5DFD5)),
+              ),
+
+              const SizedBox(height: 14),
+              _buildLightDetailRow('Service Date', fullDateStr),
+              const SizedBox(height: 12),
+              _buildLightDetailRow('Slot', slotTimeStr),
+              const SizedBox(height: 12),
+
+              // Car Drop Off Status Row with Badge
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Car drop off Status',
+                    style: GoogleFonts.montserrat(
+                      fontSize: 13,
+                      color: const Color(0xFF8C8273),
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: isDroppedOff ? const Color(0xFFE8F5E9) : const Color(0xFFFAF3E8),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(
+                        color: isDroppedOff ? const Color(0xFF81C784) : const Color(0xFFC4913F).withValues(alpha: 0.4),
+                      ),
+                    ),
+                    child: Text(
+                      isDroppedOff ? 'Dropped Off' : 'Pending',
+                      style: GoogleFonts.outfit(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: isDroppedOff ? const Color(0xFF2E7D32) : const Color(0xFFC4913F),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 20),
+
+              SizedBox(
+                width: double.infinity,
+                height: 46,
+                child: ElevatedButton.icon(
+                  onPressed: _openDirections,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFE8DBCA),
+                    foregroundColor: const Color(0xFF1D1813),
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  icon: const Icon(
+                    Icons.location_on_outlined,
+                    size: 18,
+                    color: Color(0xFF1D1813),
+                  ),
+                  label: Text(
+                    'Get Directions to Garage',
+                    style: GoogleFonts.outfit(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 18),
+
+        // 2. Financial Breakdown Card
+        Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: const Color(0xFFEBE7E0)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 14,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            children: [
+              _buildLightDetailRow(
+                'Estimated Cost',
+                'R ${(b.totalPrice > 0 ? b.totalPrice : 2800.0).toStringAsFixed(2)}',
+              ),
+              const SizedBox(height: 12),
+              _buildLightDetailRow(
+                'Percentage Amount Paid',
+                '${b.percentageAmountPaid.toStringAsFixed(0)}%',
+              ),
+              const SizedBox(height: 12),
+              _buildLightDetailRow(
+                'Amount Paid',
+                'R ${b.amountPaid.toStringAsFixed(2)}',
+              ),
+              const SizedBox(height: 12),
+              _buildLightDetailRow(
+                'Amount Paid On',
+                b.amountPaidOn,
+              ),
+              const SizedBox(height: 12),
+              _buildLightDetailRow(
+                'Pending Amount',
+                'R ${b.pendingAmount.toStringAsFixed(2)}',
+              ),
+
+              if (hasAddOns) ...[
+                const SizedBox(height: 12),
+                for (final item in b.addOns) ...[
+                  _buildLightDetailRow(
+                    item['name']?.toString() ?? 'Add on',
+                    'R ${((item['price'] as num?)?.toDouble() ?? 100.0).toStringAsFixed(2)}',
+                  ),
+                  const SizedBox(height: 12),
+                ],
+                CustomPaint(
+                  size: const Size(double.infinity, 1),
+                  painter: DashedLinePainter(color: const Color(0xFFE5DFD5)),
+                ),
+                const SizedBox(height: 14),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Total Amount to be Paid',
+                      style: GoogleFonts.outfit(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF1C1C1E),
+                      ),
+                    ),
+                    Text(
+                      'R ${totalToPay.toStringAsFixed(2)}',
+                      style: GoogleFonts.outfit(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF1C1C1E),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 16),
+
+        // Disclaimer Note
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          child: Text(
+            'This price is subject to change if you opt for another add on services suggested by car team',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.montserrat(
+              fontSize: 11.5,
+              color: const Color(0xFF7A7063),
+              height: 1.4,
+            ),
+          ),
+        ),
+
+        const SizedBox(height: 24),
+
+        // Bottom Action Button: Pay Balance / Accept & Pay Amount
+        SizedBox(
+          width: double.infinity,
+          height: 50,
+          child: ElevatedButton(
+            onPressed: () => _openInvoicePaymentWebview(context, b),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFC4913F),
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: Text(
+              hasAddOns ? 'Accept and Pay Amount' : 'Pay Balance',
+              style: GoogleFonts.outfit(
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 24),
+      ],
     );
   }
 

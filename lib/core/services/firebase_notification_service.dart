@@ -7,6 +7,9 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timeless_detailing_customer_app/core/network/odoo_client.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/models/estimation_model.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/views/estimation_screen.dart';
+import 'package:timeless_detailing_customer_app/features/bookings/models/booking_model.dart';
+import 'package:timeless_detailing_customer_app/features/bookings/views/upcoming_appointment_details_screen.dart';
+import 'package:timeless_detailing_customer_app/features/services/models/service_model.dart';
 import 'package:timeless_detailing_customer_app/main.dart';
 
 @pragma('vm:entry-point')
@@ -119,11 +122,40 @@ class FirebaseNotificationService {
     final context = navigatorKey.currentContext;
     if (context == null) return;
 
-    final orderIdStr = message.data['order_id'] ?? message.data['sale_order_id'] ?? message.data['id'];
-    final orderId = int.tryParse(orderIdStr?.toString() ?? '');
+    final String resIdStr = (message.data['res_id'] ?? message.data['order_id'] ?? message.data['sale_order_id'] ?? message.data['id'] ?? '').toString();
+    final int? resId = int.tryParse(resIdStr);
 
-    if (orderId != null && odooService != null) {
-      odooService.getQuotationDetails(orderId).then((quotationData) {
+    final String typeStr = (message.data['type'] ?? message.data['model'] ?? message.data['notification_type'] ?? '').toString().toLowerCase();
+    final String titleStr = (message.notification?.title ?? message.data['title'] ?? '').toString().toLowerCase();
+    final bool isDownPaymentOrInvoice = typeStr.contains('down') || typeStr.contains('invoice') || typeStr.contains('account.move') || titleStr.contains('down payment') || titleStr.contains('invoice');
+
+    if (isDownPaymentOrInvoice && resId != null && odooService != null) {
+      debugPrint('🔵 Fetching invoice details for res_id=$resId via account.move/web_read...');
+      odooService.getInvoiceDetails(resId).then((invoiceData) {
+        final currentCtx = navigatorKey.currentContext;
+        if (invoiceData != null && currentCtx != null) {
+          final booking = Booking.fromInvoiceJson(invoiceData);
+          Navigator.push(
+            currentCtx,
+            MaterialPageRoute(
+              builder: (context) => UpcomingAppointmentDetailsScreen(
+                booking: booking,
+                isDownPaymentInvoice: true,
+              ),
+            ),
+          );
+        } else if (currentCtx != null) {
+          _navigateToDefaultInvoiceScreen(currentCtx, resIdStr);
+        }
+      });
+      return;
+    } else if (isDownPaymentOrInvoice) {
+      _navigateToDefaultInvoiceScreen(context, resIdStr);
+      return;
+    }
+
+    if (resId != null && odooService != null) {
+      odooService.getQuotationDetails(resId).then((quotationData) {
         final currentCtx = navigatorKey.currentContext;
         if (quotationData != null && currentCtx != null) {
           final est = EstimationModel.fromOdooJson(quotationData);
@@ -150,6 +182,49 @@ class FirebaseNotificationService {
         ),
       );
     }
+  }
+
+  static void _navigateToDefaultInvoiceScreen(BuildContext context, String resIdStr) {
+    final fallbackBooking = Booking(
+      id: resIdStr.isNotEmpty ? resIdStr : '101',
+      service: const DetailService(
+        id: '1',
+        name: 'Ceramic Coating',
+        description: '',
+        price: 2242.5,
+        durationHours: 2.0,
+        imageUrl: '',
+        category: 'Detailing',
+        whatsIncluded: [],
+      ),
+      vehicleName: 'accept test test',
+      vehicleLicensePlate: 'gfhj',
+      bookingDateTime: DateTime.now(),
+      status: BookingStatus.confirmed,
+      currentStep: 1,
+      totalPrice: 2242.5,
+      notes: 'Down payment invoice',
+      beforeImages: const [],
+      afterImages: const [],
+      technicianName: 'Master Detailer',
+      technicianAvatar: '',
+      isDownPaymentInvoice: true,
+      percentageAmountPaid: 60.0,
+      amountPaid: 1345.5,
+      amountPaidOn: '2026-09-01',
+      pendingAmount: 897.0,
+      carDropOffStatus: 'Pending',
+    );
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => UpcomingAppointmentDetailsScreen(
+          booking: fallbackBooking,
+          isDownPaymentInvoice: true,
+        ),
+      ),
+    );
   }
 
   static Future<void> initialize({BaseOdooService? odooService}) async {

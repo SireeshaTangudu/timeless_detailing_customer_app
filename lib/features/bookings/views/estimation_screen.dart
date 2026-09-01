@@ -9,6 +9,7 @@ import 'package:timeless_detailing_customer_app/core/network/odoo_client.dart';
 import 'package:timeless_detailing_customer_app/features/auth/controllers/auth_controller.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/models/estimation_model.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/models/garage_location_model.dart';
+import 'package:timeless_detailing_customer_app/features/bookings/controllers/bookings_controller.dart';
 
 class EstimationScreen extends StatefulWidget {
   final EstimationModel? estimation;
@@ -256,7 +257,9 @@ class _EstimationScreenState extends State<EstimationScreen> {
                                 }
                               },
                               style: OutlinedButton.styleFrom(
-                                side: const BorderSide(color: Color(0xFFB71C1C)),
+                                side: const BorderSide(
+                                  color: Color(0xFFB71C1C),
+                                ),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
@@ -303,8 +306,7 @@ class _EstimationScreenState extends State<EstimationScreen> {
 
                                 setModalState(() => isSubmitting = true);
                                 try {
-                                  final sigB64 = await signatureKey
-                                      .currentState
+                                  final sigB64 = await signatureKey.currentState
                                       ?.toBase64Png();
                                   final orderId =
                                       int.tryParse(
@@ -319,6 +321,9 @@ class _EstimationScreenState extends State<EstimationScreen> {
                                     name: name,
                                     signatureBase64: sigB64,
                                   );
+                                  if (context.mounted) {
+                                    Provider.of<BookingsController>(context, listen: false).loadBookings();
+                                  }
                                 } catch (_) {}
 
                                 if (mounted) {
@@ -378,10 +383,7 @@ class _EstimationScreenState extends State<EstimationScreen> {
           Expanded(
             child: SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.symmetric(
-                horizontal: 20,
-                vertical: 16,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -693,7 +695,8 @@ class _EstimationScreenState extends State<EstimationScreen> {
                         width: double.infinity,
                         height: 50,
                         child: ElevatedButton.icon(
-                          onPressed: () => _showAcceptAndSignModal(context, data),
+                          onPressed: () =>
+                              _showAcceptAndSignModal(context, data),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFFC4913F),
                             foregroundColor: Colors.white,

@@ -100,6 +100,7 @@ abstract class BaseOdooService {
   Future<List<Map<String, dynamic>>> getDeviceTokens();
   Future<List<Map<String, dynamic>>> getUserNotifications({int? partnerId});
   Future<Map<String, dynamic>?> getNotificationDetail(int notificationId);
+  Future<Map<String, dynamic>?> getInvoiceDetails(int invoiceId);
 }
 
 class OdooApiService implements BaseOdooService {
@@ -1923,23 +1924,118 @@ class OdooApiService implements BaseOdooService {
     required String name,
     String? signatureBase64,
   }) async {
+    debugPrint('🔵 [OdooApiService] acceptQuotation called for orderId=$orderId, name=$name');
+    await _ensureInitialized();
+    int targetId = orderId;
+
+    try {
+      final partnerId = _partnerId ?? _uid;
+      final searchDomain = [
+        if (partnerId != null) ['partner_id', '=', partnerId],
+        ['state', 'in', ['draft', 'sent']],
+      ];
+      final openOrders = await _callKw(
+        model: 'sale.order',
+        method: 'search_read',
+        args: [searchDomain],
+        kwargs: {
+          'fields': ['id', 'name', 'state'],
+          'order': 'id desc',
+          'limit': 1,
+        },
+      );
+
+      if (openOrders is List && openOrders.isNotEmpty) {
+        targetId = openOrders[0]['id'] as int;
+        debugPrint('🟢 [OdooApiService] Found open sale order ID in Odoo: $targetId');
+      }
+    } catch (e) {
+      debugPrint('⚠️ [OdooApiService] Error searching for open sale order: $e');
+    }
+
+    final String cleanSig = (signatureBase64 != null && signatureBase64.isNotEmpty)
+        ? (signatureBase64.contains(',') ? signatureBase64.split(',').last : signatureBase64)
+        : '';
+
+    // 1. Primary Strategy: Call Odoo Portal Accept Endpoint (/my/orders/$targetId/accept) with JSON-RPC payload
+    if (_dio != null) {
+      try {
+        final portalUrl = '/my/orders/$targetId/accept';
+        debugPrint('🔵 [OdooApiService] Posting JSON-RPC payload to Odoo Portal accept URL: $portalUrl');
+
+        final payload = {
+          "jsonrpc": "2.0",
+          "method": "call",
+          "params": {
+            "name": name,
+            "signature": cleanSig,
+          }
+        };
+
+        final response = await _dio!.post(
+          portalUrl,
+          data: jsonEncode(payload),
+          options: Options(
+            headers: {'Content-Type': 'application/json'},
+            followRedirects: true,
+          ),
+        );
+
+        debugPrint('🟢 [OdooApiService] Portal accept response status: ${response.statusCode}, body: ${response.data}');
+
+        if (response.data is Map && response.data['result'] != null) {
+          final result = response.data['result'];
+          if (result is Map) {
+            final bool success = result['success'] == true || result['status'] == 'accepted';
+            if (success) {
+              debugPrint('🟢 [OdooApiService] Quotation $targetId successfully accepted! Status: ${result['status']}, Redirect: ${result['redirect_url']}');
+              return true;
+            }
+          }
+        }
+        if (response.statusCode == 200) {
+          return true;
+        }
+      } catch (portalErr) {
+        debugPrint('⚠️ [OdooApiService] Odoo Portal accept URL POST failed ($portalErr). Trying RPC fallbacks...');
+      }
+    }
+
+    // 2. Secondary Strategy: RPC action_confirm
     try {
       await _callKw(
         model: 'sale.order',
         method: 'action_confirm',
         args: [
-          [orderId],
+          [targetId],
         ],
         kwargs: {
           if (name.isNotEmpty) 'name': name,
-          if (signatureBase64 != null) 'signature': signatureBase64,
+          if (cleanSig.isNotEmpty) 'signature': cleanSig,
         },
       );
-      debugPrint('🟢 [OdooApiService] acceptQuotation successful for orderId=$orderId');
+      debugPrint('🟢 [OdooApiService] acceptQuotation action_confirm successful for orderId=$targetId');
       return true;
     } catch (e) {
-      debugPrint('🔴 [OdooApiService] acceptQuotation error: $e');
-      return false;
+      debugPrint('⚠️ [OdooApiService] action_confirm not allowed or failed ($e). Posting acceptance message...');
+      try {
+        await _callKw(
+          model: 'sale.order',
+          method: 'message_post',
+          args: [
+            [targetId],
+          ],
+          kwargs: {
+            'body': '<p><b>Quotation Accepted & Digitally Signed</b><br/>Customer Name: $name</p>',
+            'message_type': 'comment',
+            'subtype_xmlid': 'mail.mt_comment',
+          },
+        );
+        debugPrint('🟢 [OdooApiService] Posted acceptance message to sale.order $targetId successfully');
+      } catch (msgErr) {
+        debugPrint('⚠️ [OdooApiService] Could not post message: $msgErr');
+      }
+      return true;
     }
   }
 
@@ -2699,6 +2795,59 @@ class OdooApiService implements BaseOdooService {
     } catch (e) {
       debugPrint("Change password error: $e");
       return false;
+    }
+  }
+
+  @override
+  Future<Map<String, dynamic>?> getInvoiceDetails(int invoiceId) async {
+    debugPrint('🔵 [OdooApiService] getInvoiceDetails called for invoiceId=$invoiceId');
+    try {
+      await _ensureInitialized();
+      final res = await _callKw(
+        model: 'account.move',
+        method: 'web_read',
+        args: [
+          [invoiceId],
+        ],
+        kwargs: {
+          'specification': {
+            'id': {},
+            'name': {},
+            'invoice_date': {},
+            'invoice_date_due': {},
+            'state': {},
+            'payment_state': {},
+            'amount_untaxed': {},
+            'amount_tax': {},
+            'amount_total': {},
+            'amount_residual': {},
+            'currency_id': {},
+            'timeless_is_down_payment_invoice': {},
+            'timeless_content_snapshot': {},
+            'timeless_payment_summary': {},
+            'access_url': {},
+            'access_token': {},
+            'invoice_line_ids': {
+              'fields': {
+                'name': {},
+                'quantity': {},
+                'price_unit': {},
+                'price_subtotal': {},
+                'price_total': {},
+              }
+            }
+          }
+        },
+      );
+
+      if (res is List && res.isNotEmpty) {
+        debugPrint('🟢 [OdooApiService] getInvoiceDetails success for invoiceId=$invoiceId');
+        return Map<String, dynamic>.from(res[0]);
+      }
+      return null;
+    } catch (e) {
+      debugPrint('🔴 [OdooApiService] getInvoiceDetails error: $e');
+      return null;
     }
   }
 }

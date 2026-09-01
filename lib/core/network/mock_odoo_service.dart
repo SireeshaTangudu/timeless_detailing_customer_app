@@ -745,4 +745,43 @@ class MockOdooService implements BaseOdooService {
       'order_id': 20,
     };
   }
+
+  @override
+  Future<Map<String, dynamic>?> getInvoiceDetails(int invoiceId) async {
+    return {
+      'id': invoiceId,
+      'name': 'INV/2026/00028',
+      'invoice_date': '2026-09-01',
+      'invoice_date_due': '2026-09-01',
+      'state': 'posted',
+      'payment_state': 'not_paid',
+      'amount_untaxed': 1170.0,
+      'amount_tax': 175.5,
+      'amount_total': 1345.5,
+      'amount_residual': 1345.5,
+      'currency_id': 38,
+      'timeless_is_down_payment_invoice': true,
+      'timeless_payment_summary': {
+        'is_deposit_invoice': true,
+        'original_quotation_total': 2242.5,
+        'current_order_total': 2242.5,
+        'vehicle_make': 'Volkswagen',
+        'vehicle_model': 'Polo TDI 2.0',
+        'vehicle_registration': 'Hatch Back',
+        'service_lines': [
+          {
+            'name': 'Ceramic Coating',
+            'price_total': 2242.5,
+            'warranty_label': '6 Year Warranty',
+          }
+        ],
+        'tax_amount': 175.5,
+        'amount_paid': 0,
+        'this_invoice_paid': 0.0,
+        'deposit_amount': 1345.5,
+        'remaining_amount': 897.0,
+        'deposit_percentage_label': '60%',
+      },
+    };
+  }
 }

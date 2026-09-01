@@ -36,6 +36,18 @@ class Booking {
   final String? appointmentTypeName;
   final String? opportunityName;
 
+  // Down Payment Invoice Specific Fields
+  final bool isDownPaymentInvoice;
+  final double percentageAmountPaid;
+  final double amountPaid;
+  final String amountPaidOn;
+  final double pendingAmount;
+  final String carDropOffStatus;
+  final List<Map<String, dynamic>> addOns;
+  final int? invoiceId;
+  final String? invoiceAccessUrl;
+  final String? invoiceAccessToken;
+
   const Booking({
     required this.id,
     required this.service,
@@ -61,6 +73,16 @@ class Booking {
     this.appointmentResourceName,
     this.appointmentTypeName,
     this.opportunityName,
+    this.isDownPaymentInvoice = false,
+    this.percentageAmountPaid = 50.0,
+    this.amountPaid = 1656.0,
+    this.amountPaidOn = '31st July, 2026, 01:43 PM',
+    this.pendingAmount = 1126.0,
+    this.carDropOffStatus = 'Pending',
+    this.addOns = const [],
+    this.invoiceId,
+    this.invoiceAccessUrl,
+    this.invoiceAccessToken,
   });
 
   String get vehicleMake => bookingVehicleMake ?? (vehicleName.contains(' ') ? vehicleName.split(' ').first : vehicleName);
@@ -254,6 +276,85 @@ class Booking {
       appointmentResourceName: apptResourceName,
       appointmentTypeName: apptTypeName,
       opportunityName: oppName,
+    );
+  }
+
+  factory Booking.fromInvoiceJson(Map<String, dynamic> json) {
+    final Map<String, dynamic> summary = (json['timeless_payment_summary'] is Map)
+        ? Map<String, dynamic>.from(json['timeless_payment_summary'])
+        : {};
+    final Map<String, dynamic> snapshot = (json['timeless_content_snapshot'] is Map)
+        ? Map<String, dynamic>.from(json['timeless_content_snapshot'])
+        : {};
+
+    final String vMake = (summary['vehicle_make'] ?? snapshot['vehicle_make'] ?? 'Client Vehicle').toString();
+    final String vModel = (summary['vehicle_model'] ?? snapshot['vehicle_model'] ?? '').toString();
+    final String vehicleName = '$vMake $vModel'.trim();
+    final String vReg = (summary['vehicle_registration'] ?? snapshot['vehicle_registration'] ?? 'Hatch Back').toString();
+
+    final List serviceLines = (summary['service_lines'] is List)
+        ? (summary['service_lines'] as List)
+        : (snapshot['service_lines'] is List ? snapshot['service_lines'] as List : []);
+
+    String serviceName = 'Detailing Service';
+    double origTotal = (summary['original_quotation_total'] as num?)?.toDouble() ??
+        (snapshot['original_quotation_total'] as num?)?.toDouble() ??
+        (json['amount_total'] as num?)?.toDouble() ??
+        2800.0;
+
+    if (serviceLines.isNotEmpty && serviceLines[0] is Map) {
+      serviceName = (serviceLines[0]['name'] ?? serviceName).toString();
+    }
+
+    final double depositAmt = (summary['deposit_amount'] as num?)?.toDouble() ??
+        (json['amount_total'] as num?)?.toDouble() ??
+        1345.5;
+
+    final double remainAmt = (summary['remaining_amount'] as num?)?.toDouble() ??
+        (json['amount_residual'] as num?)?.toDouble() ??
+        (origTotal - depositAmt);
+
+    final String pctLabel = (summary['deposit_percentage_label'] ?? '50%').toString();
+    final double pctVal = double.tryParse(pctLabel.replaceAll(RegExp(r'[^\d.]'), '')) ?? 50.0;
+
+    final String invDateStr = (json['invoice_date'] ?? '').toString();
+
+    final int? rawInvId = json['id'] is int ? json['id'] as int : int.tryParse(json['id']?.toString() ?? '');
+    final String accUrl = (json['access_url'] ?? '').toString();
+    final String accToken = (json['access_token'] is String) ? json['access_token'] as String : '';
+
+    return Booking(
+      id: json['id']?.toString() ?? '101',
+      service: DetailService(
+        id: 'inv_${json['id']}',
+        name: serviceName,
+        description: '',
+        price: origTotal,
+        durationHours: 2.0,
+        imageUrl: '',
+        category: 'Detailing',
+        whatsIncluded: const [],
+      ),
+      vehicleName: vehicleName.isNotEmpty ? vehicleName : 'Volkswagen Polo TDI 2.0',
+      vehicleLicensePlate: vReg,
+      bookingDateTime: DateTime.tryParse(invDateStr) ?? DateTime.now(),
+      status: BookingStatus.confirmed,
+      currentStep: 1,
+      totalPrice: origTotal,
+      notes: json['name']?.toString() ?? 'Invoice',
+      beforeImages: const [],
+      afterImages: const [],
+      technicianName: 'Master Detailer',
+      technicianAvatar: '',
+      isDownPaymentInvoice: json['timeless_is_down_payment_invoice'] == true || summary['is_deposit_invoice'] == true,
+      percentageAmountPaid: pctVal,
+      amountPaid: depositAmt,
+      amountPaidOn: invDateStr.isNotEmpty ? invDateStr : '31st July, 2026, 01:43 PM',
+      pendingAmount: remainAmt,
+      carDropOffStatus: 'Pending',
+      invoiceId: rawInvId,
+      invoiceAccessUrl: accUrl.isNotEmpty ? accUrl : null,
+      invoiceAccessToken: accToken.isNotEmpty ? accToken : null,
     );
   }
 

@@ -16,7 +16,6 @@ import 'package:timeless_detailing_customer_app/features/services/views/interior
 import 'package:timeless_detailing_customer_app/features/services/views/service_detail_screen.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/controllers/bookings_controller.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/models/booking_model.dart';
-import 'package:timeless_detailing_customer_app/features/bookings/views/bookings_history_screen.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/views/upcoming_appointment_details_screen.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/models/estimation_model.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/views/estimation_screen.dart';
@@ -197,121 +196,174 @@ class _DashboardScreenState extends State<DashboardScreen> {
         backgroundColor: const Color(0xFFF9F7F4),
         body: SafeArea(
           bottom: false,
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              return SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(
-                    minHeight: constraints.maxHeight,
-                  ),
-                  child: Padding(
-                    padding: EdgeInsets.only(
-                      left: 24,
-                      right: 24,
-                      top: 16,
-                      bottom: safeBottom + 24,
+          child: RefreshIndicator(
+            color: const Color(0xFFC4913F),
+            backgroundColor: Colors.white,
+            onRefresh: () async {
+              debugPrint('🔄 Manual pull-to-refresh triggered on Home page! Fetching product categories...');
+              await servicesController.fetchProductCategories();
+              if (context.mounted) {
+                await Provider.of<BookingsController>(context, listen: false).loadBookings();
+              }
+            },
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minHeight: constraints.maxHeight,
                     ),
-                    child: Consumer<BookingsController>(
-                      builder: (context, bookingsController, child) {
-                        final upcoming = bookingsController.bookings;
-                        final hasUpcoming = upcoming.isNotEmpty;
+                    child: Padding(
+                      padding: EdgeInsets.only(
+                        left: 24,
+                        right: 24,
+                        top: 16,
+                        bottom: safeBottom + 24,
+                      ),
+                      child: Consumer<BookingsController>(
+                        builder: (context, bookingsController, child) {
+                          final upcoming = bookingsController.bookings;
+                          final hasUpcoming = upcoming.isNotEmpty;
 
-                        return Column(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Top Section: Greeting Header & Headline
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                FadeSlideIn(
-                                  delay: const Duration(milliseconds: 100),
-                                  child: Stack(
-                                    alignment: Alignment.center,
-                                    children: [
-                                      Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.center,
-                                        children: [
-                                          RichText(
-                                            text: TextSpan(
+                          return Column(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Top Section: Greeting Header & Headline
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  FadeSlideIn(
+                                    delay: const Duration(milliseconds: 100),
+                                    child: Stack(
+                                      alignment: Alignment.center,
+                                      children: [
+                                        Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.center,
+                                          children: [
+                                            RichText(
+                                              text: TextSpan(
+                                                children: [
+                                                  TextSpan(
+                                                    text: 'Hello ',
+                                                    style: GoogleFonts.inter(
+                                                      fontSize: 12,
+                                                      fontWeight: FontWeight.w400,
+                                                      color: const Color(
+                                                        0xFF3A2F1E,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  TextSpan(
+                                                    text:
+                                                        auth.userName.isNotEmpty
+                                                            ? auth.userName
+                                                            : 'John Doe',
+                                                    style: AppTypography.canela(
+                                                      fontSize: 14,
+                                                      fontWeight: FontWeight.w700,
+                                                      color: const Color(
+                                                        0xFF3A2F1E,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+
+                                            // Top Right Action Buttons: Refresh + Drawer Menu
+                                            Row(
                                               children: [
-                                                TextSpan(
-                                                  text: 'Hello ',
-                                                  style: GoogleFonts.inter(
-                                                    fontSize: 12,
-                                                    fontWeight: FontWeight.w400,
-                                                    color: const Color(
-                                                      0xFF3A2F1E,
+                                                // Manual Refresh Icon Button
+                                                AnimatedPressable(
+                                                  onTap: () async {
+                                                    debugPrint('🔄 Manual refresh button tapped on Home page! Fetching product categories...');
+                                                    ScaffoldMessenger.of(context).showSnackBar(
+                                                      const SnackBar(
+                                                        content: Text('Refreshing categories & services...'),
+                                                        duration: Duration(seconds: 1),
+                                                        backgroundColor: Color(0xFFC4913F),
+                                                      ),
+                                                    );
+                                                    await servicesController.fetchProductCategories();
+                                                    if (context.mounted) {
+                                                      await Provider.of<BookingsController>(context, listen: false).loadBookings();
+                                                    }
+                                                  },
+                                                  child: Container(
+                                                    width: 38,
+                                                    height: 38,
+                                                    margin: const EdgeInsets.only(right: 8),
+                                                    decoration: BoxDecoration(
+                                                      shape: BoxShape.circle,
+                                                      border: Border.all(
+                                                        color: const Color(0xFFAB8C5A),
+                                                        width: 1.2,
+                                                      ),
+                                                      color: Colors.white,
+                                                    ),
+                                                    child: const Center(
+                                                      child: Icon(
+                                                        Icons.refresh,
+                                                        color: Color(0xFF3A2F1E),
+                                                        size: 18,
+                                                      ),
                                                     ),
                                                   ),
                                                 ),
-                                                TextSpan(
-                                                  text:
-                                                      auth.userName.isNotEmpty
-                                                          ? auth.userName
-                                                          : 'John Doe',
-                                                  style: AppTypography.canela(
-                                                    fontSize: 14,
-                                                    fontWeight: FontWeight.w700,
-                                                    color: const Color(
-                                                      0xFF3A2F1E,
+
+                                                // Circular Menu Icon Button (Opening Side Drawer)
+                                                AnimatedPressable(
+                                                  onTap: () {
+                                                    debugPrint(
+                                                      '🔵 [DashboardScreen] Menu button clicked!',
+                                                    );
+                                                    if (widget.onMenuTap != null) {
+                                                      widget.onMenuTap!();
+                                                    } else {
+                                                      try {
+                                                        Scaffold.of(
+                                                          context,
+                                                        ).openDrawer();
+                                                      } catch (e) {
+                                                        debugPrint(
+                                                          'Error opening drawer: $e',
+                                                        );
+                                                      }
+                                                    }
+                                                  },
+                                                  child: Container(
+                                                    width: 38,
+                                                    height: 38,
+                                                    decoration: BoxDecoration(
+                                                      shape: BoxShape.circle,
+                                                      border: Border.all(
+                                                        color: const Color(
+                                                          0xFFAB8C5A,
+                                                        ),
+                                                        width: 1.2,
+                                                      ),
+                                                      color: Colors.white,
+                                                    ),
+                                                    child: const Icon(
+                                                      Icons.menu,
+                                                      size: 20,
+                                                      color: Color(0xFFAB8C5A),
                                                     ),
                                                   ),
                                                 ),
                                               ],
                                             ),
-                                          ),
-
-                                          // Circular Menu Icon Button on Top Right (Opening Side Drawer)
-                                          AnimatedPressable(
-                                            onTap: () {
-                                              debugPrint(
-                                                '🔵 [DashboardScreen] Menu button clicked!',
-                                              );
-                                              if (widget.onMenuTap != null) {
-                                                widget.onMenuTap!();
-                                              } else {
-                                                try {
-                                                  Scaffold.of(
-                                                    context,
-                                                  ).openDrawer();
-                                                } catch (e) {
-                                                  debugPrint(
-                                                    'Error opening drawer: $e',
-                                                  );
-                                                }
-                                              }
-                                            },
-                                            child: Container(
-                                              width: 38,
-                                              height: 38,
-                                              decoration: BoxDecoration(
-                                                shape: BoxShape.circle,
-                                                border: Border.all(
-                                                  color: const Color(
-                                                    0xFFAB8C5A,
-                                                  ),
-                                                  width: 1.2,
-                                                ),
-                                                color: Colors.white,
-                                              ),
-                                              child: const Icon(
-                                                Icons.menu,
-                                                size: 20,
-                                                color: Color(0xFFAB8C5A),
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ],
+                                          ],
+                                        ),
+                                      ],
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(height: 34),
+                                  const SizedBox(height: 34),
 
                                 // Welcome Subheading & Headline
                                 FadeSlideIn(
@@ -468,8 +520,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildUpcomingAppointmentCard(BuildContext context, Booking booking) {
     final bool isQuoteReceived =
@@ -494,7 +547,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
     String buttonText = 'View Details';
     Color badgeColor = const Color(0xFFC4913F);
 
-    if (isQuoteReceived) {
+    final bool isDownPaymentInvoice = booking.isDownPaymentInvoice ||
+        booking.notes.toLowerCase().contains('invoice') ||
+        booking.notes.toLowerCase().contains('down payment');
+
+    if (isDownPaymentInvoice) {
+      stageTitle = 'Down Payment Invoice Received';
+      stageSubtitle =
+          'Down payment invoice generated for ${booking.service.name}. Tap to view breakdown and pay balance.';
+      buttonText = 'Pay Balance';
+      badgeColor = const Color(0xFFC4913F);
+    } else if (isQuoteReceived) {
       stageTitle = 'New Quote Received';
       stageSubtitle =
           'Our technician completed inspection and updated your quote for ${booking.service.name}. Tap to review & accept.';
@@ -563,11 +626,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   border: Border.all(color: badgeColor.withValues(alpha: 0.4), width: 0.8),
                 ),
                 child: Text(
-                  isQuoteReceived
-                      ? 'ACTION REQUIRED'
-                      : isDraft
-                          ? 'PENDING INSPECTION'
-                          : 'CONFIRMED',
+                  isDownPaymentInvoice
+                      ? 'INVOICE READY'
+                      : isQuoteReceived
+                          ? 'ACTION REQUIRED'
+                          : isDraft
+                              ? 'PENDING INSPECTION'
+                              : 'CONFIRMED',
                   style: GoogleFonts.outfit(
                     fontSize: 9.5,
                     fontWeight: FontWeight.bold,
@@ -602,33 +667,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
             child: SizedBox(
               height: 38,
               child: AnimatedPressable(
-                onTap: () {
-                  if (isQuoteReceived || isDraft) {
-                    Navigator.push(
-                      context,
-                      FadeSlidePageRoute(
-                        page: EstimationScreen(
-                          estimation: EstimationModel.fromBooking(
-                            booking,
-                            isDraft: isDraft,
-                          ),
-                        ),
-                      ),
-                    );
-                  } else {
-                    Navigator.push(
-                      context,
-                      FadeSlidePageRoute(
-                        page: UpcomingAppointmentDetailsScreen(
-                          booking: booking,
-                        ),
-                      ),
-                    );
-                  }
-                },
+                onTap: null,
                 child: ElevatedButton(
                   onPressed: () {
-                    if (isQuoteReceived || isDraft) {
+                    if (isDownPaymentInvoice) {
+                      Navigator.push(
+                        context,
+                        FadeSlidePageRoute(
+                          page: UpcomingAppointmentDetailsScreen(
+                            booking: booking,
+                            isDownPaymentInvoice: true,
+                          ),
+                        ),
+                      );
+                    } else if (isQuoteReceived || isDraft) {
                       Navigator.push(
                         context,
                         FadeSlidePageRoute(
