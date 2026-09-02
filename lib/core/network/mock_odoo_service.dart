@@ -613,6 +613,16 @@ class MockOdooService implements BaseOdooService {
   }
 
   @override
+  Future<List<ProjectTaskTypeModel>> getProjectTaskTypes(int projectId) async {
+    return const [
+      ProjectTaskTypeModel(id: 1, name: 'To Do', sequence: 1),
+      ProjectTaskTypeModel(id: 2, name: 'In Progress', sequence: 2),
+      ProjectTaskTypeModel(id: 3, name: 'Inspection', sequence: 3),
+      ProjectTaskTypeModel(id: 4, name: 'Done', sequence: 4),
+    ];
+  }
+
+  @override
   Future<List<Map<String, dynamic>>> getSentQuotations({int? partnerId}) async {
     return [
       {

@@ -108,8 +108,13 @@ class FirebaseNotificationService {
     }
   }
 
+  static void resetTokenState() {
+    debugPrint('🧹 Resetting cached FCM token state on logout...');
+    fcmToken = null;
+  }
+
   static Future<void> syncFcmTokenToOdoo(BaseOdooService odooService) async {
-    final token = await fetchFcmToken();
+    final token = await fetchFcmToken(forceRefresh: true);
     if (token != null && token.isNotEmpty) {
       final platform = defaultTargetPlatform == TargetPlatform.iOS ? 'ios' : 'android';
       debugPrint('Syncing FCM token ($token) to Odoo device token ($platform)...');

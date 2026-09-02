@@ -22,7 +22,11 @@ class TrackingController extends ChangeNotifier {
   List<ProjectTaskModel> get allTasks => _projectTasksMap.values.expand((tasks) => tasks).toList();
   bool get isLoading => _isLoading;
 
-  /// Fetches tracking status including live booking, active projects (Endpoint 8) and project tasks (Endpoint 9)
+  Map<int, List<ProjectTaskTypeModel>> _projectTaskTypesMap = {};
+
+  Map<int, List<ProjectTaskTypeModel>> get projectTaskTypesMap => _projectTaskTypesMap;
+
+  /// Fetches tracking status including live booking, active projects (Endpoint 8), project tasks and task types
   Future<void> fetchTrackingStatus(String bookingId) async {
     _isLoading = true;
     notifyListeners();
@@ -36,10 +40,16 @@ class TrackingController extends ChangeNotifier {
       _projects = (results[1] as List<ProjectModel>?) ?? [];
 
       _projectTasksMap = {};
+      _projectTaskTypesMap = {};
       for (final project in _projects) {
         try {
           final tasks = await _odooService.getProjectTasks(project.id);
           _projectTasksMap[project.id] = tasks;
+        } catch (_) {}
+
+        try {
+          final types = await _odooService.getProjectTaskTypes(project.id);
+          _projectTaskTypesMap[project.id] = types;
         } catch (_) {}
       }
     } catch (e) {

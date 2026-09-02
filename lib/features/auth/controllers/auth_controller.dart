@@ -143,6 +143,7 @@ class AuthController extends ChangeNotifier {
     _isLoading = true;
     notifyListeners();
     try {
+      FirebaseNotificationService.resetTokenState();
       await _odooService.logout();
     } catch (e) {
       debugPrint('Logout service exception: $e');

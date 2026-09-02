@@ -84,6 +84,7 @@ abstract class BaseOdooService {
   });
   Future<List<ProjectModel>> getProjects();
   Future<List<ProjectTaskModel>> getProjectTasks(int projectId);
+  Future<List<ProjectTaskTypeModel>> getProjectTaskTypes(int projectId);
   Future<List<Map<String, dynamic>>> getSentQuotations({int? partnerId});
   Future<List<Map<String, dynamic>>> getSaleOrders({int? partnerId});
   Future<Map<String, dynamic>?> getQuotationDetails(int orderId);
@@ -639,26 +640,68 @@ class OdooApiService implements BaseOdooService {
   @override
   Future<void> logout() async {
     try {
-      if (_registeredTokenId != null) {
+      int? tokenId = _registeredTokenId;
+      if (tokenId == null) {
         try {
-          await _callKw(
-            model: 'timeless.device.token',
-            method: 'deactivate',
-            args: [
-              [_registeredTokenId],
-            ],
-            kwargs: {},
-          );
-          debugPrint('🟢 [OdooApiService] Deactivated device token id=$_registeredTokenId');
-        } catch (e) {
-          debugPrint('🟡 Deactivate device token warning: $e');
-        }
+          final val = await _storage.read(key: 'registered_token_id');
+          if (val != null && val.isNotEmpty) {
+            tokenId = int.tryParse(val);
+          }
+        } catch (_) {}
       }
+      if (tokenId == null) {
+        try {
+          final prefs = await SharedPreferences.getInstance();
+          tokenId = prefs.getInt('registered_token_id');
+        } catch (_) {}
+      }
+
+      // If token ID is not cached, fetch user device tokens to deactivate active tokens
+      if (tokenId == null) {
+        try {
+          final tokens = await getDeviceTokens();
+          if (tokens.isNotEmpty) {
+            for (final t in tokens) {
+              final tid = t['id'];
+              if (tid is int && tid > 0) {
+                await _deactivateToken(tid);
+              }
+            }
+          }
+        } catch (e) {
+          debugPrint('🟡 Query device tokens for logout deactivation failed: $e');
+        }
+      } else {
+        await _deactivateToken(tokenId);
+      }
+
+      try {
+        await _storage.delete(key: 'registered_token_id');
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.remove('registered_token_id');
+      } catch (_) {}
       await _clearSession();
       _dio = null;
       _registeredTokenId = null;
     } catch (e) {
-      print('Odoo logout error: $e');
+      debugPrint('🔴 Odoo logout error: $e');
+    }
+  }
+
+  Future<void> _deactivateToken(int tokenId) async {
+    try {
+      debugPrint('🔵 [OdooApiService] Deactivating device token id=$tokenId via timeless.device.token/deactivate...');
+      final resp = await _callKw(
+        model: 'timeless.device.token',
+        method: 'deactivate',
+        args: [
+          [tokenId],
+        ],
+        kwargs: {},
+      );
+      debugPrint('🟢 [OdooApiService] Deactivated device token id=$tokenId success, response: $resp');
+    } catch (e) {
+      debugPrint('🟡 Deactivate device token warning: $e');
     }
   }
 
@@ -1752,6 +1795,42 @@ class OdooApiService implements BaseOdooService {
     }
   }
 
+  /// Get Project Task Types/Stages (`project.task.type/web_search_read`)
+  @override
+  Future<List<ProjectTaskTypeModel>> getProjectTaskTypes(int projectId) async {
+    try {
+      final response = await _callKw(
+        model: 'project.task.type',
+        method: 'web_search_read',
+        args: [],
+        kwargs: {
+          'domain': [
+            ['project_ids', 'in', [projectId]],
+          ],
+          'specification': {
+            'id': {},
+            'name': {},
+            'sequence': {},
+          },
+          'order': 'sequence asc',
+        },
+      );
+
+      final List records = (response is Map && response.containsKey('records'))
+          ? (response['records'] as List)
+          : (response is List ? response : []);
+
+      return records.map((item) {
+        return ProjectTaskTypeModel.fromJson(
+          Map<String, dynamic>.from(item as Map),
+        );
+      }).toList();
+    } catch (e) {
+      debugPrint('getProjectTaskTypes error: $e');
+      return [];
+    }
+  }
+
   /// STEP 13: Get Sent Quotations (`sale.order/web_search_read`)
   @override
   Future<List<Map<String, dynamic>>> getSentQuotations({int? partnerId}) async {
@@ -2115,9 +2194,45 @@ class OdooApiService implements BaseOdooService {
         '🔵 [OdooApiService] Registering FCM Device Token "$token" (platform: $platform, partnerId: $partnerId)...',
       );
 
-      bool registered = false;
+      // 1. Check if token is already registered in Odoo via getDeviceTokens()
+      try {
+        final existingTokens = await getDeviceTokens();
+        for (final t in existingTokens) {
+          if (t['token'] == token && t['id'] is int) {
+            _registeredTokenId = t['id'] as int;
+            await _storage.write(
+              key: 'registered_token_id',
+              value: _registeredTokenId!.toString(),
+            );
+            if (t['active'] == false) {
+              try {
+                await _callKw(
+                  model: 'timeless.device.token',
+                  method: 'write',
+                  args: [
+                    [_registeredTokenId],
+                    {'active': true},
+                  ],
+                  kwargs: {},
+                );
+                debugPrint(
+                  '🟢 [OdooApiService] Re-activated inactive device token (tokenId=$_registeredTokenId).',
+                );
+              } catch (writeErr) {
+                debugPrint('🟡 Re-activating token warning: $writeErr');
+              }
+            }
+            debugPrint(
+              '🟢 [OdooApiService] Device token "$token" is active in Odoo (tokenId=$_registeredTokenId).',
+            );
+            return true;
+          }
+        }
+      } catch (e) {
+        debugPrint('🟡 [OdooApiService] getDeviceTokens lookup warning: $e');
+      }
 
-      // 1. Try custom method timeless.device.token/register_device
+      // 2. Call custom registration RPC method timeless.device.token/register_device
       try {
         final res = await _callKw(
           model: 'timeless.device.token',
@@ -2126,38 +2241,38 @@ class OdooApiService implements BaseOdooService {
           kwargs: {},
         );
         if (res != null && res != false) {
-          debugPrint('🟢 [OdooApiService] registerDeviceToken via register_device success: $res');
-          if (res is int) _registeredTokenId = res;
-          registered = true;
+          debugPrint(
+            '🟢 [OdooApiService] registerDeviceToken via register_device success: $res',
+          );
+          if (res is int) {
+            _registeredTokenId = res;
+            await _storage.write(
+              key: 'registered_token_id',
+              value: res.toString(),
+            );
+          } else if (res is Map && res['id'] is int) {
+            _registeredTokenId = res['id'] as int;
+            await _storage.write(
+              key: 'registered_token_id',
+              value: _registeredTokenId!.toString(),
+            );
+          }
+          return true;
         }
       } catch (e) {
-        debugPrint('🟡 [OdooApiService] register_device method failed: $e. Trying create/write fallback...');
-      }
-
-      // 2. Try timeless.device.token create/write
-      if (!registered) {
-        try {
-          final createResp = await _callKw(
-            model: 'timeless.device.token',
-            method: 'create',
-            args: [
-              {
-                'token': token,
-                'platform': platform,
-                if (partnerId != null) 'partner_id': partnerId,
-              },
-            ],
-            kwargs: {},
+        final errStr = e.toString().toLowerCase();
+        if (errStr.contains('already registered')) {
+          debugPrint(
+            '🟢 [OdooApiService] Device token is already registered in Odoo.',
           );
-          debugPrint('🟢 [OdooApiService] Registered device token via create: $createResp');
-          if (createResp is int) _registeredTokenId = createResp;
-          registered = true;
-        } catch (e) {
-          debugPrint('🟡 [OdooApiService] timeless.device.token create failed: $e');
+          return true;
         }
+        debugPrint(
+          '🟡 [OdooApiService] register_device method error: $e',
+        );
       }
 
-      return registered;
+      return false;
     } catch (e) {
       debugPrint('🔴 [OdooApiService] registerDeviceToken error: $e');
       return false;
@@ -2171,7 +2286,13 @@ class OdooApiService implements BaseOdooService {
       final response = await _callKw(
         model: 'timeless.device.token',
         method: 'search_read',
-        args: [[]],
+        args: [
+          [
+            '|',
+            ['active', '=', true],
+            ['active', '=', false],
+          ],
+        ],
         kwargs: {
           'fields': [
             'id',

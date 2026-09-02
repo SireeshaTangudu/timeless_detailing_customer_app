@@ -35,6 +35,10 @@ class ProjectsController extends ChangeNotifier {
     }
   }
 
+  final Map<int, List<ProjectTaskTypeModel>> _projectTaskTypes = {};
+
+  Map<int, List<ProjectTaskTypeModel>> get projectTaskTypes => _projectTaskTypes;
+
   /// Endpoint 9: Get Project Tasks (`project.task/web_search_read`)
   Future<List<ProjectTaskModel>> loadTasksForProject(int projectId) async {
     if (_projectTasks.containsKey(projectId)) {
@@ -46,6 +50,22 @@ class ProjectsController extends ChangeNotifier {
       _projectTasks[projectId] = tasks;
       notifyListeners();
       return tasks;
+    } catch (e) {
+      return [];
+    }
+  }
+
+  /// Get Project Task Types/Stages (`project.task.type/web_search_read`)
+  Future<List<ProjectTaskTypeModel>> loadTaskTypesForProject(int projectId) async {
+    if (_projectTaskTypes.containsKey(projectId)) {
+      return _projectTaskTypes[projectId]!;
+    }
+
+    try {
+      final types = await _odooService.getProjectTaskTypes(projectId);
+      _projectTaskTypes[projectId] = types;
+      notifyListeners();
+      return types;
     } catch (e) {
       return [];
     }
