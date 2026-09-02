@@ -69,9 +69,7 @@ class _OdooPaymentWebviewScreenState extends State<OdooPaymentWebviewScreen> {
           },
           onNavigationRequest: (NavigationRequest request) {
             debugPrint('🌐 [WebView] Navigation request to: ${request.url}');
-            if (_checkUrlForSuccess(request.url)) {
-              return NavigationDecision.prevent;
-            }
+            _checkUrlForSuccess(request.url);
             return NavigationDecision.navigate;
           },
           onWebResourceError: (WebResourceError error) {
@@ -113,7 +111,9 @@ class _OdooPaymentWebviewScreenState extends State<OdooPaymentWebviewScreen> {
       debugPrint('Error preparing WebView cookies: $e');
     }
 
-    debugPrint('🌐 [WebView] Loading URL: ${widget.url} with headers: $requestHeaders');
+    debugPrint(
+      '🌐 [WebView] Loading URL: ${widget.url} with headers: $requestHeaders',
+    );
     await controller.loadRequest(
       Uri.parse(widget.url),
       headers: requestHeaders,
@@ -130,7 +130,8 @@ class _OdooPaymentWebviewScreenState extends State<OdooPaymentWebviewScreen> {
     if (_hasTriggeredSuccess) return true;
 
     final lowerUrl = url.toLowerCase();
-    final bool isSuccess = lowerUrl.contains('message=pay_ok') ||
+    final bool isSuccess =
+        lowerUrl.contains('message=pay_ok') ||
         lowerUrl.contains('message=sign_ok') ||
         lowerUrl.contains('payment/status') ||
         lowerUrl.contains('payment/done') ||
@@ -144,7 +145,6 @@ class _OdooPaymentWebviewScreenState extends State<OdooPaymentWebviewScreen> {
         lowerUrl.contains('success=true');
 
     if (isSuccess) {
-      _hasTriggeredSuccess = true;
       debugPrint('🟢 [WebView] Payment completion detected in URL: $url');
       _completePaymentAndReturn();
       return true;
@@ -152,8 +152,15 @@ class _OdooPaymentWebviewScreenState extends State<OdooPaymentWebviewScreen> {
     return false;
   }
 
-  void _completePaymentAndReturn() {
+  Future<void> _completePaymentAndReturn() async {
+    if (_hasTriggeredSuccess) return;
+    _hasTriggeredSuccess = true;
     widget.onPaymentSuccess();
+
+    // Delay 2.5 seconds to display Odoo's "Thank You! Your payment has been processed" page
+    // and allow Odoo's Python server to complete dispatching the FCM push notification before routing.
+    await Future.delayed(const Duration(milliseconds: 2500));
+
     if (mounted) {
       Navigator.pop(context, true);
     }
@@ -192,9 +199,7 @@ class _OdooPaymentWebviewScreenState extends State<OdooPaymentWebviewScreen> {
             child: _controller != null
                 ? WebViewWidget(controller: _controller!)
                 : const Center(
-                    child: CircularProgressIndicator(
-                      color: Color(0xFFC4913F),
-                    ),
+                    child: CircularProgressIndicator(color: Color(0xFFC4913F)),
                   ),
           ),
           if (_isLoading)
@@ -205,8 +210,7 @@ class _OdooPaymentWebviewScreenState extends State<OdooPaymentWebviewScreen> {
               child: SizedBox(
                 height: 3,
                 child: LinearProgressIndicator(
-                  value:
-                      _loadingProgress > 0 ? _loadingProgress / 100.0 : null,
+                  value: _loadingProgress > 0 ? _loadingProgress / 100.0 : null,
                   backgroundColor: const Color(0xFF2A231C),
                   valueColor: const AlwaysStoppedAnimation<Color>(
                     Color(0xFFC4913F),
@@ -221,9 +225,7 @@ class _OdooPaymentWebviewScreenState extends State<OdooPaymentWebviewScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           decoration: const BoxDecoration(
             color: Color(0xFF1D1813),
-            border: Border(
-              top: BorderSide(color: Color(0xFF332A1F), width: 1),
-            ),
+            border: Border(top: BorderSide(color: Color(0xFF332A1F), width: 1)),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
