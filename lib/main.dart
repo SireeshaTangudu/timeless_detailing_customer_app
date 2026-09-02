@@ -33,12 +33,14 @@ void main() async {
   // =========================================================================
   final odooService = OdooApiService(
     baseUrl:
-        'https://keerthan-lfi-lfi-timeless-detailing-uat-36684365.dev.odoo.com',
-    db: 'keerthan-lfi-lfi-timeless-detailing-uat-36684365',
+        'https://keerthan-lfi-lfi-timeless-detailing1-uat-37341397.dev.odoo.com',
+    db: 'keerthan-lfi-lfi-timeless-detailing1-uat-37341397',
   );
 
   // Initialize Firebase & FCM asynchronously so runApp is NEVER blocked on startup
-  FirebaseNotificationService.initialize(odooService: odooService).catchError((e) {
+  FirebaseNotificationService.initialize(odooService: odooService).catchError((
+    e,
+  ) {
     debugPrint('⚠️ FirebaseNotificationService initialize error: $e');
   });
 

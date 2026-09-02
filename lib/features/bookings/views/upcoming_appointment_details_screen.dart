@@ -41,7 +41,8 @@ class _UpcomingAppointmentDetailsScreenState
         garage = const GarageLocation(
           id: '1',
           name: 'Timeless Detailing',
-          address: '7 Crystal Crescent, Golden Crest Country Estate, Parkrand, Boksburg, 1459',
+          address:
+              '7 Crystal Crescent, Golden Crest Country Estate, Parkrand, Boksburg, 1459',
           phone: '',
           latitude: -25.933578,
           longitude: 28.18122,
@@ -52,7 +53,8 @@ class _UpcomingAppointmentDetailsScreenState
       const fallbackGarage = GarageLocation(
         id: '1',
         name: 'Timeless Detailing',
-        address: '7 Crystal Crescent, Golden Crest Country Estate, Parkrand, Boksburg, 1459',
+        address:
+            '7 Crystal Crescent, Golden Crest Country Estate, Parkrand, Boksburg, 1459',
         phone: '',
         latitude: -25.933578,
         longitude: 28.18122,
@@ -61,8 +63,12 @@ class _UpcomingAppointmentDetailsScreenState
     }
   }
 
-  Future<void> _openInvoicePaymentWebview(BuildContext context, Booking b) async {
-    String baseUrl = 'https://keerthan-lfi-lfi-timeless-detailing-uat-36684365.dev.odoo.com';
+  Future<void> _openInvoicePaymentWebview(
+    BuildContext context,
+    Booking b,
+  ) async {
+    String baseUrl =
+        'https://keerthan-lfi-lfi-timeless-detailing1-uat-37341397.dev.odoo.com/';
     BaseOdooService? odooService;
     try {
       odooService = Provider.of<BaseOdooService>(context, listen: false);
@@ -71,20 +77,27 @@ class _UpcomingAppointmentDetailsScreenState
       }
     } catch (_) {}
 
-    final int? invId = b.invoiceId ?? int.tryParse(b.id.replaceAll(RegExp(r'[^\d]'), ''));
-    String accToken = b.invoiceAccessToken ?? '';
+    int? invId = b.invoiceId;
+    String accToken = (b.invoiceAccessToken ?? '').trim();
+    if (accToken == 'false' || accToken == 'null') accToken = '';
     String? accessUrl = b.invoiceAccessUrl;
 
-    // Fetch fresh access_token & access_url if not present
-    if ((accToken.isEmpty || accessUrl == null || accessUrl.isEmpty) && invId != null && odooService != null) {
+    // Fetch fresh access_token & access_url if missing/invalid
+    if ((accToken.isEmpty || accessUrl == null || accessUrl.isEmpty) &&
+        invId != null &&
+        odooService != null) {
       try {
         final invDetails = await odooService.getInvoiceDetails(invId);
         if (invDetails != null) {
-          if (invDetails['access_token'] is String && (invDetails['access_token'] as String).isNotEmpty) {
-            accToken = invDetails['access_token'];
+          final rawToken = invDetails['access_token']?.toString() ?? '';
+          if (rawToken.isNotEmpty &&
+              rawToken != 'false' &&
+              rawToken != 'null') {
+            accToken = rawToken;
           }
-          if (invDetails['access_url'] is String && (invDetails['access_url'] as String).isNotEmpty) {
-            accessUrl = invDetails['access_url'];
+          final rawUrl = invDetails['access_url']?.toString() ?? '';
+          if (rawUrl.isNotEmpty && rawUrl != 'false' && rawUrl != 'null') {
+            accessUrl = rawUrl;
           }
         }
       } catch (e) {
@@ -92,18 +105,39 @@ class _UpcomingAppointmentDetailsScreenState
       }
     }
 
+    // Extract access_token from accessUrl if access_token field was empty
+    if (accToken.isEmpty &&
+        accessUrl != null &&
+        accessUrl.contains('access_token=')) {
+      final match = RegExp(r'access_token=([^&]+)').firstMatch(accessUrl);
+      if (match != null && match.group(1) != 'false') {
+        accToken = match.group(1)!;
+      }
+    }
+
+    // Fallback invId if null
+    invId ??= int.tryParse(b.id.replaceAll(RegExp(r'[^\d]'), ''));
+
     String payUrl;
-    if (accessUrl != null && accessUrl.isNotEmpty) {
+    if (accessUrl != null &&
+        accessUrl.isNotEmpty &&
+        accessUrl.startsWith('/my/invoices/')) {
       payUrl = accessUrl.startsWith('http') ? accessUrl : '$baseUrl$accessUrl';
-      if (accToken.isNotEmpty && !payUrl.contains('access_token=')) {
-        payUrl += payUrl.contains('?') ? '&access_token=$accToken' : '?access_token=$accToken';
+      if (accToken.isNotEmpty &&
+          accToken != 'false' &&
+          !payUrl.contains('access_token=')) {
+        payUrl += payUrl.contains('?')
+            ? '&access_token=$accToken'
+            : '?access_token=$accToken';
       }
     } else {
       payUrl = '$baseUrl/my/invoices/$invId';
-      if (accToken.isNotEmpty) {
+      if (accToken.isNotEmpty && accToken != 'false') {
         payUrl += '?access_token=$accToken';
       }
     }
+
+    debugPrint('🌐 [Payment] Launching payment webview URL: $payUrl');
 
     if (!context.mounted) return;
 
@@ -112,11 +146,16 @@ class _UpcomingAppointmentDetailsScreenState
       MaterialPageRoute(
         builder: (ctx) => OdooPaymentWebviewScreen(
           url: payUrl,
-          title: b.notes.isNotEmpty ? 'Invoice (${b.notes})' : 'Invoice Payment',
+          title: b.notes.isNotEmpty
+              ? 'Invoice (${b.notes})'
+              : 'Invoice Payment',
           onPaymentSuccess: () {
             debugPrint('🟢 [Payment] Payment detected! Refreshing bookings...');
             try {
-              final controller = Provider.of<BookingsController>(context, listen: false);
+              final controller = Provider.of<BookingsController>(
+                context,
+                listen: false,
+              );
               controller.loadBookings();
             } catch (_) {}
           },
@@ -127,7 +166,9 @@ class _UpcomingAppointmentDetailsScreenState
     if (paymentDone == true && context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Payment completed successfully! Redirected to mobile app.'),
+          content: Text(
+            'Payment completed successfully! Redirected to mobile app.',
+          ),
           backgroundColor: Color(0xFF2E7D32),
           duration: Duration(seconds: 4),
         ),
@@ -231,7 +272,8 @@ class _UpcomingAppointmentDetailsScreenState
     ).format(b.bookingDateTime);
     final String slotTimeStr = DateFormat('hh:mm a').format(b.bookingDateTime);
 
-    final bool showInvoiceView = widget.isDownPaymentInvoice || b.isDownPaymentInvoice;
+    final bool showInvoiceView =
+        widget.isDownPaymentInvoice || b.isDownPaymentInvoice;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF7F5F0),
@@ -251,128 +293,262 @@ class _UpcomingAppointmentDetailsScreenState
               physics: const BouncingScrollPhysics(),
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
               child: showInvoiceView
-                  ? _buildDownPaymentInvoiceBody(context, b, selectedCar, carType, fullDateStr, slotTimeStr)
+                  ? _buildDownPaymentInvoiceBody(
+                      context,
+                      b,
+                      selectedCar,
+                      carType,
+                      fullDateStr,
+                      slotTimeStr,
+                    )
                   : Column(
                       children: [
-                  // Two-tone saw-tooth ticket card matching NewEstimateScreen & Figma
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: const Color(0xFFEBE7E0)),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.06),
-                          blurRadius: 16,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    clipBehavior: Clip.antiAlias,
-                    child: Column(
-                      children: [
-                        // Top Dark Price Header
+                        // Two-tone saw-tooth ticket card matching NewEstimateScreen & Figma
                         Container(
-                          width: double.infinity,
-                          color: const Color(0xFF1D1813),
-                          padding: const EdgeInsets.fromLTRB(20, 24, 20, 18),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: const Color(0xFFEBE7E0)),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.06),
+                                blurRadius: 16,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          clipBehavior: Clip.antiAlias,
                           child: Column(
                             children: [
+                              // Top Dark Price Header
                               Container(
-                                width: 44,
-                                height: 44,
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF2A231C),
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: const Color(0xFFC4913F).withValues(alpha: 0.4),
-                                  ),
+                                width: double.infinity,
+                                color: const Color(0xFF1D1813),
+                                padding: const EdgeInsets.fromLTRB(
+                                  20,
+                                  24,
+                                  20,
+                                  18,
                                 ),
-                                child: const Center(
-                                  child: Icon(
-                                    Icons.cleaning_services_outlined,
-                                    color: Color(0xFFC4913F),
-                                    size: 22,
-                                  ),
+                                child: Column(
+                                  children: [
+                                    Container(
+                                      width: 44,
+                                      height: 44,
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF2A231C),
+                                        shape: BoxShape.circle,
+                                        border: Border.all(
+                                          color: const Color(
+                                            0xFFC4913F,
+                                          ).withValues(alpha: 0.4),
+                                        ),
+                                      ),
+                                      child: const Center(
+                                        child: Icon(
+                                          Icons.cleaning_services_outlined,
+                                          color: Color(0xFFC4913F),
+                                          size: 22,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 12),
+                                    Text(
+                                      'Estimated cost for your $serviceTitle service',
+                                      textAlign: TextAlign.center,
+                                      style: GoogleFonts.montserrat(
+                                        fontSize: 12,
+                                        color: const Color(0xFFC5B7A1),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Text(
+                                      priceStr,
+                                      style: GoogleFonts.outfit(
+                                        fontSize: 38,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
-                              const SizedBox(height: 12),
-                              Text(
-                                'Estimated cost for your $serviceTitle service',
-                                textAlign: TextAlign.center,
-                                style: GoogleFonts.montserrat(
-                                  fontSize: 12,
-                                  color: const Color(0xFFC5B7A1),
+
+                              // Sawtooth Ticket Serrated Teeth Transition
+                              CustomPaint(
+                                size: const Size(double.infinity, 12),
+                                painter: SawtoothTicketPainter(
+                                  darkColor: const Color(0xFF1D1813),
+                                  lightColor: Colors.white,
                                 ),
                               ),
-                              const SizedBox(height: 6),
-                              Text(
-                                priceStr,
-                                style: GoogleFonts.outfit(
-                                  fontSize: 38,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
+
+                              // Bottom Light Details Container
+                              Container(
+                                padding: const EdgeInsets.all(20),
+                                child: Column(
+                                  children: [
+                                    _buildLightDetailRow(
+                                      'Selected Car',
+                                      selectedCar,
+                                    ),
+                                    const SizedBox(height: 12),
+                                    _buildLightDetailRow('Car Type', carType),
+                                    const SizedBox(height: 12),
+                                    _buildLightDetailRow(
+                                      'Service',
+                                      serviceTitle,
+                                    ),
+                                    const SizedBox(height: 14),
+
+                                    // Dashed Divider Line
+                                    CustomPaint(
+                                      size: const Size(double.infinity, 1),
+                                      painter: DashedLinePainter(
+                                        color: const Color(0xFFE5DFD5),
+                                      ),
+                                    ),
+
+                                    const SizedBox(height: 14),
+                                    _buildLightDetailRow(
+                                      'Service Date',
+                                      fullDateStr,
+                                    ),
+                                    const SizedBox(height: 12),
+                                    _buildLightDetailRow('Slot', slotTimeStr),
+
+                                    const SizedBox(height: 20),
+
+                                    // Button: Get Directions to Garage
+                                    SizedBox(
+                                      width: double.infinity,
+                                      height: 46,
+                                      child: ElevatedButton.icon(
+                                        onPressed: _openDirections,
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: const Color(
+                                            0xFFE8DBCA,
+                                          ),
+                                          foregroundColor: const Color(
+                                            0xFF1D1813,
+                                          ),
+                                          elevation: 0,
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(
+                                              10,
+                                            ),
+                                          ),
+                                        ),
+                                        icon: const Icon(
+                                          Icons.location_on_outlined,
+                                          size: 18,
+                                          color: Color(0xFF1D1813),
+                                        ),
+                                        label: Text(
+                                          'Get Directions to Garage',
+                                          style: GoogleFonts.outfit(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ],
                           ),
                         ),
 
-                        // Sawtooth Ticket Serrated Teeth Transition
-                        CustomPaint(
-                          size: const Size(double.infinity, 12),
-                          painter: SawtoothTicketPainter(
-                            darkColor: const Color(0xFF1D1813),
-                            lightColor: Colors.white,
+                        const SizedBox(height: 14),
+
+                        // Explanatory note below dark card
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 6),
+                          child: Text(
+                            'The above mentioned amount is the base price. We will share the final pricing after completing our inspection on $dateDayStr at $slotTimeStr.',
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.montserrat(
+                              fontSize: 11.5,
+                              color: const Color(0xFF7A7063),
+                              height: 1.4,
+                            ),
                           ),
                         ),
 
-                        // Bottom Light Details Container
+                        const SizedBox(height: 24),
+
+                        // Timeline Card: "What will happen next" (Figma Screen 2)
                         Container(
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF1D1813),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
                           padding: const EdgeInsets.all(20),
                           child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              _buildLightDetailRow('Selected Car', selectedCar),
-                              const SizedBox(height: 12),
-                              _buildLightDetailRow('Car Type', carType),
-                              const SizedBox(height: 12),
-                              _buildLightDetailRow('Service', serviceTitle),
-                              const SizedBox(height: 14),
-
-                              // Dashed Divider Line
-                              CustomPaint(
-                                size: const Size(double.infinity, 1),
-                                painter: DashedLinePainter(color: const Color(0xFFE5DFD5)),
+                              Text(
+                                'What will happen next',
+                                style: GoogleFonts.lora(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
                               ),
+                              const SizedBox(height: 18),
 
-                              const SizedBox(height: 14),
-                              _buildLightDetailRow('Service Date', fullDateStr),
-                              const SizedBox(height: 12),
-                              _buildLightDetailRow('Slot', slotTimeStr),
+                              _buildTimelineStep(
+                                1,
+                                'Book your slot with us',
+                                isDone: true,
+                              ),
+                              _buildTimelineStep(
+                                2,
+                                'Inspection of your car on the booked slot',
+                                isCurrent: true,
+                              ),
+                              _buildTimelineStep(
+                                3,
+                                'New quote with the updated amount post inspection',
+                              ),
+                              _buildTimelineStep(4, 'Accept the quote'),
+                              _buildTimelineStep(
+                                5,
+                                'Get your car serviced!',
+                                isLast: true,
+                              ),
+                            ],
+                          ),
+                        ),
 
-                              const SizedBox(height: 20),
+                        const SizedBox(height: 24),
 
-                              // Button: Get Directions to Garage
-                              SizedBox(
-                                width: double.infinity,
-                                height: 46,
-                                child: ElevatedButton.icon(
-                                  onPressed: _openDirections,
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFFE8DBCA),
-                                    foregroundColor: const Color(0xFF1D1813),
-                                    elevation: 0,
+                        // Bottom Action Buttons
+                        Row(
+                          children: [
+                            Expanded(
+                              child: SizedBox(
+                                height: 48,
+                                child: OutlinedButton.icon(
+                                  onPressed: _confirmCancelAppointment,
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: const Color(0xFFB71C1C),
+                                    side: const BorderSide(
+                                      color: Color(0xFFE57373),
+                                      width: 1.2,
+                                    ),
                                     shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(10),
+                                      borderRadius: BorderRadius.circular(12),
                                     ),
                                   ),
                                   icon: const Icon(
-                                    Icons.location_on_outlined,
-                                    size: 18,
-                                    color: Color(0xFF1D1813),
+                                    Icons.cancel_outlined,
+                                    size: 16,
                                   ),
                                   label: Text(
-                                    'Get Directions to Garage',
+                                    'Cancel',
                                     style: GoogleFonts.outfit(
                                       fontSize: 13,
                                       fontWeight: FontWeight.bold,
@@ -380,145 +556,48 @@ class _UpcomingAppointmentDetailsScreenState
                                   ),
                                 ),
                               ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 14),
-
-                  // Explanatory note below dark card
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 6),
-                    child: Text(
-                      'The above mentioned amount is the base price. We will share the final pricing after completing our inspection on $dateDayStr at $slotTimeStr.',
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.montserrat(
-                        fontSize: 11.5,
-                        color: const Color(0xFF7A7063),
-                        height: 1.4,
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  // Timeline Card: "What will happen next" (Figma Screen 2)
-                  Container(
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF1D1813),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'What will happen next',
-                          style: GoogleFonts.lora(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                        const SizedBox(height: 18),
-
-                        _buildTimelineStep(
-                          1,
-                          'Book your slot with us',
-                          isDone: true,
-                        ),
-                        _buildTimelineStep(
-                          2,
-                          'Inspection of your car on the booked slot',
-                          isCurrent: true,
-                        ),
-                        _buildTimelineStep(
-                          3,
-                          'New quote with the updated amount post inspection',
-                        ),
-                        _buildTimelineStep(4, 'Accept the quote'),
-                        _buildTimelineStep(
-                          5,
-                          'Get your car serviced!',
-                          isLast: true,
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  // Bottom Action Buttons
-                  Row(
-                    children: [
-                      Expanded(
-                        child: SizedBox(
-                          height: 48,
-                          child: OutlinedButton.icon(
-                            onPressed: _confirmCancelAppointment,
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: const Color(0xFFB71C1C),
-                              side: const BorderSide(
-                                color: Color(0xFFE57373),
-                                width: 1.2,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
                             ),
-                            icon: const Icon(Icons.cancel_outlined, size: 16),
-                            label: Text(
-                              'Cancel',
-                              style: GoogleFonts.outfit(
-                                fontSize: 13,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: SizedBox(
-                          height: 48,
-                          child: ElevatedButton.icon(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                      LiveTrackingScreen(booking: b),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: SizedBox(
+                                height: 48,
+                                child: ElevatedButton.icon(
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            LiveTrackingScreen(booking: b),
+                                      ),
+                                    );
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFFC4913F),
+                                    foregroundColor: const Color(0xFF1D1813),
+                                    elevation: 0,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                  icon: const Icon(
+                                    Icons.radar_outlined,
+                                    size: 16,
+                                  ),
+                                  label: Text(
+                                    'Track Live',
+                                    style: GoogleFonts.outfit(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
                                 ),
-                              );
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFC4913F),
-                              foregroundColor: const Color(0xFF1D1813),
-                              elevation: 0,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
                               ),
                             ),
-                            icon: const Icon(Icons.radar_outlined, size: 16),
-                            label: Text(
-                              'Track Live',
-                              style: GoogleFonts.outfit(
-                                fontSize: 13,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
+                          ],
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-                ],
-              ),
+                        const SizedBox(height: 24),
+                      ],
+                    ),
             ),
           ),
         ],
@@ -534,7 +613,9 @@ class _UpcomingAppointmentDetailsScreenState
     String fullDateStr,
     String slotTimeStr,
   ) {
-    final bool isDroppedOff = b.carDropOffStatus.toLowerCase().contains('dropped');
+    final bool isDroppedOff = b.carDropOffStatus.toLowerCase().contains(
+      'dropped',
+    );
     final double addOnsTotal = b.addOns.fold(
       0.0,
       (sum, item) => sum + ((item['price'] as num?)?.toDouble() ?? 0.0),
@@ -592,12 +673,19 @@ class _UpcomingAppointmentDetailsScreenState
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
-                      color: isDroppedOff ? const Color(0xFFE8F5E9) : const Color(0xFFFAF3E8),
+                      color: isDroppedOff
+                          ? const Color(0xFFE8F5E9)
+                          : const Color(0xFFFAF3E8),
                       borderRadius: BorderRadius.circular(6),
                       border: Border.all(
-                        color: isDroppedOff ? const Color(0xFF81C784) : const Color(0xFFC4913F).withValues(alpha: 0.4),
+                        color: isDroppedOff
+                            ? const Color(0xFF81C784)
+                            : const Color(0xFFC4913F).withValues(alpha: 0.4),
                       ),
                     ),
                     child: Text(
@@ -605,7 +693,9 @@ class _UpcomingAppointmentDetailsScreenState
                       style: GoogleFonts.outfit(
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
-                        color: isDroppedOff ? const Color(0xFF2E7D32) : const Color(0xFFC4913F),
+                        color: isDroppedOff
+                            ? const Color(0xFF2E7D32)
+                            : const Color(0xFFC4913F),
                       ),
                     ),
                   ),
@@ -680,10 +770,7 @@ class _UpcomingAppointmentDetailsScreenState
                 'R ${b.amountPaid.toStringAsFixed(2)}',
               ),
               const SizedBox(height: 12),
-              _buildLightDetailRow(
-                'Amount Paid On',
-                b.amountPaidOn,
-              ),
+              _buildLightDetailRow('Amount Paid On', b.amountPaidOn),
               const SizedBox(height: 12),
               _buildLightDetailRow(
                 'Pending Amount',

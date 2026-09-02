@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 import 'package:timeless_detailing_customer_app/core/network/odoo_client.dart';
 import 'package:timeless_detailing_customer_app/features/services/models/service_model.dart';
@@ -11,7 +12,7 @@ import 'package:timeless_detailing_customer_app/features/tracking/models/project
 class MockOdooService implements BaseOdooService {
   @override
   String get baseUrl =>
-      'https://keerthan-lfi-lfi-timeless-detailing-uat-36684365.dev.odoo.com';
+      'https://keerthan-lfi-lfi-timeless-detailing1-uat-37341397.dev.odoo.com';
 
   @override
   String get db => 'keerthan-lfi-lfi-timeless-detailing-uat-36684365';
@@ -376,17 +377,41 @@ class MockOdooService implements BaseOdooService {
   @override
   Future<List<ProductCategory>> getProductCategories() async {
     return const [
-      ProductCategory(id: 1, name: 'Protection', sequence: 10, writeDate: '2026-08-16 13:31:33'),
-      ProductCategory(id: 2, name: 'Paint Care', sequence: 10, writeDate: '2026-08-16 13:33:21'),
-      ProductCategory(id: 3, name: 'Maintenance', sequence: 10, writeDate: '2026-08-16 13:34:03'),
-      ProductCategory(id: 4, name: 'Interior', sequence: 10, writeDate: '2026-08-16 13:34:39'),
+      ProductCategory(
+        id: 1,
+        name: 'Protection',
+        sequence: 10,
+        writeDate: '2026-08-16 13:31:33',
+      ),
+      ProductCategory(
+        id: 2,
+        name: 'Paint Care',
+        sequence: 10,
+        writeDate: '2026-08-16 13:33:21',
+      ),
+      ProductCategory(
+        id: 3,
+        name: 'Maintenance',
+        sequence: 10,
+        writeDate: '2026-08-16 13:34:03',
+      ),
+      ProductCategory(
+        id: 4,
+        name: 'Interior',
+        sequence: 10,
+        writeDate: '2026-08-16 13:34:39',
+      ),
     ];
   }
 
   @override
-  Future<List<DetailService>> getServicesFromProductTemplate({int? categoryId}) async {
+  Future<List<DetailService>> getServicesFromProductTemplate({
+    int? categoryId,
+  }) async {
     if (categoryId == null) return _mockServices;
-    return _mockServices.where((s) => s.mobileCategoryId == categoryId).toList();
+    return _mockServices
+        .where((s) => s.mobileCategoryId == categoryId)
+        .toList();
   }
 
   @override
@@ -597,7 +622,7 @@ class MockOdooService implements BaseOdooService {
         'amount_total': 1950.0,
         'date_order': '2026-08-16 14:00:00',
         'note': 'Full ceramic protection quote.',
-      }
+      },
     ];
   }
 
@@ -611,7 +636,7 @@ class MockOdooService implements BaseOdooService {
         'amount_total': 1950.0,
         'date_order': '2026-08-16 15:30:00',
         'note': 'Confirmed sale order.',
-      }
+      },
     ];
   }
 
@@ -677,7 +702,7 @@ class MockOdooService implements BaseOdooService {
           'price_unit': 1500.0,
           'price_subtotal': 1500.0,
           'price_total': 1725.0,
-        }
+        },
       ],
     };
   }
@@ -710,38 +735,51 @@ class MockOdooService implements BaseOdooService {
         'platform': 'android',
         'token': 'eYNuTm8fRZWeRUsC...',
         'active': true,
-      }
+      },
     ];
   }
 
   @override
-  Future<List<Map<String, dynamic>>> getUserNotifications({int? partnerId}) async {
+  Future<List<Map<String, dynamic>>> getUserNotifications({
+    int? partnerId,
+  }) async {
     return [
       {
         'id': 1,
         'title': 'New Quotation Received',
-        'body': 'Your technician has completed vehicle inspection and generated your final quotation.',
-        'date': DateTime.now().subtract(const Duration(hours: 2)).toIso8601String(),
+        'body':
+            'Your technician has completed vehicle inspection and generated your final quotation.',
+        'date': DateTime.now()
+            .subtract(const Duration(hours: 2))
+            .toIso8601String(),
         'read': false,
         'order_id': 20,
       },
       {
         'id': 2,
         'title': 'Appointment Confirmed',
-        'body': 'Your appointment for Paint Protection Film (PPF) is confirmed.',
-        'date': DateTime.now().subtract(const Duration(days: 1)).toIso8601String(),
+        'body':
+            'Your appointment for Paint Protection Film (PPF) is confirmed.',
+        'date': DateTime.now()
+            .subtract(const Duration(days: 1))
+            .toIso8601String(),
         'read': true,
       },
     ];
   }
 
   @override
-  Future<Map<String, dynamic>?> getNotificationDetail(int notificationId) async {
+  Future<Map<String, dynamic>?> getNotificationDetail(
+    int notificationId,
+  ) async {
     return {
       'id': notificationId,
       'title': 'New Quotation Received',
-      'body': 'Your technician has completed vehicle inspection and generated your final quotation.',
-      'date': DateTime.now().subtract(const Duration(hours: 2)).toIso8601String(),
+      'body':
+          'Your technician has completed vehicle inspection and generated your final quotation.',
+      'date': DateTime.now()
+          .subtract(const Duration(hours: 2))
+          .toIso8601String(),
       'read': true,
       'order_id': 20,
     };
@@ -774,7 +812,7 @@ class MockOdooService implements BaseOdooService {
             'name': 'Ceramic Coating',
             'price_total': 2242.5,
             'warranty_label': '6 Year Warranty',
-          }
+          },
         ],
         'tax_amount': 175.5,
         'amount_paid': 0,
@@ -784,5 +822,10 @@ class MockOdooService implements BaseOdooService {
         'deposit_percentage_label': '60%',
       },
     };
+  }
+
+  @override
+  Future<List<Cookie>> getCookies() async {
+    return [];
   }
 }

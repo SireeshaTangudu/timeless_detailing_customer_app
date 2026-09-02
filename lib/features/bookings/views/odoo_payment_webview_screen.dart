@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:timeless_detailing_customer_app/core/network/odoo_client.dart';
 
 class OdooPaymentWebviewScreen extends StatefulWidget {
   final String url;
@@ -20,7 +22,7 @@ class OdooPaymentWebviewScreen extends StatefulWidget {
 }
 
 class _OdooPaymentWebviewScreenState extends State<OdooPaymentWebviewScreen> {
-  late final WebViewController _controller;
+  WebViewController? _controller;
   bool _isLoading = true;
   int _loadingProgress = 0;
   bool _hasTriggeredSuccess = false;
@@ -31,8 +33,8 @@ class _OdooPaymentWebviewScreenState extends State<OdooPaymentWebviewScreen> {
     _initWebViewController();
   }
 
-  void _initWebViewController() {
-    _controller = WebViewController()
+  Future<void> _initWebViewController() async {
+    final controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setBackgroundColor(const Color(0xFFF7F5F0))
       ..setNavigationDelegate(
@@ -73,8 +75,34 @@ class _OdooPaymentWebviewScreenState extends State<OdooPaymentWebviewScreen> {
             debugPrint('🔴 [WebView] Resource error: ${error.description}');
           },
         ),
-      )
-      ..loadRequest(Uri.parse(widget.url));
+      );
+
+    try {
+      final odooService = Provider.of<BaseOdooService>(context, listen: false);
+      final cookies = await odooService.getCookies();
+      final uri = Uri.parse(widget.url);
+      final cookieManager = WebViewCookieManager();
+      for (final c in cookies) {
+        debugPrint('🍪 [WebView] Injecting cookie: ${c.name}=${c.value} for domain ${uri.host}');
+        await cookieManager.setCookie(
+          WebViewCookie(
+            name: c.name,
+            value: c.value,
+            domain: uri.host,
+            path: c.path ?? '/',
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('Error setting WebView cookies: $e');
+    }
+
+    controller.loadRequest(Uri.parse(widget.url));
+    if (mounted) {
+      setState(() {
+        _controller = controller;
+      });
+    }
   }
 
   bool _checkUrlForSuccess(String url) {
@@ -132,18 +160,22 @@ class _OdooPaymentWebviewScreenState extends State<OdooPaymentWebviewScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh, color: Color(0xFFC4913F)),
-            onPressed: () => _controller.reload(),
+            onPressed: () => _controller?.reload(),
             tooltip: 'Refresh Page',
           ),
         ],
         bottom: _isLoading
             ? PreferredSize(
                 preferredSize: const Size.fromHeight(3),
-                child: LinearProgressIndicator(
-                  value: _loadingProgress / 100.0,
-                  backgroundColor: const Color(0xFF2A231C),
-                  valueColor: const AlwaysStoppedAnimation<Color>(
-                    Color(0xFFC4913F),
+                child: SizedBox(
+                  height: 3,
+                  width: double.infinity,
+                  child: LinearProgressIndicator(
+                    value: _loadingProgress / 100.0,
+                    backgroundColor: const Color(0xFF2A231C),
+                    valueColor: const AlwaysStoppedAnimation<Color>(
+                      Color(0xFFC4913F),
+                    ),
                   ),
                 ),
               )
@@ -152,7 +184,13 @@ class _OdooPaymentWebviewScreenState extends State<OdooPaymentWebviewScreen> {
       body: Stack(
         children: [
           Positioned.fill(
-            child: WebViewWidget(controller: _controller),
+            child: _controller != null
+                ? WebViewWidget(controller: _controller!)
+                : const Center(
+                    child: CircularProgressIndicator(
+                      color: Color(0xFFC4913F),
+                    ),
+                  ),
           ),
           if (_isLoading && _loadingProgress < 30)
             const Center(

@@ -159,18 +159,28 @@ class AuthController extends ChangeNotifier {
     notifyListeners();
     try {
       final isLoggedIn = await _odooService.checkAuthStatus().timeout(
-        const Duration(seconds: 10),
+        const Duration(seconds: 5),
         onTimeout: () => false,
       );
-      
-      _isAuthenticated = isLoggedIn;
 
-      if (_isAuthenticated) {
-        final profile = await _odooService
-            .getCustomerProfile('current')
-            .timeout(const Duration(seconds: 5), onTimeout: () => null);
-        _userProfile = profile ?? _odooService.savedUserInfo;
+      if (isLoggedIn) {
+        _isAuthenticated = true;
+        _userProfile = _odooService.savedUserInfo;
+        notifyListeners(); // Instantly inform splash/UI that user IS logged in from local persistent storage
+
+        // Fetch fresh profile in background without blocking splash transition or revoking auth on failure
+        try {
+          final profile = await _odooService
+              .getCustomerProfile('current')
+              .timeout(const Duration(seconds: 4), onTimeout: () => null);
+          if (profile != null) {
+            _userProfile = profile;
+          }
+        } catch (e) {
+          debugPrint('🟡 Profile refresh warning on splash: $e');
+        }
       } else {
+        _isAuthenticated = false;
         _userProfile = null;
       }
 
@@ -179,6 +189,13 @@ class AuthController extends ChangeNotifier {
       return _isAuthenticated;
     } catch (e) {
       debugPrint('AuthController.checkAuthStatus error: $e');
+      if (_odooService.savedUserInfo != null) {
+        _isAuthenticated = true;
+        _userProfile = _odooService.savedUserInfo;
+        _isLoading = false;
+        notifyListeners();
+        return true;
+      }
       _isAuthenticated = false;
       _userProfile = null;
       _isLoading = false;

@@ -19,6 +19,7 @@ import 'package:timeless_detailing_customer_app/features/bookings/models/booking
 import 'package:timeless_detailing_customer_app/features/bookings/views/upcoming_appointment_details_screen.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/models/estimation_model.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/views/estimation_screen.dart';
+import 'package:timeless_detailing_customer_app/features/notifications/views/notifications_screen.dart';
 import 'package:timeless_detailing_customer_app/core/widgets/custom_loader.dart';
 import 'package:timeless_detailing_customer_app/core/utils/app_animations.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -200,16 +201,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
             color: const Color(0xFFC4913F),
             backgroundColor: Colors.white,
             onRefresh: () async {
-              debugPrint('🔄 Manual pull-to-refresh triggered on Home page! Fetching product categories...');
+              debugPrint(
+                '🔄 Manual pull-to-refresh triggered on Home page! Fetching product categories...',
+              );
               await servicesController.fetchProductCategories();
               if (context.mounted) {
-                await Provider.of<BookingsController>(context, listen: false).loadBookings();
+                await Provider.of<BookingsController>(
+                  context,
+                  listen: false,
+                ).loadBookings();
               }
             },
             child: LayoutBuilder(
               builder: (context, constraints) {
                 return SingleChildScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                  physics: const AlwaysScrollableScrollPhysics(
+                    parent: BouncingScrollPhysics(),
+                  ),
                   child: ConstrainedBox(
                     constraints: BoxConstraints(
                       minHeight: constraints.maxHeight,
@@ -252,7 +260,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                                     text: 'Hello ',
                                                     style: GoogleFonts.inter(
                                                       fontSize: 12,
-                                                      fontWeight: FontWeight.w400,
+                                                      fontWeight:
+                                                          FontWeight.w400,
                                                       color: const Color(
                                                         0xFF3A2F1E,
                                                       ),
@@ -261,11 +270,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                                   TextSpan(
                                                     text:
                                                         auth.userName.isNotEmpty
-                                                            ? auth.userName
-                                                            : 'John Doe',
+                                                        ? auth.userName
+                                                        : 'John Doe',
                                                     style: AppTypography.canela(
                                                       fontSize: 14,
-                                                      fontWeight: FontWeight.w700,
+                                                      fontWeight:
+                                                          FontWeight.w700,
                                                       color: const Color(
                                                         0xFF3A2F1E,
                                                       ),
@@ -275,42 +285,48 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                               ),
                                             ),
 
-                                            // Top Right Action Buttons: Refresh + Drawer Menu
+                                            // Top Right Action Buttons: Notifications Bell + Drawer Menu
                                             Row(
                                               children: [
-                                                // Manual Refresh Icon Button
+                                                // Notifications Bell Icon Button
                                                 AnimatedPressable(
-                                                  onTap: () async {
-                                                    debugPrint('🔄 Manual refresh button tapped on Home page! Fetching product categories...');
-                                                    ScaffoldMessenger.of(context).showSnackBar(
-                                                      const SnackBar(
-                                                        content: Text('Refreshing categories & services...'),
-                                                        duration: Duration(seconds: 1),
-                                                        backgroundColor: Color(0xFFC4913F),
+                                                  onTap: () {
+                                                    debugPrint(
+                                                      '🔔 Notifications bell button tapped on Home page!',
+                                                    );
+                                                    Navigator.push(
+                                                      context,
+                                                      FadeSlidePageRoute(
+                                                        page:
+                                                            const NotificationsScreen(),
                                                       ),
                                                     );
-                                                    await servicesController.fetchProductCategories();
-                                                    if (context.mounted) {
-                                                      await Provider.of<BookingsController>(context, listen: false).loadBookings();
-                                                    }
                                                   },
                                                   child: Container(
                                                     width: 38,
                                                     height: 38,
-                                                    margin: const EdgeInsets.only(right: 8),
+                                                    margin:
+                                                        const EdgeInsets.only(
+                                                          right: 8,
+                                                        ),
                                                     decoration: BoxDecoration(
                                                       shape: BoxShape.circle,
                                                       border: Border.all(
-                                                        color: const Color(0xFFAB8C5A),
+                                                        color: const Color(
+                                                          0xFFAB8C5A,
+                                                        ),
                                                         width: 1.2,
                                                       ),
                                                       color: Colors.white,
                                                     ),
                                                     child: const Center(
                                                       child: Icon(
-                                                        Icons.refresh,
-                                                        color: Color(0xFF3A2F1E),
-                                                        size: 18,
+                                                        Icons
+                                                            .notifications_outlined,
+                                                        color: Color(
+                                                          0xFFAB8C5A,
+                                                        ),
+                                                        size: 20,
                                                       ),
                                                     ),
                                                   ),
@@ -322,7 +338,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                                     debugPrint(
                                                       '🔵 [DashboardScreen] Menu button clicked!',
                                                     );
-                                                    if (widget.onMenuTap != null) {
+                                                    if (widget.onMenuTap !=
+                                                        null) {
                                                       widget.onMenuTap!();
                                                     } else {
                                                       try {
@@ -365,164 +382,178 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   ),
                                   const SizedBox(height: 34),
 
-                                // Welcome Subheading & Headline
-                                FadeSlideIn(
-                                  delay: const Duration(milliseconds: 200),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        'Welcome to Timeless Detailing',
-                                        style: GoogleFonts.lora(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w400,
-                                          color: const Color(0xFF3A2F1E),
-                                          letterSpacing: 0.2,
+                                  // Welcome Subheading & Headline
+                                  FadeSlideIn(
+                                    delay: const Duration(milliseconds: 200),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Welcome to Timeless Detailing',
+                                          style: GoogleFonts.lora(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w400,
+                                            color: const Color(0xFF3A2F1E),
+                                            letterSpacing: 0.2,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          'What are you\nlooking for today?',
+                                          style: GoogleFonts.lora(
+                                            fontSize: 35,
+                                            fontWeight: FontWeight.bold,
+                                            color: const Color(0xFF3A2F1E),
+                                            height: 1.15,
+                                            letterSpacing: -0.2,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+
+                              // Bottom Section: Swipe Cue, Cards, and Optional Upcoming Card
+                              Padding(
+                                padding: const EdgeInsets.only(top: 24),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    // Cue Label: "Swipe to view all categories »" with repeating arrow nudge
+                                    FadeSlideIn(
+                                      delay: const Duration(milliseconds: 300),
+                                      child: Align(
+                                        alignment: Alignment.bottomRight,
+                                        child: Padding(
+                                          padding: const EdgeInsets.only(
+                                            right: 8,
+                                            bottom: 12,
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Text(
+                                                'Swipe to view all categories',
+                                                style: GoogleFonts.lora(
+                                                  fontSize: 12,
+                                                  fontStyle: FontStyle.italic,
+                                                  fontWeight: FontWeight.w400,
+                                                  color: const Color(
+                                                    0xFF000000,
+                                                  ),
+                                                ),
+                                              ),
+                                              const SizedBox(width: 4),
+                                              const Icon(
+                                                    Icons.double_arrow_rounded,
+                                                    size: 14,
+                                                    color: Color(0xFFC4913F),
+                                                  )
+                                                  .animate(
+                                                    onPlay: (controller) =>
+                                                        controller.repeat(),
+                                                  )
+                                                  .moveX(
+                                                    begin: 0,
+                                                    end: 4,
+                                                    duration: 800.ms,
+                                                    curve: Curves.easeInOut,
+                                                  ),
+                                            ],
+                                          ),
                                         ),
                                       ),
-                                      const SizedBox(height: 8),
-                                      Text(
-                                        'What are you\nlooking for today?',
-                                        style: GoogleFonts.lora(
-                                          fontSize: 35,
-                                          fontWeight: FontWeight.bold,
-                                          color: const Color(0xFF3A2F1E),
-                                          height: 1.15,
-                                          letterSpacing: -0.2,
+                                    ),
+
+                                    // Horizontal Scrollable Cards View for Product Categories
+                                    FadeSlideIn(
+                                      delay: const Duration(milliseconds: 400),
+                                      child: Transform.translate(
+                                        offset: const Offset(-24, 0),
+                                        child: SizedBox(
+                                          width: MediaQuery.of(context).size.width,
+                                          height: 220,
+                                          child:
+                                              (servicesController.isLoading &&
+                                                  servicesController
+                                                      .productCategories
+                                                      .isEmpty)
+                                              ? const FourRotatingDotsLoader()
+                                              : ListView.separated(
+                                                  clipBehavior: Clip.none,
+                                                  scrollDirection:
+                                                      Axis.horizontal,
+                                                  physics:
+                                                      const BouncingScrollPhysics(),
+                                                  padding:
+                                                      const EdgeInsets.symmetric(
+                                                        horizontal: 24,
+                                                      ),
+                                                  itemCount:
+                                                      servicesController
+                                                          .productCategories
+                                                          .length,
+                                                  separatorBuilder: (
+                                                    context,
+                                                    index,
+                                                  ) => const SizedBox(width: 16),
+                                                  itemBuilder: (context, index) {
+                                                    final category =
+                                                        servicesController
+                                                            .productCategories[index];
+                                                    return FadeSlideIn(
+                                                      delay: Duration(
+                                                        milliseconds:
+                                                            400 + (index * 80),
+                                                      ),
+                                                      slideOffset:
+                                                          const Offset(0.15, 0),
+                                                      child:
+                                                          _buildProductCategoryCard(
+                                                            context,
+                                                            category,
+                                                            servicesController,
+                                                            width: 160.0,
+                                                          ),
+                                                    );
+                                                  },
+                                                ),
+                                        ),
+                                      ),
+                                    ),
+
+                                    if (hasUpcoming) ...[
+                                      const SizedBox(height: 18),
+                                      // Upcoming Appointment Card placed BELOW Services
+                                      FadeSlideIn(
+                                        delay: const Duration(
+                                          milliseconds: 500,
+                                        ),
+                                        child: _buildUpcomingAppointmentCard(
+                                          context,
+                                          upcoming.first,
                                         ),
                                       ),
                                     ],
-                                  ),
-                                ),
-                              ],
-                            ),
-
-                            // Bottom Section: Swipe Cue, Cards, and Optional Upcoming Card
-                            Padding(
-                              padding: const EdgeInsets.only(top: 24),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  // Cue Label: "Swipe to view all categories »" with repeating arrow nudge
-                                  FadeSlideIn(
-                                    delay: const Duration(milliseconds: 300),
-                                    child: Align(
-                                      alignment: Alignment.bottomRight,
-                                      child: Padding(
-                                        padding: const EdgeInsets.only(
-                                          right: 8,
-                                          bottom: 12,
-                                        ),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Text(
-                                              'Swipe to view all categories',
-                                              style: GoogleFonts.lora(
-                                                fontSize: 12,
-                                                fontStyle: FontStyle.italic,
-                                                fontWeight: FontWeight.w400,
-                                                color: const Color(0xFF000000),
-                                              ),
-                                            ),
-                                            const SizedBox(width: 4),
-                                            const Icon(
-                                                  Icons.double_arrow_rounded,
-                                                  size: 14,
-                                                  color: Color(0xFFC4913F),
-                                                )
-                                                .animate(
-                                                  onPlay: (controller) =>
-                                                      controller.repeat(),
-                                                )
-                                                .moveX(
-                                                  begin: 0,
-                                                  end: 4,
-                                                  duration: 800.ms,
-                                                  curve: Curves.easeInOut,
-                                                ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-
-                                  // Horizontal Scrollable Cards View for Product Categories
-                                  FadeSlideIn(
-                                    delay: const Duration(milliseconds: 400),
-                                    child: SizedBox(
-                                      height: 220,
-                                      child:
-                                          (servicesController.isLoading &&
-                                              servicesController
-                                                  .productCategories
-                                                  .isEmpty)
-                                          ? const FourRotatingDotsLoader()
-                                          : ListView.separated(
-                                              scrollDirection: Axis.horizontal,
-                                              physics:
-                                                  const BouncingScrollPhysics(),
-                                              itemCount:
-                                                  servicesController
-                                                      .productCategories
-                                                      .length,
-                                              separatorBuilder: (
-                                                context,
-                                                index,
-                                              ) => const SizedBox(width: 16),
-                                              itemBuilder: (context, index) {
-                                                final category =
-                                                    servicesController
-                                                        .productCategories[index];
-                                                return FadeSlideIn(
-                                                  delay: Duration(
-                                                    milliseconds:
-                                                        400 + (index * 80),
-                                                  ),
-                                                  slideOffset: const Offset(
-                                                    0.15,
-                                                    0,
-                                                  ),
-                                                  child: _buildProductCategoryCard(
-                                                    context,
-                                                    category,
-                                                    servicesController,
-                                                  ),
-                                                );
-                                              },
-                                            ),
-                                    ),
-                                  ),
-
-                                  if (hasUpcoming) ...[
-                                    const SizedBox(height: 18),
-                                    // Upcoming Appointment Card placed BELOW Services
-                                    FadeSlideIn(
-                                      delay: const Duration(milliseconds: 500),
-                                      child: _buildUpcomingAppointmentCard(
-                                        context,
-                                        upcoming.first,
-                                      ),
-                                    ),
                                   ],
-                                ],
+                                ),
                               ),
-                            ),
-                          ],
-                        );
-                      },
+                            ],
+                          );
+                        },
+                      ),
                     ),
                   ),
-                ),
-              );
-            },
+                );
+              },
+            ),
           ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   Widget _buildUpcomingAppointmentCard(BuildContext context, Booking booking) {
     final bool isQuoteReceived =
@@ -535,7 +566,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
         (booking.notes.toLowerCase().contains('draft') ||
             booking.notes.toLowerCase().contains('inspection'));
 
-    final bool isAccepted = booking.status == BookingStatus.completed ||
+    final bool isAccepted =
+        booking.status == BookingStatus.completed ||
         booking.notes.toLowerCase().contains('accepted') ||
         booking.notes.toLowerCase().contains('signed');
 
@@ -543,11 +575,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final timeStr = DateFormat('hh:mm a').format(booking.bookingDateTime);
 
     String stageTitle = 'Upcoming Appointment';
-    String stageSubtitle = 'You have an appointment booked for $dateDayStr, $timeStr';
+    String stageSubtitle =
+        'You have an appointment booked for $dateDayStr, $timeStr';
     String buttonText = 'View Details';
     Color badgeColor = const Color(0xFFC4913F);
 
-    final bool isDownPaymentInvoice = booking.isDownPaymentInvoice ||
+    final bool isDownPaymentInvoice =
+        booking.isDownPaymentInvoice ||
         booking.notes.toLowerCase().contains('invoice') ||
         booking.notes.toLowerCase().contains('down payment');
 
@@ -623,16 +657,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 decoration: BoxDecoration(
                   color: badgeColor.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: badgeColor.withValues(alpha: 0.4), width: 0.8),
+                  border: Border.all(
+                    color: badgeColor.withValues(alpha: 0.4),
+                    width: 0.8,
+                  ),
                 ),
                 child: Text(
                   isDownPaymentInvoice
                       ? 'INVOICE READY'
                       : isQuoteReceived
-                          ? 'ACTION REQUIRED'
-                          : isDraft
-                              ? 'PENDING INSPECTION'
-                              : 'CONFIRMED',
+                      ? 'ACTION REQUIRED'
+                      : isDraft
+                      ? 'PENDING INSPECTION'
+                      : 'CONFIRMED',
                   style: GoogleFonts.outfit(
                     fontSize: 9.5,
                     fontWeight: FontWeight.bold,
@@ -886,9 +923,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget _buildProductCategoryCard(
     BuildContext context,
     ProductCategory category,
-    ServicesController controller,
-  ) {
+    ServicesController controller, {
+    double? width,
+  }) {
     final lowerName = category.name.toLowerCase();
+    final cardWidth = width ?? 150.0;
 
     return AnimatedPressable(
       onTap: () {
@@ -906,7 +945,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         }
       },
       child: Container(
-        width: 160,
+        width: cardWidth,
         height: 220,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(20),
@@ -922,9 +961,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         child: Stack(
           children: [
             // 1. Full-bleed Category Image from Odoo / Fallback
-            Positioned.fill(
-              child: _buildCategoryFullBleedImage(category),
-            ),
+            Positioned.fill(child: _buildCategoryFullBleedImage(category)),
 
             // 2. Bottom Dark Gradient Overlay matching Figma
             Positioned.fill(
@@ -936,7 +973,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     stops: [0.3, 1.0],
                     colors: [
                       Colors.transparent,
-                      Color(0xCC000000), // Dark gradient for white text legibility
+                      Color(
+                        0xCC000000,
+                      ), // Dark gradient for white text legibility
                     ],
                   ),
                 ),

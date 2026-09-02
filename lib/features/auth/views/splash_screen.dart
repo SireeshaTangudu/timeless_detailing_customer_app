@@ -63,8 +63,8 @@ class _SplashScreenState extends State<SplashScreen>
     try {
       await Future.wait([
         minSplashFuture,
-        _authFuture?.timeout(const Duration(seconds: 3), onTimeout: () => false) ?? Future.value(false),
-      ]).timeout(const Duration(seconds: 4), onTimeout: () => [null, false]);
+        _authFuture ?? Future.value(false),
+      ]).timeout(const Duration(seconds: 5), onTimeout: () => [null, false]);
     } catch (e) {
       debugPrint('⚠️ Splash navigation wait exception: $e');
     }
@@ -80,11 +80,13 @@ class _SplashScreenState extends State<SplashScreen>
 
     // Check if user is logged in (either via auth status or saved session profile)
     if (auth.isAuthenticated || auth.userProfile != null) {
+      debugPrint('🟢 [SplashScreen] User authenticated, navigating to MainNavigationScaffold');
       Navigator.pushReplacement(
         context,
         FadeSlidePageRoute(page: const MainNavigationScaffold()),
       );
     } else {
+      debugPrint('🔴 [SplashScreen] User unauthenticated, navigating to OnboardingScreen');
       Navigator.pushReplacement(
         context,
         FadeSlidePageRoute(page: const OnboardingScreen()),

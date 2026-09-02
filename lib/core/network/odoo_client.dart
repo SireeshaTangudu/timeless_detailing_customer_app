@@ -102,6 +102,7 @@ abstract class BaseOdooService {
   Future<List<Map<String, dynamic>>> getUserNotifications({int? partnerId});
   Future<Map<String, dynamic>?> getNotificationDetail(int notificationId);
   Future<Map<String, dynamic>?> getInvoiceDetails(int invoiceId);
+  Future<List<Cookie>> getCookies();
 }
 
 class OdooApiService implements BaseOdooService {
@@ -186,6 +187,37 @@ class OdooApiService implements BaseOdooService {
 
   Future<void> _ensureInitialized() async {
     await initialize();
+  }
+
+  @override
+  Future<List<Cookie>> getCookies() async {
+    await _ensureInitialized();
+    final list = <Cookie>[];
+    if (_cookieJar != null) {
+      try {
+        final uri = Uri.parse(baseUrl);
+        final cList = await _cookieJar!.loadForRequest(uri);
+        list.addAll(cList);
+      } catch (e) {
+        debugPrint('getCookies error: $e');
+      }
+    }
+
+    String? sess = _sessionId;
+    if (sess == null || sess.isEmpty) {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        sess = prefs.getString('session_id');
+        if (sess != null && sess.isNotEmpty) {
+          _sessionId = sess;
+        }
+      } catch (_) {}
+    }
+
+    if (sess != null && sess.isNotEmpty && !list.any((c) => c.name == 'session_id')) {
+      list.add(Cookie('session_id', sess));
+    }
+    return list;
   }
 
   bool _isReauthenticating = false;
@@ -333,7 +365,6 @@ class OdooApiService implements BaseOdooService {
     print('Odoo login attempt: URL=$baseUrl, DB=$db, Login=$email');
     try {
       await _ensureInitialized();
-      await _cookieJar?.deleteAll();
 
       final response = await _dio!.post(
         '/web/session/authenticate',
