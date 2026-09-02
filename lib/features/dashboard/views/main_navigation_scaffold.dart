@@ -11,6 +11,8 @@ import 'package:timeless_detailing_customer_app/features/auth/views/profile_scre
 import 'package:timeless_detailing_customer_app/features/auth/views/login_screen.dart';
 import 'package:timeless_detailing_customer_app/features/about/views/about_us_screen.dart';
 
+import 'package:timeless_detailing_customer_app/features/invoices/views/invoices_screen.dart';
+
 class MainNavigationScaffold extends StatefulWidget {
   const MainNavigationScaffold({super.key});
 
@@ -173,17 +175,28 @@ class _MainNavigationScaffoldState extends State<MainNavigationScaffold>
                 title: 'Home',
                 index: 0,
               ),
-              // _buildDrawerItem(
-              //   icon: Icons.cleaning_services_outlined,
-              //   activeIcon: Icons.cleaning_services,
-              //   title: 'Services',
-              //   index: 1,
-              // ),
               _buildDrawerItem(
                 icon: Icons.calendar_month_outlined,
                 activeIcon: Icons.calendar_month,
                 title: 'Bookings',
                 index: 2,
+              ),
+              _buildDrawerItem(
+                icon: Icons.receipt_long_outlined,
+                activeIcon: Icons.receipt_long,
+                title: 'Invoices',
+                index: -1,
+                customOnTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => InvoicesScreen(
+                        onMenuTap: _openDrawer,
+                      ),
+                    ),
+                  );
+                },
               ),
               _buildDrawerItem(
                 icon: Icons.person_outline,

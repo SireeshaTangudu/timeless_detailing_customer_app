@@ -12,6 +12,7 @@ import 'package:timeless_detailing_customer_app/features/bookings/models/garage_
 
 import 'package:timeless_detailing_customer_app/core/network/odoo_client.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/views/odoo_payment_webview_screen.dart';
+import 'package:timeless_detailing_customer_app/features/invoices/views/invoices_screen.dart';
 
 class UpcomingAppointmentDetailsScreen extends StatefulWidget {
   final Booking booking;
@@ -30,6 +31,38 @@ class UpcomingAppointmentDetailsScreen extends StatefulWidget {
 
 class _UpcomingAppointmentDetailsScreenState
     extends State<UpcomingAppointmentDetailsScreen> {
+  Booking? _detailedBooking;
+  bool _isLoadingInvoiceDetails = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchInvoiceDetailsIfNeeded();
+  }
+
+  Future<void> _fetchInvoiceDetailsIfNeeded() async {
+    final b = widget.booking;
+    final int? invId = b.invoiceId ?? int.tryParse(b.id);
+    if (invId != null && (widget.isDownPaymentInvoice || b.isDownPaymentInvoice)) {
+      setState(() => _isLoadingInvoiceDetails = true);
+      try {
+        final odooService = Provider.of<BaseOdooService>(context, listen: false);
+        final detailsMap = await odooService.getInvoiceDetails(invId);
+        if (detailsMap != null && mounted) {
+          setState(() {
+            _detailedBooking = Booking.fromInvoiceJson(detailsMap);
+            _isLoadingInvoiceDetails = false;
+          });
+        } else if (mounted) {
+          setState(() => _isLoadingInvoiceDetails = false);
+        }
+      } catch (e) {
+        debugPrint('Error fetching invoice details on load: $e');
+        if (mounted) setState(() => _isLoadingInvoiceDetails = false);
+      }
+    }
+  }
+
   Future<void> _openDirections() async {
     try {
       final odooService = Provider.of<BaseOdooService>(context, listen: false);
@@ -167,13 +200,18 @@ class _UpcomingAppointmentDetailsScreenState
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'Payment completed successfully! Redirected to mobile app.',
+            'Payment completed successfully! Redirecting to Invoices.',
           ),
           backgroundColor: Color(0xFF2E7D32),
           duration: Duration(seconds: 4),
         ),
       );
-      Navigator.pop(context); // Return to Dashboard Screen
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const InvoicesScreen(),
+        ),
+      );
     }
   }
 
@@ -257,7 +295,7 @@ class _UpcomingAppointmentDetailsScreenState
 
   @override
   Widget build(BuildContext context) {
-    final b = widget.booking;
+    final b = _detailedBooking ?? widget.booking;
     final String serviceTitle = b.service.name;
     final String priceStr = 'R ${b.totalPrice.toStringAsFixed(0)}';
     final String selectedCar = b.vehicleName.isNotEmpty
@@ -289,18 +327,27 @@ class _UpcomingAppointmentDetailsScreenState
             ),
           ),
           Expanded(
-            child: SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-              child: showInvoiceView
-                  ? _buildDownPaymentInvoiceBody(
-                      context,
-                      b,
-                      selectedCar,
-                      carType,
-                      fullDateStr,
-                      slotTimeStr,
-                    )
+            child: _isLoadingInvoiceDetails
+                ? const Center(
+                    child: CircularProgressIndicator(
+                      color: Color(0xFFC4913F),
+                    ),
+                  )
+                : SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 16,
+                    ),
+                    child: showInvoiceView
+                        ? _buildDownPaymentInvoiceBody(
+                            context,
+                            b,
+                            selectedCar,
+                            carType,
+                            fullDateStr,
+                            slotTimeStr,
+                          )
                   : Column(
                       children: [
                         // Two-tone saw-tooth ticket card matching NewEstimateScreen & Figma

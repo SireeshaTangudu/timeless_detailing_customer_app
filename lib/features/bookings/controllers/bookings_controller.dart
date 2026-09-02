@@ -79,6 +79,20 @@ class BookingsController extends ChangeNotifier {
         fetchedBookings.add(Booking.fromOdooJson(map, detailService));
       }
       _bookings = fetchedBookings;
+      
+      // Also fetch user invoices via account.move/web_search_read
+      try {
+        _userInvoices = await _odooService.getUserInvoices(partnerId: id);
+        for (final inv in _userInvoices) {
+          final invBooking = Booking.fromInvoiceJson(inv);
+          if (!_bookings.any((b) => b.invoiceId == invBooking.invoiceId || b.id == invBooking.id)) {
+            _bookings.add(invBooking);
+          }
+        }
+      } catch (invErr) {
+        debugPrint('Error loading user invoices in loadBookings: $invErr');
+      }
+
       _isLoading = false;
       notifyListeners();
     } catch (e) {
@@ -87,6 +101,22 @@ class BookingsController extends ChangeNotifier {
       _bookings = [];
       _isLoading = false;
       notifyListeners();
+    }
+  }
+
+  List<Map<String, dynamic>> _userInvoices = [];
+  List<Map<String, dynamic>> get userInvoices => _userInvoices;
+
+  Future<List<Map<String, dynamic>>> loadInvoices({int? partnerId}) async {
+    final id = partnerId ?? _odooService.currentPartnerId ?? _odooService.currentUid;
+    if (id == null) return [];
+    try {
+      _userInvoices = await _odooService.getUserInvoices(partnerId: id);
+      notifyListeners();
+      return _userInvoices;
+    } catch (e) {
+      debugPrint('loadInvoices error: $e');
+      return [];
     }
   }
 

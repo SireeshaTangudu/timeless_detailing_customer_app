@@ -37,6 +37,9 @@ class _OdooPaymentWebviewScreenState extends State<OdooPaymentWebviewScreen> {
     final controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setBackgroundColor(const Color(0xFFF7F5F0))
+      ..setUserAgent(
+        'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',
+      )
       ..setNavigationDelegate(
         NavigationDelegate(
           onProgress: (int progress) {
@@ -77,27 +80,45 @@ class _OdooPaymentWebviewScreenState extends State<OdooPaymentWebviewScreen> {
         ),
       );
 
+    final Map<String, String> requestHeaders = {};
+
     try {
       final odooService = Provider.of<BaseOdooService>(context, listen: false);
       final cookies = await odooService.getCookies();
       final uri = Uri.parse(widget.url);
       final cookieManager = WebViewCookieManager();
+      final List<String> cookiePairs = [];
+
       for (final c in cookies) {
-        debugPrint('🍪 [WebView] Injecting cookie: ${c.name}=${c.value} for domain ${uri.host}');
-        await cookieManager.setCookie(
-          WebViewCookie(
-            name: c.name,
-            value: c.value,
-            domain: uri.host,
-            path: c.path ?? '/',
-          ),
+        cookiePairs.add('${c.name}=${c.value}');
+        debugPrint(
+          '🍪 [WebView] Injecting cookie: ${c.name}=${c.value} for domain ${uri.host}',
         );
+        try {
+          await cookieManager.setCookie(
+            WebViewCookie(
+              name: c.name,
+              value: c.value,
+              domain: uri.host,
+              path: c.path ?? '/',
+            ),
+          );
+        } catch (_) {}
+      }
+
+      if (cookiePairs.isNotEmpty) {
+        requestHeaders['Cookie'] = cookiePairs.join('; ');
       }
     } catch (e) {
-      debugPrint('Error setting WebView cookies: $e');
+      debugPrint('Error preparing WebView cookies: $e');
     }
 
-    controller.loadRequest(Uri.parse(widget.url));
+    debugPrint('🌐 [WebView] Loading URL: ${widget.url} with headers: $requestHeaders');
+    await controller.loadRequest(
+      Uri.parse(widget.url),
+      headers: requestHeaders,
+    );
+
     if (mounted) {
       setState(() {
         _controller = controller;
@@ -164,22 +185,6 @@ class _OdooPaymentWebviewScreenState extends State<OdooPaymentWebviewScreen> {
             tooltip: 'Refresh Page',
           ),
         ],
-        bottom: _isLoading
-            ? PreferredSize(
-                preferredSize: const Size.fromHeight(3),
-                child: SizedBox(
-                  height: 3,
-                  width: double.infinity,
-                  child: LinearProgressIndicator(
-                    value: _loadingProgress / 100.0,
-                    backgroundColor: const Color(0xFF2A231C),
-                    valueColor: const AlwaysStoppedAnimation<Color>(
-                      Color(0xFFC4913F),
-                    ),
-                  ),
-                ),
-              )
-            : null,
       ),
       body: Stack(
         children: [
@@ -192,10 +197,21 @@ class _OdooPaymentWebviewScreenState extends State<OdooPaymentWebviewScreen> {
                     ),
                   ),
           ),
-          if (_isLoading && _loadingProgress < 30)
-            const Center(
-              child: CircularProgressIndicator(
-                color: Color(0xFFC4913F),
+          if (_isLoading)
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: SizedBox(
+                height: 3,
+                child: LinearProgressIndicator(
+                  value:
+                      _loadingProgress > 0 ? _loadingProgress / 100.0 : null,
+                  backgroundColor: const Color(0xFF2A231C),
+                  valueColor: const AlwaysStoppedAnimation<Color>(
+                    Color(0xFFC4913F),
+                  ),
+                ),
               ),
             ),
         ],
@@ -221,22 +237,25 @@ class _OdooPaymentWebviewScreenState extends State<OdooPaymentWebviewScreen> {
                   ),
                 ),
               ),
-              ElevatedButton(
-                onPressed: _completePaymentAndReturn,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFC4913F),
-                  foregroundColor: Colors.white,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                  shape: RoundedRectangleBorder(
+              InkWell(
+                onTap: _completePaymentAndReturn,
+                borderRadius: BorderRadius.circular(8),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFC4913F),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                ),
-                child: Text(
-                  'Done with Payment',
-                  style: GoogleFonts.outfit(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
+                  child: Text(
+                    'Done with Payment',
+                    style: GoogleFonts.outfit(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
               ),

@@ -844,22 +844,30 @@ class _BookServiceScreenState extends State<BookServiceScreen> {
                           setState(() {});
                         },
                       ),
-                      if (_collectorNameController.text.trim().isNotEmpty) ...[
-                        const SizedBox(height: 12),
-                        Text(
-                          'Driver License Number *',
-                          style: GoogleFonts.inter(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                            color: const Color(0xFF3A2F1E),
-                          ),
+                      Visibility(
+                        visible:
+                            _collectorNameController.text.trim().isNotEmpty,
+                        maintainState: true,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const SizedBox(height: 12),
+                            Text(
+                              'Driver License Number *',
+                              style: GoogleFonts.inter(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                                color: const Color(0xFF3A2F1E),
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            CustomTextField(
+                              controller: _collectorLicenseController,
+                              hintText: 'e.g. D1234567',
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 6),
-                        CustomTextField(
-                          controller: _collectorLicenseController,
-                          hintText: 'e.g. D1234567',
-                        ),
-                      ],
+                      ),
                       const SizedBox(height: 24),
                     ],
                   ),

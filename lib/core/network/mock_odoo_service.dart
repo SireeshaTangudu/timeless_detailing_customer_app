@@ -835,6 +835,22 @@ class MockOdooService implements BaseOdooService {
   }
 
   @override
+  Future<List<Map<String, dynamic>>> getUserInvoices({int? partnerId}) async {
+    return [
+      {
+        'id': 136,
+        'name': 'INV/2026/00028',
+        'invoice_date': '2026-09-01',
+        'state': 'posted',
+        'amount_total': 1345.5,
+        'amount_residual': 1345.5,
+        'payment_state': 'not_paid',
+        'timeless_is_down_payment_invoice': true,
+      }
+    ];
+  }
+
+  @override
   Future<List<Cookie>> getCookies() async {
     return [];
   }

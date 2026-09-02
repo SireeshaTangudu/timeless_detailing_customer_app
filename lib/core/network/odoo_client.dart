@@ -103,6 +103,7 @@ abstract class BaseOdooService {
   Future<List<Map<String, dynamic>>> getUserNotifications({int? partnerId});
   Future<Map<String, dynamic>?> getNotificationDetail(int notificationId);
   Future<Map<String, dynamic>?> getInvoiceDetails(int invoiceId);
+  Future<List<Map<String, dynamic>>> getUserInvoices({int? partnerId});
   Future<List<Cookie>> getCookies();
 }
 
@@ -3031,6 +3032,50 @@ class OdooApiService implements BaseOdooService {
     } catch (e) {
       debugPrint('🔴 [OdooApiService] getInvoiceDetails error: $e');
       return null;
+    }
+  }
+
+  /// STEP 18: Get User Invoices (`account.move/web_search_read`)
+  @override
+  Future<List<Map<String, dynamic>>> getUserInvoices({int? partnerId}) async {
+    try {
+      final pid = partnerId ?? _partnerId ?? _uid;
+      if (pid == null) {
+        debugPrint('⚠️ [OdooApiService] partnerId is null for getUserInvoices');
+        return [];
+      }
+      debugPrint('🔵 [OdooApiService] getUserInvoices called for partnerId=$pid');
+      final response = await _callKw(
+        model: 'account.move',
+        method: 'web_search_read',
+        args: [],
+        kwargs: {
+          'domain': [
+            ['move_type', '=', 'out_invoice'],
+            ['state', '!=', 'draft'],
+            ['partner_id', '=', pid],
+          ],
+          'specification': {
+            'id': {},
+            'name': {},
+            'invoice_date': {},
+            'state': {},
+            'amount_total': {},
+            'amount_residual': {},
+            'payment_state': {},
+            'timeless_is_down_payment_invoice': {},
+          },
+          'order': 'invoice_date desc',
+        },
+      );
+      final List records = (response is Map && response['records'] is List)
+          ? response['records'] as List
+          : [];
+      debugPrint('🟢 [OdooApiService] getUserInvoices returned ${records.length} records');
+      return records.map((r) => Map<String, dynamic>.from(r as Map)).toList();
+    } catch (e) {
+      debugPrint('🔴 [OdooApiService] getUserInvoices error: $e');
+      return [];
     }
   }
 }
