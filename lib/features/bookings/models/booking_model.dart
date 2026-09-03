@@ -47,6 +47,8 @@ class Booking {
   final int? invoiceId;
   final String? invoiceAccessUrl;
   final String? invoiceAccessToken;
+  final String? invoicePaymentState;
+  final String? warrantyLabel;
 
   const Booking({
     required this.id,
@@ -83,6 +85,8 @@ class Booking {
     this.invoiceId,
     this.invoiceAccessUrl,
     this.invoiceAccessToken,
+    this.invoicePaymentState,
+    this.warrantyLabel,
   });
 
   String get vehicleMake => bookingVehicleMake ?? (vehicleName.contains(' ') ? vehicleName.split(' ').first : vehicleName);
@@ -287,16 +291,18 @@ class Booking {
         ? Map<String, dynamic>.from(json['timeless_content_snapshot'])
         : {};
 
-    final String vMake = (summary['vehicle_make'] ?? snapshot['vehicle_make'] ?? 'Client Vehicle').toString();
+    final String vMake = (summary['vehicle_make'] ?? snapshot['vehicle_make'] ?? '').toString();
     final String vModel = (summary['vehicle_model'] ?? snapshot['vehicle_model'] ?? '').toString();
     final String vehicleName = '$vMake $vModel'.trim();
-    final String vReg = (summary['vehicle_registration'] ?? snapshot['vehicle_registration'] ?? 'Hatch Back').toString();
+    final String vReg = (summary['vehicle_registration'] ?? snapshot['vehicle_registration'] ?? '').toString();
 
     final List serviceLines = (summary['service_lines'] is List)
         ? (summary['service_lines'] as List)
         : (snapshot['service_lines'] is List ? snapshot['service_lines'] as List : []);
 
     String serviceName = 'Detailing Service';
+    String? warrantyLabel;
+
     double origTotal = (summary['original_quotation_total'] as num?)?.toDouble() ??
         (snapshot['original_quotation_total'] as num?)?.toDouble() ??
         (json['amount_total'] as num?)?.toDouble() ??
@@ -304,6 +310,13 @@ class Booking {
 
     if (serviceLines.isNotEmpty && serviceLines[0] is Map) {
       serviceName = (serviceLines[0]['name'] ?? serviceName).toString();
+      final rawWarranty = serviceLines[0]['warranty_label']?.toString();
+      if (rawWarranty != null &&
+          rawWarranty.isNotEmpty &&
+          rawWarranty != 'null' &&
+          rawWarranty != 'false') {
+        warrantyLabel = rawWarranty;
+      }
     }
 
     final double depositAmt = (summary['deposit_amount'] as num?)?.toDouble() ??
@@ -318,6 +331,7 @@ class Booking {
     final double pctVal = double.tryParse(pctLabel.replaceAll(RegExp(r'[^\d.]'), '')) ?? 50.0;
 
     final String invDateStr = (json['invoice_date'] ?? '').toString();
+    final String payState = (json['payment_state'] ?? '').toString();
 
     final int? rawInvId = json['id'] is int ? json['id'] as int : int.tryParse(json['id']?.toString() ?? '');
     final String accUrl = (json['access_url'] ?? '').toString();
@@ -335,7 +349,7 @@ class Booking {
         category: 'Detailing',
         whatsIncluded: const [],
       ),
-      vehicleName: vehicleName.isNotEmpty ? vehicleName : 'Volkswagen Polo TDI 2.0',
+      vehicleName: vehicleName.isNotEmpty ? vehicleName : 'Client Vehicle',
       vehicleLicensePlate: vReg,
       bookingDateTime: DateTime.tryParse(invDateStr) ?? DateTime.now(),
       status: BookingStatus.confirmed,
@@ -346,15 +360,19 @@ class Booking {
       afterImages: const [],
       technicianName: 'Master Detailer',
       technicianAvatar: '',
+      bookingVehicleMake: vMake.isNotEmpty ? vMake : null,
+      bookingVehicleModel: vModel.isNotEmpty ? vModel : null,
       isDownPaymentInvoice: json['timeless_is_down_payment_invoice'] == true || summary['is_deposit_invoice'] == true,
       percentageAmountPaid: pctVal,
       amountPaid: depositAmt,
-      amountPaidOn: invDateStr.isNotEmpty ? invDateStr : '31st July, 2026, 01:43 PM',
+      amountPaidOn: invDateStr.isNotEmpty ? invDateStr : '',
       pendingAmount: remainAmt,
       carDropOffStatus: 'Pending',
       invoiceId: rawInvId,
       invoiceAccessUrl: accUrl.isNotEmpty ? accUrl : null,
       invoiceAccessToken: accToken.isNotEmpty ? accToken : null,
+      invoicePaymentState: payState,
+      warrantyLabel: warrantyLabel,
     );
   }
 

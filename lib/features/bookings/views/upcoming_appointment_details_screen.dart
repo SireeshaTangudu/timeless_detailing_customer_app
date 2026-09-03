@@ -18,11 +18,13 @@ import 'package:timeless_detailing_customer_app/features/invoices/views/invoices
 class UpcomingAppointmentDetailsScreen extends StatefulWidget {
   final Booking booking;
   final bool isDownPaymentInvoice;
+  final String? title;
 
   const UpcomingAppointmentDetailsScreen({
     super.key,
     required this.booking,
     this.isDownPaymentInvoice = false,
+    this.title,
   });
 
   @override
@@ -44,10 +46,14 @@ class _UpcomingAppointmentDetailsScreenState
   Future<void> _fetchInvoiceDetailsIfNeeded() async {
     final b = widget.booking;
     final int? invId = b.invoiceId ?? int.tryParse(b.id);
-    if (invId != null && (widget.isDownPaymentInvoice || b.isDownPaymentInvoice)) {
+    if (invId != null &&
+        (widget.isDownPaymentInvoice || b.isDownPaymentInvoice)) {
       setState(() => _isLoadingInvoiceDetails = true);
       try {
-        final odooService = Provider.of<BaseOdooService>(context, listen: false);
+        final odooService = Provider.of<BaseOdooService>(
+          context,
+          listen: false,
+        );
         final detailsMap = await odooService.getInvoiceDetails(invId);
         if (detailsMap != null && mounted) {
           setState(() {
@@ -209,9 +215,7 @@ class _UpcomingAppointmentDetailsScreenState
       );
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(
-          builder: (context) => const InvoicesScreen(),
-        ),
+        MaterialPageRoute(builder: (context) => const InvoicesScreen()),
       );
     }
   }
@@ -300,9 +304,7 @@ class _UpcomingAppointmentDetailsScreenState
     } else {
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(
-          builder: (context) => const MainNavigationScaffold(),
-        ),
+        MaterialPageRoute(builder: (context) => const MainNavigationScaffold()),
         (route) => false,
       );
     }
@@ -327,6 +329,7 @@ class _UpcomingAppointmentDetailsScreenState
 
     final bool showInvoiceView =
         widget.isDownPaymentInvoice || b.isDownPaymentInvoice;
+    final String appBarTitle = widget.title ?? (showInvoiceView ? 'Invoice Details' : 'Appointment Details');
 
     return PopScope(
       canPop: true,
@@ -339,340 +342,363 @@ class _UpcomingAppointmentDetailsScreenState
         body: Column(
           children: [
             CustomAppBar(
-              title: 'Upcoming Appointment Details',
+              title: appBarTitle,
               onBackPressed: () => _handleBack(context),
-              titleStyle: GoogleFonts.lora(
-                fontSize: 28,
-                fontWeight: FontWeight.w400,
-                color: const Color(0xFF3A2F1E),
-              ),
             ),
-          Expanded(
-            child: _isLoadingInvoiceDetails
-                ? const Center(
-                    child: CircularProgressIndicator(
-                      color: Color(0xFFC4913F),
-                    ),
-                  )
-                : SingleChildScrollView(
-                    physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 16,
-                    ),
-                    child: showInvoiceView
-                        ? _buildDownPaymentInvoiceBody(
-                            context,
-                            b,
-                            selectedCar,
-                            carType,
-                            fullDateStr,
-                            slotTimeStr,
-                          )
-                  : Column(
-                      children: [
-                        // Two-tone saw-tooth ticket card matching NewEstimateScreen & Figma
-                        Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: const Color(0xFFEBE7E0)),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.06),
-                                blurRadius: 16,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          clipBehavior: Clip.antiAlias,
-                          child: Column(
-                            children: [
-                              // Top Dark Price Header
-                              Container(
-                                width: double.infinity,
-                                color: const Color(0xFF1D1813),
-                                padding: const EdgeInsets.fromLTRB(
-                                  20,
-                                  24,
-                                  20,
-                                  18,
-                                ),
-                                child: Column(
-                                  children: [
-                                    Container(
-                                      width: 44,
-                                      height: 44,
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFF2A231C),
-                                        shape: BoxShape.circle,
-                                        border: Border.all(
-                                          color: const Color(
-                                            0xFFC4913F,
-                                          ).withValues(alpha: 0.4),
+            Expanded(
+              child: _isLoadingInvoiceDetails
+                  ? const Center(
+                      child: CircularProgressIndicator(
+                        color: Color(0xFFC4913F),
+                      ),
+                    )
+                  : SingleChildScrollView(
+                      physics: const BouncingScrollPhysics(),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 16,
+                      ),
+                      child: showInvoiceView
+                          ? _buildDownPaymentInvoiceBody(
+                              context,
+                              b,
+                              selectedCar,
+                              carType,
+                              fullDateStr,
+                              slotTimeStr,
+                            )
+                          : Column(
+                              children: [
+                                // Two-tone saw-tooth ticket card matching NewEstimateScreen & Figma
+                                Container(
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(20),
+                                    border: Border.all(
+                                      color: const Color(0xFFEBE7E0),
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withValues(
+                                          alpha: 0.06,
+                                        ),
+                                        blurRadius: 16,
+                                        offset: const Offset(0, 4),
+                                      ),
+                                    ],
+                                  ),
+                                  clipBehavior: Clip.antiAlias,
+                                  child: Column(
+                                    children: [
+                                      // Top Dark Price Header
+                                      Container(
+                                        width: double.infinity,
+                                        color: const Color(0xFF1D1813),
+                                        padding: const EdgeInsets.fromLTRB(
+                                          20,
+                                          24,
+                                          20,
+                                          18,
+                                        ),
+                                        child: Column(
+                                          children: [
+                                            Container(
+                                              width: 44,
+                                              height: 44,
+                                              decoration: BoxDecoration(
+                                                color: const Color(0xFF2A231C),
+                                                shape: BoxShape.circle,
+                                                border: Border.all(
+                                                  color: const Color(
+                                                    0xFFC4913F,
+                                                  ).withValues(alpha: 0.4),
+                                                ),
+                                              ),
+                                              child: const Center(
+                                                child: Icon(
+                                                  Icons
+                                                      .cleaning_services_outlined,
+                                                  color: Color(0xFFC4913F),
+                                                  size: 22,
+                                                ),
+                                              ),
+                                            ),
+                                            const SizedBox(height: 12),
+                                            Text(
+                                              'Estimated cost for your $serviceTitle service',
+                                              textAlign: TextAlign.center,
+                                              style: GoogleFonts.montserrat(
+                                                fontSize: 12,
+                                                color: const Color(0xFFC5B7A1),
+                                              ),
+                                            ),
+                                            const SizedBox(height: 6),
+                                            Text(
+                                              priceStr,
+                                              style: GoogleFonts.outfit(
+                                                fontSize: 38,
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.white,
+                                              ),
+                                            ),
+                                          ],
                                         ),
                                       ),
-                                      child: const Center(
-                                        child: Icon(
-                                          Icons.cleaning_services_outlined,
-                                          color: Color(0xFFC4913F),
-                                          size: 22,
+
+                                      // Sawtooth Ticket Serrated Teeth Transition
+                                      CustomPaint(
+                                        size: const Size(double.infinity, 12),
+                                        painter: SawtoothTicketPainter(
+                                          darkColor: const Color(0xFF1D1813),
+                                          lightColor: Colors.white,
                                         ),
                                       ),
-                                    ),
-                                    const SizedBox(height: 12),
-                                    Text(
-                                      'Estimated cost for your $serviceTitle service',
-                                      textAlign: TextAlign.center,
-                                      style: GoogleFonts.montserrat(
-                                        fontSize: 12,
-                                        color: const Color(0xFFC5B7A1),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 6),
-                                    Text(
-                                      priceStr,
-                                      style: GoogleFonts.outfit(
-                                        fontSize: 38,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
 
-                              // Sawtooth Ticket Serrated Teeth Transition
-                              CustomPaint(
-                                size: const Size(double.infinity, 12),
-                                painter: SawtoothTicketPainter(
-                                  darkColor: const Color(0xFF1D1813),
-                                  lightColor: Colors.white,
-                                ),
-                              ),
+                                      // Bottom Light Details Container
+                                      Container(
+                                        padding: const EdgeInsets.all(20),
+                                        child: Column(
+                                          children: [
+                                            _buildLightDetailRow(
+                                              'Selected Car',
+                                              selectedCar,
+                                            ),
+                                            const SizedBox(height: 12),
+                                            _buildLightDetailRow(
+                                              'Car Type',
+                                              carType,
+                                            ),
+                                            const SizedBox(height: 12),
+                                            _buildLightDetailRow(
+                                              'Service',
+                                              serviceTitle,
+                                            ),
+                                            const SizedBox(height: 14),
 
-                              // Bottom Light Details Container
-                              Container(
-                                padding: const EdgeInsets.all(20),
-                                child: Column(
+                                            // Dashed Divider Line
+                                            CustomPaint(
+                                              size: const Size(
+                                                double.infinity,
+                                                1,
+                                              ),
+                                              painter: DashedLinePainter(
+                                                color: const Color(0xFFE5DFD5),
+                                              ),
+                                            ),
+
+                                            const SizedBox(height: 14),
+                                            _buildLightDetailRow(
+                                              'Service Date',
+                                              fullDateStr,
+                                            ),
+                                            const SizedBox(height: 12),
+                                            _buildLightDetailRow(
+                                              'Slot',
+                                              slotTimeStr,
+                                            ),
+
+                                            const SizedBox(height: 20),
+
+                                            // Button: Get Directions to Garage
+                                            SizedBox(
+                                              width: double.infinity,
+                                              height: 46,
+                                              child: ElevatedButton.icon(
+                                                onPressed: _openDirections,
+                                                style: ElevatedButton.styleFrom(
+                                                  backgroundColor: const Color(
+                                                    0xFFE8DBCA,
+                                                  ),
+                                                  foregroundColor: const Color(
+                                                    0xFF1D1813,
+                                                  ),
+                                                  elevation: 0,
+                                                  shape: RoundedRectangleBorder(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          10,
+                                                        ),
+                                                  ),
+                                                ),
+                                                icon: const Icon(
+                                                  Icons.location_on_outlined,
+                                                  size: 18,
+                                                  color: Color(0xFF1D1813),
+                                                ),
+                                                label: Text(
+                                                  'Get Directions to Garage',
+                                                  style: GoogleFonts.outfit(
+                                                    fontSize: 13,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+
+                                const SizedBox(height: 14),
+
+                                // Explanatory note below dark card
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                  ),
+                                  child: Text(
+                                    'The above mentioned amount is the base price. We will share the final pricing after completing our inspection on $dateDayStr at $slotTimeStr.',
+                                    textAlign: TextAlign.center,
+                                    style: GoogleFonts.montserrat(
+                                      fontSize: 11.5,
+                                      color: const Color(0xFF7A7063),
+                                      height: 1.4,
+                                    ),
+                                  ),
+                                ),
+
+                                const SizedBox(height: 24),
+
+                                // Timeline Card: "What will happen next" (Figma Screen 2)
+                                Container(
+                                  width: double.infinity,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF1D1813),
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  padding: const EdgeInsets.all(20),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'What will happen next',
+                                        style: GoogleFonts.lora(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 18),
+
+                                      _buildTimelineStep(
+                                        1,
+                                        'Book your slot with us',
+                                        isDone: true,
+                                      ),
+                                      _buildTimelineStep(
+                                        2,
+                                        'Inspection of your car on the booked slot',
+                                        isCurrent: true,
+                                      ),
+                                      _buildTimelineStep(
+                                        3,
+                                        'New quote with the updated amount post inspection',
+                                      ),
+                                      _buildTimelineStep(4, 'Accept the quote'),
+                                      _buildTimelineStep(
+                                        5,
+                                        'Get your car serviced!',
+                                        isLast: true,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+
+                                const SizedBox(height: 24),
+
+                                // Bottom Action Buttons
+                                Row(
                                   children: [
-                                    _buildLightDetailRow(
-                                      'Selected Car',
-                                      selectedCar,
-                                    ),
-                                    const SizedBox(height: 12),
-                                    _buildLightDetailRow('Car Type', carType),
-                                    const SizedBox(height: 12),
-                                    _buildLightDetailRow(
-                                      'Service',
-                                      serviceTitle,
-                                    ),
-                                    const SizedBox(height: 14),
-
-                                    // Dashed Divider Line
-                                    CustomPaint(
-                                      size: const Size(double.infinity, 1),
-                                      painter: DashedLinePainter(
-                                        color: const Color(0xFFE5DFD5),
-                                      ),
-                                    ),
-
-                                    const SizedBox(height: 14),
-                                    _buildLightDetailRow(
-                                      'Service Date',
-                                      fullDateStr,
-                                    ),
-                                    const SizedBox(height: 12),
-                                    _buildLightDetailRow('Slot', slotTimeStr),
-
-                                    const SizedBox(height: 20),
-
-                                    // Button: Get Directions to Garage
-                                    SizedBox(
-                                      width: double.infinity,
-                                      height: 46,
-                                      child: ElevatedButton.icon(
-                                        onPressed: _openDirections,
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: const Color(
-                                            0xFFE8DBCA,
+                                    Expanded(
+                                      child: SizedBox(
+                                        height: 48,
+                                        child: OutlinedButton.icon(
+                                          onPressed: _confirmCancelAppointment,
+                                          style: OutlinedButton.styleFrom(
+                                            foregroundColor: const Color(
+                                              0xFFB71C1C,
+                                            ),
+                                            side: const BorderSide(
+                                              color: Color(0xFFE57373),
+                                              width: 1.2,
+                                            ),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
+                                            ),
                                           ),
-                                          foregroundColor: const Color(
-                                            0xFF1D1813,
+                                          icon: const Icon(
+                                            Icons.cancel_outlined,
+                                            size: 16,
                                           ),
-                                          elevation: 0,
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(
-                                              10,
+                                          label: Text(
+                                            'Cancel',
+                                            style: GoogleFonts.outfit(
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.bold,
                                             ),
                                           ),
                                         ),
-                                        icon: const Icon(
-                                          Icons.location_on_outlined,
-                                          size: 18,
-                                          color: Color(0xFF1D1813),
-                                        ),
-                                        label: Text(
-                                          'Get Directions to Garage',
-                                          style: GoogleFonts.outfit(
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: SizedBox(
+                                        height: 48,
+                                        child: ElevatedButton.icon(
+                                          onPressed: () {
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (context) =>
+                                                    LiveTrackingScreen(
+                                                      booking: b,
+                                                    ),
+                                              ),
+                                            );
+                                          },
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: const Color(
+                                              0xFFC4913F,
+                                            ),
+                                            foregroundColor: const Color(
+                                              0xFF1D1813,
+                                            ),
+                                            elevation: 0,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
+                                            ),
+                                          ),
+                                          icon: const Icon(
+                                            Icons.radar_outlined,
+                                            size: 16,
+                                          ),
+                                          label: Text(
+                                            'Track Live',
+                                            style: GoogleFonts.outfit(
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.bold,
+                                            ),
                                           ),
                                         ),
                                       ),
                                     ),
                                   ],
                                 ),
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        const SizedBox(height: 14),
-
-                        // Explanatory note below dark card
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 6),
-                          child: Text(
-                            'The above mentioned amount is the base price. We will share the final pricing after completing our inspection on $dateDayStr at $slotTimeStr.',
-                            textAlign: TextAlign.center,
-                            style: GoogleFonts.montserrat(
-                              fontSize: 11.5,
-                              color: const Color(0xFF7A7063),
-                              height: 1.4,
+                                const SizedBox(height: 24),
+                              ],
                             ),
-                          ),
-                        ),
-
-                        const SizedBox(height: 24),
-
-                        // Timeline Card: "What will happen next" (Figma Screen 2)
-                        Container(
-                          width: double.infinity,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF1D1813),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          padding: const EdgeInsets.all(20),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'What will happen next',
-                                style: GoogleFonts.lora(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
-                              ),
-                              const SizedBox(height: 18),
-
-                              _buildTimelineStep(
-                                1,
-                                'Book your slot with us',
-                                isDone: true,
-                              ),
-                              _buildTimelineStep(
-                                2,
-                                'Inspection of your car on the booked slot',
-                                isCurrent: true,
-                              ),
-                              _buildTimelineStep(
-                                3,
-                                'New quote with the updated amount post inspection',
-                              ),
-                              _buildTimelineStep(4, 'Accept the quote'),
-                              _buildTimelineStep(
-                                5,
-                                'Get your car serviced!',
-                                isLast: true,
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        const SizedBox(height: 24),
-
-                        // Bottom Action Buttons
-                        Row(
-                          children: [
-                            Expanded(
-                              child: SizedBox(
-                                height: 48,
-                                child: OutlinedButton.icon(
-                                  onPressed: _confirmCancelAppointment,
-                                  style: OutlinedButton.styleFrom(
-                                    foregroundColor: const Color(0xFFB71C1C),
-                                    side: const BorderSide(
-                                      color: Color(0xFFE57373),
-                                      width: 1.2,
-                                    ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                  ),
-                                  icon: const Icon(
-                                    Icons.cancel_outlined,
-                                    size: 16,
-                                  ),
-                                  label: Text(
-                                    'Cancel',
-                                    style: GoogleFonts.outfit(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: SizedBox(
-                                height: 48,
-                                child: ElevatedButton.icon(
-                                  onPressed: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) =>
-                                            LiveTrackingScreen(booking: b),
-                                      ),
-                                    );
-                                  },
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFFC4913F),
-                                    foregroundColor: const Color(0xFF1D1813),
-                                    elevation: 0,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                  ),
-                                  icon: const Icon(
-                                    Icons.radar_outlined,
-                                    size: 16,
-                                  ),
-                                  label: Text(
-                                    'Track Live',
-                                    style: GoogleFonts.outfit(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 24),
-                      ],
                     ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   Widget _buildDownPaymentInvoiceBody(
     BuildContext context,
@@ -682,9 +708,6 @@ class _UpcomingAppointmentDetailsScreenState
     String fullDateStr,
     String slotTimeStr,
   ) {
-    final bool isDroppedOff = b.carDropOffStatus.toLowerCase().contains(
-      'dropped',
-    );
     final double addOnsTotal = b.addOns.fold(
       0.0,
       (sum, item) => sum + ((item['price'] as num?)?.toDouble() ?? 0.0),
@@ -692,116 +715,115 @@ class _UpcomingAppointmentDetailsScreenState
     final double totalToPay = b.pendingAmount + addOnsTotal;
     final bool hasAddOns = b.addOns.isNotEmpty;
 
+    // Payment button wording:
+    // When timeless_is_down_payment_invoice == true & remaining amount / residual is 0.0 (or paid) -> "Pay Balance"
+    // Otherwise -> "Accept and Pay Amount"
+    final bool isDownPayment = b.isDownPaymentInvoice;
+    final String paymentState = (b.invoicePaymentState ?? '').toLowerCase();
+    final bool isPaid = paymentState == 'paid' || paymentState == 'in_payment';
+    final bool isResidualZero = b.pendingAmount <= 0.0;
+
+    final String actionButtonText = (isDownPayment && (isPaid || isResidualZero))
+        ? 'Pay Balance'
+        : (isPaid ? 'Pay Balance' : 'Accept and Pay Amount');
+
+    final String vMake = b.vehicleMake.isNotEmpty ? b.vehicleMake : selectedCar;
+    final String vModel = b.vehicleModel.isNotEmpty ? b.vehicleModel : carType;
+    final String vReg = b.vehicleLicensePlate.isNotEmpty
+        ? b.vehicleLicensePlate
+        : 'N/A';
+    final String? warranty = b.warrantyLabel;
+
     return Column(
       children: [
-        // 1. Top Appointment Details Card
-        Container(
-          width: double.infinity,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: const Color(0xFFEBE7E0)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
-                blurRadius: 14,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            children: [
-              _buildLightDetailRow('Selected Car', selectedCar),
-              const SizedBox(height: 12),
-              _buildLightDetailRow('Car Type', carType),
-              const SizedBox(height: 12),
-              _buildLightDetailRow('Service', b.service.name),
-              const SizedBox(height: 14),
-
-              CustomPaint(
-                size: const Size(double.infinity, 1),
-                painter: DashedLinePainter(color: const Color(0xFFE5DFD5)),
-              ),
-
-              const SizedBox(height: 14),
-              _buildLightDetailRow('Service Date', fullDateStr),
-              const SizedBox(height: 12),
-              _buildLightDetailRow('Slot', slotTimeStr),
-              const SizedBox(height: 12),
-
-              // Car Drop Off Status Row with Badge
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Car drop off Status',
-                    style: GoogleFonts.montserrat(
-                      fontSize: 13,
-                      color: const Color(0xFF8C8273),
-                    ),
+        // 1. Top Appointment & Vehicle Details Card
+        Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Container(
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: const Color(0xFFEBE7E0)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 14,
+                    offset: const Offset(0, 4),
                   ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: isDroppedOff
-                          ? const Color(0xFFE8F5E9)
-                          : const Color(0xFFFAF3E8),
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(
-                        color: isDroppedOff
-                            ? const Color(0xFF81C784)
-                            : const Color(0xFFC4913F).withValues(alpha: 0.4),
+                ],
+              ),
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (warranty != null && warranty.isNotEmpty)
+                    const SizedBox(height: 10),
+
+                  _buildLightDetailRow('Vehicle Make', vMake),
+                  const SizedBox(height: 12),
+                  _buildLightDetailRow('Vehicle Model', vModel),
+                  const SizedBox(height: 12),
+                  _buildLightDetailRow('Registration Number', vReg),
+                  const SizedBox(height: 12),
+                  _buildLightDetailRow('Service', b.service.name),
+                  const SizedBox(height: 14),
+
+                  CustomPaint(
+                    size: const Size(double.infinity, 1),
+                    painter: DashedLinePainter(color: const Color(0xFFE5DFD5)),
+                  ),
+
+                  const SizedBox(height: 14),
+                  _buildLightDetailRow('Service Date', fullDateStr),
+                  const SizedBox(height: 12),
+                  _buildLightDetailRow('Slot', slotTimeStr),
+
+                  const SizedBox(height: 20),
+
+                  SizedBox(
+                    width: double.infinity,
+                    height: 46,
+                    child: ElevatedButton.icon(
+                      onPressed: _openDirections,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFE8DBCA),
+                        foregroundColor: const Color(0xFF1D1813),
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                       ),
-                    ),
-                    child: Text(
-                      isDroppedOff ? 'Dropped Off' : 'Pending',
-                      style: GoogleFonts.outfit(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        color: isDroppedOff
-                            ? const Color(0xFF2E7D32)
-                            : const Color(0xFFC4913F),
+                      icon: const Icon(
+                        Icons.location_on_outlined,
+                        size: 18,
+                        color: Color(0xFF1D1813),
+                      ),
+                      label: Text(
+                        'Get Directions to Garage',
+                        style: GoogleFonts.outfit(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ),
                 ],
               ),
+            ),
 
-              const SizedBox(height: 20),
-
-              SizedBox(
-                width: double.infinity,
-                height: 46,
-                child: ElevatedButton.icon(
-                  onPressed: _openDirections,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFE8DBCA),
-                    foregroundColor: const Color(0xFF1D1813),
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                  icon: const Icon(
-                    Icons.location_on_outlined,
-                    size: 18,
-                    color: Color(0xFF1D1813),
-                  ),
-                  label: Text(
-                    'Get Directions to Garage',
-                    style: GoogleFonts.outfit(
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+            // Top-Right Ribbon Warranty Banner matching the design image
+            if (warranty != null && warranty.isNotEmpty)
+              Positioned(
+                top: -10,
+                right: -4,
+                child: CornerRibbonTag(
+                  text: warranty,
+                  color: const Color(0xFFC4913F),
                 ),
               ),
-            ],
-          ),
+          ],
         ),
 
         const SizedBox(height: 18),
@@ -919,7 +941,7 @@ class _UpcomingAppointmentDetailsScreenState
               ),
             ),
             child: Text(
-              hasAddOns ? 'Accept and Pay Amount' : 'Pay Balance',
+              actionButtonText,
               style: GoogleFonts.outfit(
                 fontSize: 15,
                 fontWeight: FontWeight.bold,
@@ -1036,4 +1058,81 @@ class _UpcomingAppointmentDetailsScreenState
       ),
     );
   }
+}
+
+class CornerRibbonTag extends StatelessWidget {
+  final String text;
+  final Color color;
+
+  const CornerRibbonTag({
+    super.key,
+    required this.text,
+    this.color = const Color(0xFFC4913F),
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        // Main Ribbon Rectangle Banner
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(6),
+              bottomLeft: Radius.circular(6),
+              topRight: Radius.circular(4),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: color.withValues(alpha: 0.3),
+                blurRadius: 6,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Text(
+            text,
+            style: GoogleFonts.outfit(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+              letterSpacing: 0.3,
+            ),
+          ),
+        ),
+
+        // Folded ribbon corner shadow triangle (3D fold effect on bottom-right edge)
+        Positioned(
+          right: 0,
+          bottom: -6,
+          child: ClipPath(
+            clipper: _RibbonFoldClipper(),
+            child: Container(
+              width: 6,
+              height: 6,
+              color: const Color(0xFF7A5820), // Darker shade for folded shadow
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _RibbonFoldClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    final path = Path();
+    path.moveTo(0, 0);
+    path.lineTo(size.width, 0);
+    path.lineTo(0, size.height);
+    path.close();
+    return path;
+  }
+
+  @override
+  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }

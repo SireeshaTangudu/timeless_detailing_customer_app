@@ -29,7 +29,10 @@ class _InvoicesScreenState extends State<InvoicesScreen> {
   Future<void> _fetchInvoices() async {
     setState(() => _isLoading = true);
     try {
-      final controller = Provider.of<BookingsController>(context, listen: false);
+      final controller = Provider.of<BookingsController>(
+        context,
+        listen: false,
+      );
       await controller.loadInvoices();
     } catch (e) {
       debugPrint('Error calling loadInvoices: $e');
@@ -47,9 +50,7 @@ class _InvoicesScreenState extends State<InvoicesScreen> {
     } else {
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(
-          builder: (context) => const MainNavigationScaffold(),
-        ),
+        MaterialPageRoute(builder: (context) => const MainNavigationScaffold()),
         (route) => false,
       );
     }
@@ -79,38 +80,36 @@ class _InvoicesScreenState extends State<InvoicesScreen> {
                     backIcon: Icons.arrow_back_sharp,
                     onBackPressed: () => _handleBack(context),
                   ),
-                Expanded(
-                  child: RefreshIndicator(
-                    onRefresh: _fetchInvoices,
-                    color: const Color(0xFFC4913F),
-                    child: invoices.isEmpty && !isBusy
-                        ? _buildEmptyInvoicesView()
-                        : ListView.separated(
-                            physics: const AlwaysScrollableScrollPhysics(
-                              parent: BouncingScrollPhysics(),
+                  Expanded(
+                    child: RefreshIndicator(
+                      onRefresh: _fetchInvoices,
+                      color: const Color(0xFFC4913F),
+                      child: invoices.isEmpty && !isBusy
+                          ? _buildEmptyInvoicesView()
+                          : ListView.separated(
+                              physics: const AlwaysScrollableScrollPhysics(
+                                parent: BouncingScrollPhysics(),
+                              ),
+                              padding: const EdgeInsets.all(20),
+                              itemCount: invoices.length,
+                              separatorBuilder: (context, index) =>
+                                  const SizedBox(height: 14),
+                              itemBuilder: (context, index) {
+                                final invMap = invoices[index];
+                                return _buildInvoiceCard(context, invMap);
+                              },
                             ),
-                            padding: const EdgeInsets.all(20),
-                            itemCount: invoices.length,
-                            separatorBuilder: (context, index) =>
-                                const SizedBox(height: 14),
-                            itemBuilder: (context, index) {
-                              final invMap = invoices[index];
-                              return _buildInvoiceCard(context, invMap);
-                            },
-                          ),
+                    ),
                   ),
-                ),
-              ],
-            ),
-            if (isBusy)
-              Container(
-                color: Colors.black.withValues(alpha: 0.15),
-                child: const Center(
-                  child: CircularProgressIndicator(
-                    color: Color(0xFFC4913F),
-                  ),
-                ),
+                ],
               ),
+              if (isBusy)
+                Container(
+                  color: Colors.black.withValues(alpha: 0.15),
+                  child: const Center(
+                    child: CircularProgressIndicator(color: Color(0xFFC4913F)),
+                  ),
+                ),
             ],
           ),
         ),
@@ -176,10 +175,23 @@ class _InvoicesScreenState extends State<InvoicesScreen> {
         : invDateRaw;
 
     final double total = (invMap['amount_total'] as num?)?.toDouble() ?? 0.0;
-    final double residual = (invMap['amount_residual'] as num?)?.toDouble() ?? 0.0;
-    final String paymentState = (invMap['payment_state'] ?? '').toString().toLowerCase();
-    final bool isPaid = paymentState == 'paid' || paymentState == 'in_payment' || residual <= 0;
-    final bool isDownPayment = invMap['timeless_is_down_payment_invoice'] == true;
+    final double residual =
+        (invMap['amount_residual'] as num?)?.toDouble() ?? 0.0;
+    final String paymentState = (invMap['payment_state'] ?? '')
+        .toString()
+        .toLowerCase();
+    final bool isPaid =
+        paymentState == 'paid' || paymentState == 'in_payment' || residual <= 0;
+    final bool isDownPayment =
+        invMap['timeless_is_down_payment_invoice'] == true;
+
+    final String statusText = isPaid ? 'Paid' : 'Pending';
+    final Color badgeColor = isPaid
+        ? const Color(0xFF4CAF50)
+        : const Color(0xFFFB8C00);
+    final Color foldColor = isPaid
+        ? const Color(0xFF2E7D32)
+        : const Color(0xFFE65100);
 
     return GestureDetector(
       onTap: () {
@@ -195,25 +207,25 @@ class _InvoicesScreenState extends State<InvoicesScreen> {
           ),
         );
       },
-      child: Container(
-        padding: const EdgeInsets.all(18),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFEBE7DF), width: 1),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
-              blurRadius: 10,
-              offset: const Offset(0, 3),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFEBE7DF), width: 1),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.03),
+                  blurRadius: 10,
+                  offset: const Offset(0, 3),
+                ),
+              ],
             ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
@@ -234,112 +246,173 @@ class _InvoicesScreenState extends State<InvoicesScreen> {
                       ),
                     ),
                     const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            invName,
+                            style: GoogleFonts.outfit(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFF1C1C1E),
+                            ),
+                          ),
+                          if (dateStr.isNotEmpty) ...[
+                            const SizedBox(height: 2),
+                            Text(
+                              dateStr,
+                              style: GoogleFonts.montserrat(
+                                fontSize: 12,
+                                color: const Color(0xFF8C8273),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 50),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                const Divider(color: Color(0xFFF0ECE3), height: 1),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          invName,
-                          style: GoogleFonts.outfit(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: const Color(0xFF1C1C1E),
-                          ),
-                        ),
-                        if (dateStr.isNotEmpty) ...[
-                          const SizedBox(height: 2),
-                          Text(
-                            dateStr,
-                            style: GoogleFonts.montserrat(
-                              fontSize: 12,
-                              color: const Color(0xFF8C8273),
+                        if (isDownPayment)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
+                            margin: const EdgeInsets.only(bottom: 4),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFAF3E8),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              'Down Payment Invoice',
+                              style: GoogleFonts.montserrat(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                                color: const Color(0xFFC4913F),
+                              ),
                             ),
                           ),
-                        ],
-                      ],
-                    ),
-                  ],
-                ),
-                // Payment Status Badge
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: isPaid
-                        ? const Color(0xFFE8F5E9)
-                        : const Color(0xFFFFF8E1),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: isPaid
-                          ? const Color(0xFF4CAF50)
-                          : const Color(0xFFFFB300),
-                    ),
-                  ),
-                  child: Text(
-                    isPaid ? 'PAID' : 'UNPAID',
-                    style: GoogleFonts.montserrat(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      color: isPaid
-                          ? const Color(0xFF2E7D32)
-                          : const Color(0xFFF57F17),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 14),
-            const Divider(color: Color(0xFFF0ECE3), height: 1),
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (isDownPayment)
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 2,
-                        ),
-                        margin: const EdgeInsets.only(bottom: 4),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFAF3E8),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          'Down Payment Invoice',
+                        Text(
+                          'Total Amount',
                           style: GoogleFonts.montserrat(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w600,
-                            color: const Color(0xFFC4913F),
+                            fontSize: 12,
+                            color: const Color(0xFF8C8273),
                           ),
                         ),
-                      ),
+                      ],
+                    ),
                     Text(
-                      'Total Amount',
-                      style: GoogleFonts.montserrat(
-                        fontSize: 12,
-                        color: const Color(0xFF8C8273),
+                      'R ${total.toStringAsFixed(2)}',
+                      style: GoogleFonts.outfit(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF3A2F1E),
                       ),
                     ),
                   ],
                 ),
-                Text(
-                  'R ${total.toStringAsFixed(2)}',
-                  style: GoogleFonts.outfit(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: const Color(0xFF3A2F1E),
-                  ),
-                ),
               ],
             ),
-          ],
-        ),
+          ),
+
+          // Top-Right Ribbon Status Tag matching reference image design
+          Positioned(
+            top: -8,
+            right: -4,
+            child: CornerRibbonTag(
+              text: statusText,
+              color: badgeColor,
+              foldColor: foldColor,
+            ),
+          ),
+        ],
       ),
     );
   }
+}
+
+class CornerRibbonTag extends StatelessWidget {
+  final String text;
+  final Color color;
+  final Color foldColor;
+
+  const CornerRibbonTag({
+    super.key,
+    required this.text,
+    required this.color,
+    required this.foldColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        // Main Ribbon Rectangle Banner
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(6),
+              bottomLeft: Radius.circular(6),
+              topRight: Radius.circular(4),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: color.withValues(alpha: 0.3),
+                blurRadius: 6,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Text(
+            text,
+            style: GoogleFonts.outfit(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+              letterSpacing: 0.3,
+            ),
+          ),
+        ),
+
+        // Folded ribbon corner shadow triangle (3D fold effect on bottom-right edge)
+        Positioned(
+          right: 0,
+          bottom: -6,
+          child: ClipPath(
+            clipper: _RibbonFoldClipper(),
+            child: Container(width: 6, height: 6, color: foldColor),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _RibbonFoldClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    final path = Path();
+    path.moveTo(0, 0);
+    path.lineTo(size.width, 0);
+    path.lineTo(0, size.height);
+    path.close();
+    return path;
+  }
+
+  @override
+  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }
