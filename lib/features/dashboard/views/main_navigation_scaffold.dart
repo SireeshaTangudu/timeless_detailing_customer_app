@@ -12,6 +12,7 @@ import 'package:timeless_detailing_customer_app/features/auth/views/login_screen
 import 'package:timeless_detailing_customer_app/features/about/views/about_us_screen.dart';
 
 import 'package:timeless_detailing_customer_app/features/invoices/views/invoices_screen.dart';
+import 'package:timeless_detailing_customer_app/features/tracking/views/projects_list_screen.dart';
 
 class MainNavigationScaffold extends StatefulWidget {
   const MainNavigationScaffold({super.key});
@@ -70,28 +71,29 @@ class _MainNavigationScaffoldState extends State<MainNavigationScaffold>
     final isSelected = customOnTap == null && _currentIndex == index;
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      decoration: BoxDecoration(
+      child: Material(
         color: isSelected
             ? AppTheme.primary.withValues(alpha: 0.1)
             : Colors.transparent,
         borderRadius: BorderRadius.circular(12),
-      ),
-      child: ListTile(
-        leading: Icon(
-          isSelected ? activeIcon : icon,
-          color: isSelected ? AppTheme.primary : const Color(0xFF7A7A7E),
-          size: 22,
-        ),
-        title: Text(
-          title,
-          style: GoogleFonts.inter(
-            fontSize: 15,
-            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-            color: isSelected ? AppTheme.primary : const Color(0xFF3A2F1E),
+        clipBehavior: Clip.antiAlias,
+        child: ListTile(
+          leading: Icon(
+            isSelected ? activeIcon : icon,
+            color: isSelected ? AppTheme.primary : const Color(0xFF7A7A7E),
+            size: 22,
           ),
+          title: Text(
+            title,
+            style: GoogleFonts.inter(
+              fontSize: 15,
+              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+              color: isSelected ? AppTheme.primary : const Color(0xFF3A2F1E),
+            ),
+          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          onTap: customOnTap ?? () => _onSelectItem(index),
         ),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        onTap: customOnTap ?? () => _onSelectItem(index),
       ),
     );
   }
@@ -166,52 +168,70 @@ class _MainNavigationScaffoldState extends State<MainNavigationScaffold>
                   ],
                 ),
               ),
-              const SizedBox(height: 16),
 
-              // Sidebar Navigation Items
-              _buildDrawerItem(
-                icon: Icons.dashboard_outlined,
-                activeIcon: Icons.dashboard,
-                title: 'Home',
-                index: 0,
-              ),
-              _buildDrawerItem(
-                icon: Icons.calendar_month_outlined,
-                activeIcon: Icons.calendar_month,
-                title: 'Bookings',
-                index: 2,
-              ),
-              _buildDrawerItem(
-                icon: Icons.receipt_long_outlined,
-                activeIcon: Icons.receipt_long,
-                title: 'Invoices',
-                index: -1,
-                customOnTap: () {
-                  Navigator.pop(context);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => InvoicesScreen(
-                        onMenuTap: _openDrawer,
+              // Scrollable Sidebar Navigation Items
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Column(
+                    children: [
+                      _buildDrawerItem(
+                        icon: Icons.dashboard_outlined,
+                        activeIcon: Icons.dashboard,
+                        title: 'Home',
+                        index: 0,
                       ),
-                    ),
-                  );
-                },
-              ),
-              _buildDrawerItem(
-                icon: Icons.person_outline,
-                activeIcon: Icons.person,
-                title: 'Profile',
-                index: 3,
+                      _buildDrawerItem(
+                        icon: Icons.calendar_month_outlined,
+                        activeIcon: Icons.calendar_month,
+                        title: 'Bookings',
+                        index: 2,
+                      ),
+                      _buildDrawerItem(
+                        icon: Icons.receipt_long_outlined,
+                        activeIcon: Icons.receipt_long,
+                        title: 'Invoices',
+                        index: -1,
+                        customOnTap: () {
+                          Navigator.pop(context);
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => InvoicesScreen(
+                                onMenuTap: _openDrawer,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                      _buildDrawerItem(
+                        icon: Icons.track_changes_outlined,
+                        activeIcon: Icons.track_changes,
+                        title: 'Live Track',
+                        index: -1,
+                        customOnTap: () {
+                          Navigator.pop(context);
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => ProjectsListScreen(
+                                onMenuTap: _openDrawer,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                      _buildDrawerItem(
+                        icon: Icons.person_outline,
+                        activeIcon: Icons.person,
+                        title: 'Profile',
+                        index: 3,
+                      ),
+                    ],
+                  ),
+                ),
               ),
 
-              // _buildDrawerItem(
-              //   icon: Icons.info_outline,
-              //   activeIcon: Icons.info,
-              //   title: 'About Us',
-              //   index: 4,
-              // ),
-              const Spacer(),
               const Divider(color: Color(0xFFEBE7DF), height: 1),
 
               // Logout Option
@@ -220,41 +240,46 @@ class _MainNavigationScaffoldState extends State<MainNavigationScaffold>
                   horizontal: 12,
                   vertical: 8,
                 ),
-                child: ListTile(
-                  leading: const Icon(
-                    Icons.logout,
-                    color: Color(0xFFE74C3C),
-                    size: 22,
-                  ),
-                  title: Text(
-                    'Logout',
-                    style: GoogleFonts.inter(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      color: const Color(0xFFE74C3C),
+                child: Material(
+                  color: Colors.transparent,
+                  borderRadius: BorderRadius.circular(12),
+                  clipBehavior: Clip.antiAlias,
+                  child: ListTile(
+                    leading: const Icon(
+                      Icons.logout,
+                      color: Color(0xFFE74C3C),
+                      size: 22,
                     ),
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  onTap: () {
-                    final navigator = Navigator.of(
-                      context,
-                      rootNavigator: true,
-                    );
-                    final auth = Provider.of<AuthController>(
-                      context,
-                      listen: false,
-                    );
-                    auth.logout();
-
-                    navigator.pushAndRemoveUntil(
-                      MaterialPageRoute(
-                        builder: (context) => const LoginScreen(),
+                    title: Text(
+                      'Logout',
+                      style: GoogleFonts.inter(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFFE74C3C),
                       ),
-                      (route) => false,
-                    );
-                  },
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    onTap: () {
+                      final navigator = Navigator.of(
+                        context,
+                        rootNavigator: true,
+                      );
+                      final auth = Provider.of<AuthController>(
+                        context,
+                        listen: false,
+                      );
+                      auth.logout();
+
+                      navigator.pushAndRemoveUntil(
+                        MaterialPageRoute(
+                          builder: (context) => const LoginScreen(),
+                        ),
+                        (route) => false,
+                      );
+                    },
+                  ),
                 ),
               ),
             ],

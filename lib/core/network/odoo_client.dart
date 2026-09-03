@@ -216,7 +216,9 @@ class OdooApiService implements BaseOdooService {
       } catch (_) {}
     }
 
-    if (sess != null && sess.isNotEmpty && !list.any((c) => c.name == 'session_id')) {
+    if (sess != null &&
+        sess.isNotEmpty &&
+        !list.any((c) => c.name == 'session_id')) {
       list.add(Cookie('session_id', sess));
     }
     return list;
@@ -230,10 +232,12 @@ class OdooApiService implements BaseOdooService {
     _isReauthenticating = true;
     try {
       final prefs = await SharedPreferences.getInstance();
-      final savedUser = prefs.getString('username') ??
+      final savedUser =
+          prefs.getString('username') ??
           prefs.getString('user_email') ??
           await _storage.read(key: 'username').catchError((_) => null);
-      final savedPass = prefs.getString('password') ??
+      final savedPass =
+          prefs.getString('password') ??
           await _storage.read(key: 'password').catchError((_) => null);
 
       if (savedUser != null &&
@@ -308,8 +312,8 @@ class OdooApiService implements BaseOdooService {
 
       final error = response.data['error'];
       if (error != null) {
-        final errorMsg =
-            (error['data']?['message'] ?? error['message'] ?? '').toString();
+        final errorMsg = (error['data']?['message'] ?? error['message'] ?? '')
+            .toString();
         final errorName = (error['data']?['name'] ?? '').toString();
         final isSessionExpired =
             errorMsg.toLowerCase().contains('session expired') ||
@@ -334,9 +338,7 @@ class OdooApiService implements BaseOdooService {
           }
         }
 
-        throw Exception(
-          errorMsg.isNotEmpty ? errorMsg : 'Odoo JSON-RPC Error',
-        );
+        throw Exception(errorMsg.isNotEmpty ? errorMsg : 'Odoo JSON-RPC Error');
       }
 
       return response.data['result'];
@@ -670,7 +672,9 @@ class OdooApiService implements BaseOdooService {
             }
           }
         } catch (e) {
-          debugPrint('🟡 Query device tokens for logout deactivation failed: $e');
+          debugPrint(
+            '🟡 Query device tokens for logout deactivation failed: $e',
+          );
         }
       } else {
         await _deactivateToken(tokenId);
@@ -691,7 +695,9 @@ class OdooApiService implements BaseOdooService {
 
   Future<void> _deactivateToken(int tokenId) async {
     try {
-      debugPrint('🔵 [OdooApiService] Deactivating device token id=$tokenId via timeless.device.token/deactivate...');
+      debugPrint(
+        '🔵 [OdooApiService] Deactivating device token id=$tokenId via timeless.device.token/deactivate...',
+      );
       final resp = await _callKw(
         model: 'timeless.device.token',
         method: 'deactivate',
@@ -700,7 +706,9 @@ class OdooApiService implements BaseOdooService {
         ],
         kwargs: {},
       );
-      debugPrint('🟢 [OdooApiService] Deactivated device token id=$tokenId success, response: $resp');
+      debugPrint(
+        '🟢 [OdooApiService] Deactivated device token id=$tokenId success, response: $resp',
+      );
     } catch (e) {
       debugPrint('🟡 Deactivate device token warning: $e');
     }
@@ -1267,7 +1275,9 @@ class OdooApiService implements BaseOdooService {
         );
       }
     } catch (e) {
-      debugPrint('🔴 [OdooApiService] Error fetching variant by id $productId: $e');
+      debugPrint(
+        '🔴 [OdooApiService] Error fetching variant by id $productId: $e',
+      );
     }
     return null;
   }
@@ -1319,7 +1329,9 @@ class OdooApiService implements BaseOdooService {
     if (cleanStr.contains('+02:00')) {
       cleanStr = cleanStr.replaceAll('+02:00', '').trim();
     } else if (RegExp(r'(\+|\-)\d{2}:?\d{2}$').hasMatch(cleanStr)) {
-      cleanStr = cleanStr.replaceAll(RegExp(r'(\+|\-)\d{2}:?\d{2}$'), '').trim();
+      cleanStr = cleanStr
+          .replaceAll(RegExp(r'(\+|\-)\d{2}:?\d{2}$'), '')
+          .trim();
     }
 
     final parsed = DateTime.tryParse(cleanStr.replaceAll(' ', 'T'));
@@ -1518,7 +1530,9 @@ class OdooApiService implements BaseOdooService {
       final formattedStart = _formatToUtcFromJohannesburg(start);
       String formattedStop = _formatToUtcFromJohannesburg(stop);
 
-      final effectiveDuration = (duration <= 0 || duration == 3.0) ? 1.0 : duration;
+      final effectiveDuration = (duration <= 0 || duration == 3.0)
+          ? 1.0
+          : duration;
 
       final startUtcDt = DateTime.tryParse(formattedStart.replaceAll(' ', 'T'));
       if (startUtcDt != null) {
@@ -1734,7 +1748,7 @@ class OdooApiService implements BaseOdooService {
             'task_count': {},
             'label_tasks': {},
           },
-          'order': 'name asc',
+          'order': 'name desc',
         },
       );
 
@@ -1746,7 +1760,7 @@ class OdooApiService implements BaseOdooService {
         return ProjectModel.fromJson(Map<String, dynamic>.from(item as Map));
       }).toList();
     } catch (e) {
-      print('Endpoint 8 (project.project/web_search_read) error: $e');
+      debugPrint('Endpoint 8 (project.project/web_search_read) error: $e');
       return [];
     }
   }
@@ -1791,7 +1805,7 @@ class OdooApiService implements BaseOdooService {
         );
       }).toList();
     } catch (e) {
-      print('Endpoint 9 (project.task/web_search_read) error: $e');
+      debugPrint('Endpoint 9 (project.task/web_search_read) error: $e');
       return [];
     }
   }
@@ -1806,14 +1820,14 @@ class OdooApiService implements BaseOdooService {
         args: [],
         kwargs: {
           'domain': [
-            ['project_ids', 'in', [projectId]],
+            [
+              'project_ids',
+              'in',
+              [projectId],
+            ],
           ],
-          'specification': {
-            'id': {},
-            'name': {},
-            'sequence': {},
-          },
-          'order': 'sequence asc',
+          'specification': {'id': {}, 'name': {}, 'sequence': {}},
+          'order': 'sequence desc',
         },
       );
 
@@ -2037,18 +2051,25 @@ class OdooApiService implements BaseOdooService {
     String? signatureBase64,
     String? accessToken,
   }) async {
-    debugPrint('🔵 [OdooApiService] acceptQuotation called for orderId=$orderId, name=$name');
+    debugPrint(
+      '🔵 [OdooApiService] acceptQuotation called for orderId=$orderId, name=$name',
+    );
     await _ensureInitialized();
 
-    final String cleanSig = (signatureBase64 != null && signatureBase64.isNotEmpty)
-        ? (signatureBase64.contains(',') ? signatureBase64.split(',').last : signatureBase64)
+    final String cleanSig =
+        (signatureBase64 != null && signatureBase64.isNotEmpty)
+        ? (signatureBase64.contains(',')
+              ? signatureBase64.split(',').last
+              : signatureBase64)
         : '';
 
     String token = accessToken ?? '';
     if (token.isEmpty && orderId > 0) {
       try {
         final details = await getQuotationDetails(orderId);
-        if (details != null && details['access_token'] is String && (details['access_token'] as String).isNotEmpty) {
+        if (details != null &&
+            details['access_token'] is String &&
+            (details['access_token'] as String).isNotEmpty) {
           token = details['access_token'];
         }
       } catch (_) {}
@@ -2060,13 +2081,19 @@ class OdooApiService implements BaseOdooService {
         final details = await getQuotationDetails(orderId);
         if (details != null) {
           final state = details['state']?.toString().toLowerCase() ?? '';
-          debugPrint('🔍 [OdooApiService] Checked order $orderId state in Odoo: "$state"');
-          if (state == 'sale' || state == 'done' || (state.isNotEmpty && state != 'draft' && state != 'sent')) {
+          debugPrint(
+            '🔍 [OdooApiService] Checked order $orderId state in Odoo: "$state"',
+          );
+          if (state == 'sale' ||
+              state == 'done' ||
+              (state.isNotEmpty && state != 'draft' && state != 'sent')) {
             return true;
           }
         }
       } catch (e) {
-        debugPrint('⚠️ [OdooApiService] Failed to verify order state in Odoo: $e');
+        debugPrint(
+          '⚠️ [OdooApiService] Failed to verify order state in Odoo: $e',
+        );
       }
       return false;
     }
@@ -2078,7 +2105,9 @@ class OdooApiService implements BaseOdooService {
         if (token.isNotEmpty) {
           portalUrl += '?access_token=$token';
         }
-        debugPrint('🔵 [OdooApiService] Posting JSON-RPC payload to: $portalUrl');
+        debugPrint(
+          '🔵 [OdooApiService] Posting JSON-RPC payload to: $portalUrl',
+        );
 
         final payload = {
           "jsonrpc": "2.0",
@@ -2087,7 +2116,7 @@ class OdooApiService implements BaseOdooService {
             "name": name,
             "signature": cleanSig,
             if (token.isNotEmpty) "access_token": token,
-          }
+          },
         };
 
         final response = await _dio!.post(
@@ -2097,39 +2126,54 @@ class OdooApiService implements BaseOdooService {
             headers: {'Content-Type': 'application/json'},
             followRedirects: true,
             sendTimeout: const Duration(seconds: 30),
-            receiveTimeout: const Duration(seconds: 90), // Increased receive timeout to 90s
+            receiveTimeout: const Duration(
+              seconds: 90,
+            ), // Increased receive timeout to 90s
           ),
         );
 
-        debugPrint('🟢 [OdooApiService] Portal accept response status: ${response.statusCode}, body: ${response.data}');
+        debugPrint(
+          '🟢 [OdooApiService] Portal accept response status: ${response.statusCode}, body: ${response.data}',
+        );
 
         if (response.data is Map && response.data['result'] != null) {
           final result = response.data['result'];
           if (result is Map) {
-            final bool success = result['success'] == true ||
+            final bool success =
+                result['success'] == true ||
                 result['status'] == 'accepted' ||
                 result['redirect_url'] != null ||
                 result['force_refresh'] == true;
             if (success) {
-              debugPrint('🟢 [OdooApiService] Quotation $orderId successfully accepted! Result: $result');
+              debugPrint(
+                '🟢 [OdooApiService] Quotation $orderId successfully accepted! Result: $result',
+              );
               return true;
             }
           } else if (result == true) {
-            debugPrint('🟢 [OdooApiService] Quotation $orderId successfully accepted! Result: true');
+            debugPrint(
+              '🟢 [OdooApiService] Quotation $orderId successfully accepted! Result: true',
+            );
             return true;
           }
         }
         if (response.statusCode == 200) {
           // Verify if order status updated to confirmed in Odoo
           if (await isOrderConfirmedInOdoo()) {
-            debugPrint('🟢 [OdooApiService] Verified order state in Odoo is confirmed after portal accept 200');
+            debugPrint(
+              '🟢 [OdooApiService] Verified order state in Odoo is confirmed after portal accept 200',
+            );
             return true;
           }
         }
       } catch (portalErr) {
-        debugPrint('⚠️ [OdooApiService] Direct portal accept URL failed/timed out ($portalErr). Checking if order was confirmed during request...');
+        debugPrint(
+          '⚠️ [OdooApiService] Direct portal accept URL failed/timed out ($portalErr). Checking if order was confirmed during request...',
+        );
         if (await isOrderConfirmedInOdoo()) {
-          debugPrint('🟢 [OdooApiService] Order $orderId WAS confirmed in Odoo despite client timeout!');
+          debugPrint(
+            '🟢 [OdooApiService] Order $orderId WAS confirmed in Odoo despite client timeout!',
+          );
           return true;
         }
       }
@@ -2148,10 +2192,14 @@ class OdooApiService implements BaseOdooService {
           if (cleanSig.isNotEmpty) 'signature': cleanSig,
         },
       );
-      debugPrint('🟢 [OdooApiService] acceptQuotation action_confirm successful for orderId=$orderId');
+      debugPrint(
+        '🟢 [OdooApiService] acceptQuotation action_confirm successful for orderId=$orderId',
+      );
       return true;
     } catch (e) {
-      debugPrint('⚠️ [OdooApiService] action_confirm not allowed or failed ($e). Posting acceptance message...');
+      debugPrint(
+        '⚠️ [OdooApiService] action_confirm not allowed or failed ($e). Posting acceptance message...',
+      );
       try {
         await _callKw(
           model: 'sale.order',
@@ -2160,23 +2208,30 @@ class OdooApiService implements BaseOdooService {
             [orderId],
           ],
           kwargs: {
-            'body': '<p><b>Quotation Accepted & Digitally Signed</b><br/>Customer Name: $name</p>',
+            'body':
+                '<p><b>Quotation Accepted & Digitally Signed</b><br/>Customer Name: $name</p>',
             'message_type': 'comment',
             'subtype_xmlid': 'mail.mt_comment',
           },
         );
-        debugPrint('🟢 [OdooApiService] Posted acceptance message to sale.order $orderId');
+        debugPrint(
+          '🟢 [OdooApiService] Posted acceptance message to sale.order $orderId',
+        );
       } catch (msgErr) {
         debugPrint('⚠️ [OdooApiService] Could not post message: $msgErr');
       }
 
       // Check if order was confirmed in Odoo despite action_confirm error
       if (await isOrderConfirmedInOdoo()) {
-        debugPrint('🟢 [OdooApiService] Verified order $orderId is confirmed in Odoo.');
+        debugPrint(
+          '🟢 [OdooApiService] Verified order $orderId is confirmed in Odoo.',
+        );
         return true;
       }
 
-      debugPrint('🔴 [OdooApiService] Quotation $orderId could not be confirmed in Odoo.');
+      debugPrint(
+        '🔴 [OdooApiService] Quotation $orderId could not be confirmed in Odoo.',
+      );
       return false;
     }
   }
@@ -2268,9 +2323,7 @@ class OdooApiService implements BaseOdooService {
           );
           return true;
         }
-        debugPrint(
-          '🟡 [OdooApiService] register_device method error: $e',
-        );
+        debugPrint('🟡 [OdooApiService] register_device method error: $e');
       }
 
       return false;
@@ -2315,7 +2368,9 @@ class OdooApiService implements BaseOdooService {
 
   /// STEP 15d: Get User Notifications (`timeless.notification/web_search_read`)
   @override
-  Future<List<Map<String, dynamic>>> getUserNotifications({int? partnerId}) async {
+  Future<List<Map<String, dynamic>>> getUserNotifications({
+    int? partnerId,
+  }) async {
     try {
       final pid = partnerId ?? _partnerId ?? _uid;
 
@@ -2330,7 +2385,7 @@ class OdooApiService implements BaseOdooService {
                 ? [
                     '|',
                     ['partner_id', '=', pid],
-                    ['partner_id', '=', false]
+                    ['partner_id', '=', false],
                   ]
                 : [],
             'specification': {
@@ -2340,10 +2395,7 @@ class OdooApiService implements BaseOdooService {
               'res_model': {},
               'res_id': {},
               'sale_order_id': {
-                'fields': {
-                  'id': {},
-                  'display_name': {},
-                }
+                'fields': {'id': {}, 'display_name': {}},
               },
               'is_read': {},
               'create_date': {},
@@ -2352,16 +2404,23 @@ class OdooApiService implements BaseOdooService {
           },
         );
 
-        final List records = (response is Map && response.containsKey('records'))
+        final List records =
+            (response is Map && response.containsKey('records'))
             ? (response['records'] as List)
             : (response is List ? response : []);
 
         if (records.isNotEmpty) {
-          debugPrint('🟢 [OdooApiService] getUserNotifications web_search_read returned ${records.length} records');
-          return records.map((r) => Map<String, dynamic>.from(r as Map)).toList();
+          debugPrint(
+            '🟢 [OdooApiService] getUserNotifications web_search_read returned ${records.length} records',
+          );
+          return records
+              .map((r) => Map<String, dynamic>.from(r as Map))
+              .toList();
         }
       } catch (e) {
-        debugPrint('🟡 [OdooApiService] timeless.notification web_search_read with domain failed: $e');
+        debugPrint(
+          '🟡 [OdooApiService] timeless.notification web_search_read with domain failed: $e',
+        );
         // Fallback 1b: Try domain [] without partner_id restriction
         try {
           final response = await _callKw(
@@ -2377,10 +2436,7 @@ class OdooApiService implements BaseOdooService {
                 'res_model': {},
                 'res_id': {},
                 'sale_order_id': {
-                  'fields': {
-                    'id': {},
-                    'display_name': {},
-                  }
+                  'fields': {'id': {}, 'display_name': {}},
                 },
                 'is_read': {},
                 'create_date': {},
@@ -2389,16 +2445,23 @@ class OdooApiService implements BaseOdooService {
             },
           );
 
-          final List records = (response is Map && response.containsKey('records'))
+          final List records =
+              (response is Map && response.containsKey('records'))
               ? (response['records'] as List)
               : (response is List ? response : []);
 
           if (records.isNotEmpty) {
-            debugPrint('🟢 [OdooApiService] getUserNotifications web_search_read domain [] returned ${records.length} records');
-            return records.map((r) => Map<String, dynamic>.from(r as Map)).toList();
+            debugPrint(
+              '🟢 [OdooApiService] getUserNotifications web_search_read domain [] returned ${records.length} records',
+            );
+            return records
+                .map((r) => Map<String, dynamic>.from(r as Map))
+                .toList();
           }
         } catch (e2) {
-          debugPrint('🟡 [OdooApiService] timeless.notification web_search_read domain [] failed: $e2');
+          debugPrint(
+            '🟡 [OdooApiService] timeless.notification web_search_read domain [] failed: $e2',
+          );
         }
       }
 
@@ -2418,22 +2481,29 @@ class OdooApiService implements BaseOdooService {
               'res_id',
               'sale_order_id',
               'is_read',
-              'create_date'
+              'create_date',
             ],
             'order': 'create_date desc',
           },
         );
 
-        final List records = (response is Map && response.containsKey('records'))
+        final List records =
+            (response is Map && response.containsKey('records'))
             ? (response['records'] as List)
             : (response is List ? response : []);
 
         if (records.isNotEmpty) {
-          debugPrint('🟢 [OdooApiService] getUserNotifications search_read returned ${records.length} records');
-          return records.map((r) => Map<String, dynamic>.from(r as Map)).toList();
+          debugPrint(
+            '🟢 [OdooApiService] getUserNotifications search_read returned ${records.length} records',
+          );
+          return records
+              .map((r) => Map<String, dynamic>.from(r as Map))
+              .toList();
         }
       } catch (e) {
-        debugPrint('🟡 [OdooApiService] timeless.notification search_read fallback: $e');
+        debugPrint(
+          '🟡 [OdooApiService] timeless.notification search_read fallback: $e',
+        );
       }
 
       // 3. Fallback to mail.message model
@@ -2444,8 +2514,12 @@ class OdooApiService implements BaseOdooService {
             method: 'search_read',
             args: [
               [
-                ['partner_ids', 'in', [pid]]
-              ]
+                [
+                  'partner_ids',
+                  'in',
+                  [pid],
+                ],
+              ],
             ],
             kwargs: {
               'fields': ['id', 'subject', 'body', 'date', 'model', 'res_id'],
@@ -2453,12 +2527,15 @@ class OdooApiService implements BaseOdooService {
             },
           );
 
-          final List records = (response is Map && response.containsKey('records'))
+          final List records =
+              (response is Map && response.containsKey('records'))
               ? (response['records'] as List)
               : (response is List ? response : []);
 
           if (records.isNotEmpty) {
-            return records.map((r) => Map<String, dynamic>.from(r as Map)).toList();
+            return records
+                .map((r) => Map<String, dynamic>.from(r as Map))
+                .toList();
           }
         } catch (_) {}
       }
@@ -2471,7 +2548,9 @@ class OdooApiService implements BaseOdooService {
 
   /// STEP 15e: Get Notification Detail (`timeless.notification` or `mail.message`)
   @override
-  Future<Map<String, dynamic>?> getNotificationDetail(int notificationId) async {
+  Future<Map<String, dynamic>?> getNotificationDetail(
+    int notificationId,
+  ) async {
     try {
       // 1. Try timeless.notification
       try {
@@ -2480,8 +2559,8 @@ class OdooApiService implements BaseOdooService {
           method: 'search_read',
           args: [
             [
-              ['id', '=', notificationId]
-            ]
+              ['id', '=', notificationId],
+            ],
           ],
           kwargs: {
             'fields': [
@@ -2493,12 +2572,13 @@ class OdooApiService implements BaseOdooService {
               'res_id',
               'sale_order_id',
               'is_read',
-              'create_date'
+              'create_date',
             ],
           },
         );
 
-        final List records = (response is Map && response.containsKey('records'))
+        final List records =
+            (response is Map && response.containsKey('records'))
             ? (response['records'] as List)
             : (response is List ? response : []);
 
@@ -2514,8 +2594,8 @@ class OdooApiService implements BaseOdooService {
           method: 'search_read',
           args: [
             [
-              ['id', '=', notificationId]
-            ]
+              ['id', '=', notificationId],
+            ],
           ],
           kwargs: {
             'fields': ['id', 'subject', 'body', 'date', 'model', 'res_id'],
@@ -3092,7 +3172,9 @@ class OdooApiService implements BaseOdooService {
 
   @override
   Future<Map<String, dynamic>?> getInvoiceDetails(int invoiceId) async {
-    debugPrint('🔵 [OdooApiService] getInvoiceDetails called for invoiceId=$invoiceId');
+    debugPrint(
+      '🔵 [OdooApiService] getInvoiceDetails called for invoiceId=$invoiceId',
+    );
     try {
       await _ensureInitialized();
       final res = await _callKw(
@@ -3126,14 +3208,16 @@ class OdooApiService implements BaseOdooService {
                 'price_unit': {},
                 'price_subtotal': {},
                 'price_total': {},
-              }
-            }
-          }
+              },
+            },
+          },
         },
       );
 
       if (res is List && res.isNotEmpty) {
-        debugPrint('🟢 [OdooApiService] getInvoiceDetails success for invoiceId=$invoiceId');
+        debugPrint(
+          '🟢 [OdooApiService] getInvoiceDetails success for invoiceId=$invoiceId',
+        );
         return Map<String, dynamic>.from(res[0]);
       }
       return null;
@@ -3152,7 +3236,9 @@ class OdooApiService implements BaseOdooService {
         debugPrint('⚠️ [OdooApiService] partnerId is null for getUserInvoices');
         return [];
       }
-      debugPrint('🔵 [OdooApiService] getUserInvoices called for partnerId=$pid');
+      debugPrint(
+        '🔵 [OdooApiService] getUserInvoices called for partnerId=$pid',
+      );
       final response = await _callKw(
         model: 'account.move',
         method: 'web_search_read',
@@ -3179,7 +3265,9 @@ class OdooApiService implements BaseOdooService {
       final List records = (response is Map && response['records'] is List)
           ? response['records'] as List
           : [];
-      debugPrint('🟢 [OdooApiService] getUserInvoices returned ${records.length} records');
+      debugPrint(
+        '🟢 [OdooApiService] getUserInvoices returned ${records.length} records',
+      );
       return records.map((r) => Map<String, dynamic>.from(r as Map)).toList();
     } catch (e) {
       debugPrint('🔴 [OdooApiService] getUserInvoices error: $e');

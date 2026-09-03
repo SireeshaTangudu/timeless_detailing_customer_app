@@ -11,6 +11,8 @@ import 'package:timeless_detailing_customer_app/features/bookings/models/booking
 import 'package:timeless_detailing_customer_app/features/bookings/views/upcoming_appointment_details_screen.dart';
 import 'package:timeless_detailing_customer_app/features/services/models/service_model.dart';
 import 'package:timeless_detailing_customer_app/features/notifications/views/notifications_screen.dart';
+import 'package:timeless_detailing_customer_app/features/tracking/models/project_model.dart';
+import 'package:timeless_detailing_customer_app/features/tracking/views/project_details_screen.dart';
 import 'package:timeless_detailing_customer_app/features/dashboard/views/main_navigation_scaffold.dart';
 import 'package:timeless_detailing_customer_app/main.dart';
 
@@ -201,6 +203,80 @@ class FirebaseNotificationService {
     if (isBookingConfirmed) {
       debugPrint('🔵 Booking confirmed notification tapped -> Navigating to NotificationsScreen');
       _navigateToScreenFromNotification(context, const NotificationsScreen());
+      return;
+    }
+
+    final bool isLiveTrackOrPipeline = notifType.contains('pipeline') ||
+        notifType.contains('live_track') ||
+        notifType.contains('tracking') ||
+        resModel == 'crm.lead' ||
+        resModel == 'project.project' ||
+        resModel == 'project.task' ||
+        titleStr.contains('status update') ||
+        titleStr.contains('pipeline update') ||
+        titleStr.contains('live track') ||
+        bodyStr.contains('status has been updated') ||
+        bodyStr.contains('vehicle\'s status has been updated');
+
+    if (isLiveTrackOrPipeline) {
+      final targetProjectId = resId ?? saleOrderId ?? 108;
+      debugPrint('🔵 Pipeline / Live track update notification tapped -> Navigating to ProjectDetailsScreen for project ID=$targetProjectId');
+
+      final String projectTitle = (message.data['title'] ?? message.notification?.title ?? '').toString();
+      final String cleanTitle = projectTitle.isNotEmpty ? projectTitle : 'Vehicle Detailing Tracking';
+
+      if (odooService != null) {
+        odooService.getProjects().then((projects) {
+          final currentCtx = navigatorKey.currentContext;
+          if (currentCtx == null) return;
+
+          ProjectModel? matchedProject;
+          for (final p in projects) {
+            if (p.id == targetProjectId) {
+              matchedProject = p;
+              break;
+            }
+          }
+
+          final targetProject = matchedProject ?? ProjectModel(
+            id: targetProjectId,
+            name: cleanTitle,
+            taskCount: 0,
+            labelTasks: 'Tasks',
+          );
+
+          _navigateToScreenFromNotification(
+            currentCtx,
+            ProjectDetailsScreen(project: targetProject),
+          );
+        }).catchError((err) {
+          debugPrint('🟡 Error fetching projects for notification navigation: $err');
+          final currentCtx = navigatorKey.currentContext;
+          if (currentCtx != null) {
+            final fallbackProject = ProjectModel(
+              id: targetProjectId,
+              name: cleanTitle,
+              taskCount: 0,
+              labelTasks: 'Tasks',
+            );
+            _navigateToScreenFromNotification(
+              currentCtx,
+              ProjectDetailsScreen(project: fallbackProject),
+            );
+          }
+        });
+      } else {
+        final fallbackProject = ProjectModel(
+          id: targetProjectId,
+          name: cleanTitle,
+          taskCount: 0,
+          labelTasks: 'Tasks',
+        );
+        _navigateToScreenFromNotification(
+          context,
+          ProjectDetailsScreen(project: fallbackProject),
+        );
+      }
       return;
     }
 
