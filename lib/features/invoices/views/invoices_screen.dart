@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:timeless_detailing_customer_app/core/widgets/custom_app_bar.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/controllers/bookings_controller.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/models/booking_model.dart';
+import 'package:timeless_detailing_customer_app/features/dashboard/views/main_navigation_scaffold.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/views/upcoming_appointment_details_screen.dart';
 
 class InvoicesScreen extends StatefulWidget {
@@ -38,30 +39,46 @@ class _InvoicesScreenState extends State<InvoicesScreen> {
     }
   }
 
+  void _handleBack(BuildContext context) {
+    if (Navigator.canPop(context)) {
+      Navigator.pop(context);
+    } else if (widget.onMenuTap != null) {
+      widget.onMenuTap!();
+    } else {
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const MainNavigationScaffold(),
+        ),
+        (route) => false,
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final controller = Provider.of<BookingsController>(context);
     final invoices = controller.userInvoices;
     final bool isBusy = _isLoading || controller.isLoading;
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF7F5F0), // Warm light cream
-      body: SafeArea(
-        child: Stack(
-          children: [
-            Column(
-              children: [
-                CustomAppBar(
-                  title: 'My Invoices',
-                  backIcon: Icons.arrow_back_sharp,
-                  onBackPressed: () {
-                    if (Navigator.canPop(context)) {
-                      Navigator.pop(context);
-                    } else if (widget.onMenuTap != null) {
-                      widget.onMenuTap!();
-                    }
-                  },
-                ),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        _handleBack(context);
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF7F5F0), // Warm light cream
+        body: SafeArea(
+          child: Stack(
+            children: [
+              Column(
+                children: [
+                  CustomAppBar(
+                    title: 'My Invoices',
+                    backIcon: Icons.arrow_back_sharp,
+                    onBackPressed: () => _handleBack(context),
+                  ),
                 Expanded(
                   child: RefreshIndicator(
                     onRefresh: _fetchInvoices,
@@ -94,7 +111,8 @@ class _InvoicesScreenState extends State<InvoicesScreen> {
                   ),
                 ),
               ),
-          ],
+            ],
+          ),
         ),
       ),
     );

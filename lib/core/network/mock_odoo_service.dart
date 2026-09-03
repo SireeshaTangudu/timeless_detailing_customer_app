@@ -756,17 +756,25 @@ class MockOdooService implements BaseOdooService {
     return [
       {
         'id': 1,
+        'notification_type': 'quotation_sent',
+        'sale_order_id': [93, 'S00093'],
+        'res_model': 'sale.order',
+        'res_id': 93,
         'title': 'New Quotation Received',
         'body':
-            'Your technician has completed vehicle inspection and generated your final quotation.',
+            'Your technician has completed vehicle inspection and generated your final quotation S00093.',
         'date': DateTime.now()
             .subtract(const Duration(hours: 2))
             .toIso8601String(),
         'read': false,
-        'order_id': 20,
+        'order_id': 93,
       },
       {
         'id': 2,
+        'notification_type': 'appointment_booked',
+        'sale_order_id': false,
+        'res_model': 'calendar.event',
+        'res_id': 138,
         'title': 'Appointment Confirmed',
         'body':
             'Your appointment for Paint Protection Film (PPF) is confirmed.',
@@ -782,16 +790,36 @@ class MockOdooService implements BaseOdooService {
   Future<Map<String, dynamic>?> getNotificationDetail(
     int notificationId,
   ) async {
+    if (notificationId == 2) {
+      return {
+        'id': 2,
+        'notification_type': 'appointment_booked',
+        'sale_order_id': false,
+        'res_model': 'calendar.event',
+        'res_id': 138,
+        'title': 'Appointment Confirmed',
+        'body':
+            'Your appointment for Paint Protection Film (PPF) is confirmed.',
+        'date': DateTime.now()
+            .subtract(const Duration(days: 1))
+            .toIso8601String(),
+        'read': true,
+      };
+    }
     return {
       'id': notificationId,
+      'notification_type': 'quotation_sent',
+      'sale_order_id': [93, 'S00093'],
+      'res_model': 'sale.order',
+      'res_id': 93,
       'title': 'New Quotation Received',
       'body':
-          'Your technician has completed vehicle inspection and generated your final quotation.',
+          'Your technician has completed vehicle inspection and generated your final quotation S00093.',
       'date': DateTime.now()
           .subtract(const Duration(hours: 2))
           .toIso8601String(),
       'read': true,
-      'order_id': 20,
+      'order_id': 93,
     };
   }
 

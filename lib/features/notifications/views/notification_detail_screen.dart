@@ -3,7 +3,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:timeless_detailing_customer_app/core/network/odoo_client.dart';
-import 'package:timeless_detailing_customer_app/core/theme/app_theme.dart';
 import 'package:timeless_detailing_customer_app/core/widgets/custom_app_bar.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/models/estimation_model.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/views/estimation_screen.dart';
@@ -69,10 +68,6 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
         dateStr = DateFormat('dd MMMM yyyy, hh:mm a').format(localDt);
       }
     }
-
-    final orderIdRaw =
-        notif['order_id'] ?? notif['sale_order_id'] ?? notif['res_id'];
-    final orderId = int.tryParse(orderIdRaw?.toString() ?? '');
 
     return Scaffold(
       backgroundColor: const Color(0xFFF9F7F4),
@@ -211,52 +206,84 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
                   ),
                   const SizedBox(height: 24),
 
-                  // Action button if notification is linked to a sale order / quotation
-                  // if (orderId != null)
-                  //   SizedBox(
-                  //     width: double.infinity,
-                  //     height: 50,
-                  //     child: ElevatedButton.icon(
-                  //       onPressed: () {
-                  //         final odooService = Provider.of<BaseOdooService>(context, listen: false);
-                  //         odooService.getQuotationDetails(orderId).then((quotationData) {
-                  //           if (mounted && quotationData != null) {
-                  //             final est = EstimationModel.fromOdooJson(quotationData);
-                  //             Navigator.push(
-                  //               context,
-                  //               MaterialPageRoute(
-                  //                 builder: (context) => EstimationScreen(estimation: est),
-                  //               ),
-                  //             );
-                  //           } else if (mounted) {
-                  //             Navigator.push(
-                  //               context,
-                  //               MaterialPageRoute(
-                  //                 builder: (context) => const EstimationScreen(),
-                  //               ),
-                  //             );
-                  //           }
-                  //         });
-                  //       },
-                  //       style: ElevatedButton.styleFrom(
-                  //         backgroundColor: const Color(0xFFC4913F),
-                  //         foregroundColor: Colors.white,
-                  //         elevation: 0,
-                  //         shape: RoundedRectangleBorder(
-                  //           borderRadius: BorderRadius.circular(12),
-                  //         ),
-                  //       ),
-                  //       icon: const Icon(Icons.assignment_outlined, size: 20),
-                  //       label: Text(
-                  //         'VIEW ESTIMATION & SIGN',
-                  //         style: GoogleFonts.outfit(
-                  //           fontSize: 14.5,
-                  //           fontWeight: FontWeight.bold,
-                  //           color: Colors.white,
-                  //         ),
-                  //       ),
-                  //     ),
-                  //   ),
+                  // Action button navigating to Estimation Screen
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        final notifType = (notif['notification_type'] ?? notif['type'] ?? '').toString().toLowerCase();
+                        final resModel = (notif['res_model'] ?? notif['model'] ?? '').toString().toLowerCase();
+                        final rawSaleOrderId = notif['sale_order_id'];
+
+                        int? saleOrderId;
+                        if (rawSaleOrderId is List && rawSaleOrderId.isNotEmpty && rawSaleOrderId.first is int) {
+                          saleOrderId = rawSaleOrderId.first as int;
+                        } else if (rawSaleOrderId is int) {
+                          saleOrderId = rawSaleOrderId;
+                        } else if (rawSaleOrderId is String) {
+                          saleOrderId = int.tryParse(rawSaleOrderId);
+                        }
+
+                        final resIdRaw = notif['order_id'] ?? notif['res_id'];
+                        final resId = int.tryParse(resIdRaw?.toString() ?? '');
+
+                        final bool isQuotationSent = notifType == 'quotation_sent' ||
+                            resModel == 'sale.order' ||
+                            (saleOrderId != null && saleOrderId > 0);
+
+                        final odooService = Provider.of<BaseOdooService>(context, listen: false);
+                        final targetId = saleOrderId ?? resId;
+
+                        if (isQuotationSent && targetId != null) {
+                          odooService.getQuotationDetails(targetId).then((quotationData) {
+                            if (mounted && quotationData != null) {
+                              final est = EstimationModel.fromOdooJson(quotationData);
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => EstimationScreen(estimation: est),
+                                ),
+                              );
+                            } else if (mounted) {
+                              final est = EstimationModel.fromNotificationJson(notif);
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => EstimationScreen(estimation: est),
+                                ),
+                              );
+                            }
+                          });
+                        } else {
+                          final est = EstimationModel.fromNotificationJson(notif);
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => EstimationScreen(estimation: est),
+                            ),
+                          );
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFC4913F),
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      icon: const Icon(Icons.assignment_outlined, size: 20),
+                      label: Text(
+                        'VIEW ESTIMATION',
+                        style: GoogleFonts.outfit(
+                          fontSize: 14.5,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),

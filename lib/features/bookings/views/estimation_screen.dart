@@ -10,6 +10,7 @@ import 'package:timeless_detailing_customer_app/features/auth/controllers/auth_c
 import 'package:timeless_detailing_customer_app/features/bookings/models/estimation_model.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/models/garage_location_model.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/controllers/bookings_controller.dart';
+import 'package:timeless_detailing_customer_app/features/dashboard/views/main_navigation_scaffold.dart';
 
 class EstimationScreen extends StatefulWidget {
   final EstimationModel? estimation;
@@ -385,18 +386,38 @@ class _EstimationScreenState extends State<EstimationScreen> {
     );
   }
 
+  void _handleBack(BuildContext context) {
+    if (Navigator.canPop(context)) {
+      Navigator.pop(context);
+    } else {
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const MainNavigationScaffold(),
+        ),
+        (route) => false,
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final data = widget.estimation ?? EstimationModel.defaultStatic();
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF7F5F0),
-      body: Column(
-        children: [
-          CustomAppBar(
-            title: 'Your Estimate',
-            onBackPressed: () => Navigator.pop(context),
-          ),
+    return PopScope(
+      canPop: true,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        _handleBack(context);
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF7F5F0),
+        body: Column(
+          children: [
+            CustomAppBar(
+              title: 'Your Estimate',
+              onBackPressed: () => _handleBack(context),
+            ),
           Expanded(
             child: SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
@@ -449,8 +470,9 @@ class _EstimationScreenState extends State<EstimationScreen> {
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   /// Two-tone ticket card
   Widget _buildEstimateTicketCard(BuildContext context, EstimationModel data) {
@@ -625,114 +647,91 @@ class _EstimationScreenState extends State<EstimationScreen> {
                       ],
                     ),
                   )
-                else if (data.state == 'draft')
-                  Column(
-                    children: [
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFFF8E1),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: const Color(0xFFFFE082)),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.access_time_filled_rounded,
-                              color: Color(0xFFF57F17),
-                              size: 24,
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Draft Estimate Created',
-                                    style: GoogleFonts.outfit(
-                                      fontSize: 14.5,
-                                      fontWeight: FontWeight.bold,
-                                      color: const Color(0xFFF57F17),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    'Our detailer will inspect your vehicle and send a finalized quotation. You will receive a notification when ready.',
-                                    style: GoogleFonts.montserrat(
-                                      fontSize: 11.5,
-                                      color: const Color(0xFF5D4037),
-                                      height: 1.35,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 48,
-                        child: OutlinedButton.icon(
-                          onPressed: () => _openGoogleMapsDirections(context),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: const Color(0xFF1D1813),
-                            side: const BorderSide(
-                              color: Color(0xFFD6C8B4),
-                              width: 1,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                          ),
-                          icon: const Icon(
-                            Icons.near_me_outlined,
-                            size: 16,
-                            color: Color(0xFF1D1813),
-                          ),
-                          label: Text(
-                            'Get Directions to Garage',
-                            style: GoogleFonts.outfit(
-                              fontSize: 13.5,
-                              fontWeight: FontWeight.w600,
-                              color: const Color(0xFF1D1813),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  )
                 else
                   Column(
                     children: [
-                      // Accept & Sign Button (For Sent Quotations)
+                      if (!data.isQuotationSent) ...[
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFFF8E1),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: const Color(0xFFFFE082)),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.access_time_filled_rounded,
+                                color: Color(0xFFF57F17),
+                                size: 24,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Draft Estimate Created',
+                                      style: GoogleFonts.outfit(
+                                        fontSize: 14.5,
+                                        fontWeight: FontWeight.bold,
+                                        color: const Color(0xFFF57F17),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      'Our detailer will inspect your vehicle and send a finalized quotation. Accept & Sign will be enabled once quotation is sent by technician.',
+                                      style: GoogleFonts.montserrat(
+                                        fontSize: 11.5,
+                                        color: const Color(0xFF5D4037),
+                                        height: 1.35,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                      ],
+
+                      // Accept & Sign Button (Enabled if quotation sent by technician, Disabled otherwise)
                       SizedBox(
                         width: double.infinity,
                         height: 50,
                         child: ElevatedButton.icon(
-                          onPressed: () =>
-                              _showAcceptAndSignModal(context, data),
+                          onPressed: data.isQuotationSent
+                              ? () => _showAcceptAndSignModal(context, data)
+                              : null,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFFC4913F),
                             foregroundColor: Colors.white,
+                            disabledBackgroundColor: const Color(0xFFE5DFD5),
+                            disabledForegroundColor: const Color(0xFF8C8273),
                             elevation: 0,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
                           ),
-                          icon: const Icon(
+                          icon: Icon(
                             Icons.draw_outlined,
                             size: 20,
-                            color: Colors.white,
+                            color: data.isQuotationSent
+                                ? Colors.white
+                                : const Color(0xFF8C8273),
                           ),
                           label: Text(
-                            'Accept & Sign',
+                            data.isQuotationSent
+                                ? 'Accept & Sign'
+                                : 'Accept & Sign (Disabled - Waiting for Quotation)',
                             style: GoogleFonts.outfit(
-                              fontSize: 15.5,
+                              fontSize: 14.5,
                               fontWeight: FontWeight.bold,
-                              color: Colors.white,
+                              color: data.isQuotationSent
+                                  ? Colors.white
+                                  : const Color(0xFF8C8273),
                             ),
                           ),
                         ),

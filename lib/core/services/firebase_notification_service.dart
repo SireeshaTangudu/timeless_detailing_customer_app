@@ -10,6 +10,8 @@ import 'package:timeless_detailing_customer_app/features/bookings/views/estimati
 import 'package:timeless_detailing_customer_app/features/bookings/models/booking_model.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/views/upcoming_appointment_details_screen.dart';
 import 'package:timeless_detailing_customer_app/features/services/models/service_model.dart';
+import 'package:timeless_detailing_customer_app/features/notifications/views/notifications_screen.dart';
+import 'package:timeless_detailing_customer_app/features/dashboard/views/main_navigation_scaffold.dart';
 import 'package:timeless_detailing_customer_app/main.dart';
 
 @pragma('vm:entry-point')
@@ -122,17 +124,42 @@ class FirebaseNotificationService {
     }
   }
 
+  static void _navigateToScreenFromNotification(BuildContext context, Widget screen) {
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (context) => const MainNavigationScaffold()),
+      (route) => false,
+    );
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => screen),
+    );
+  }
+
   static void handleNotificationNavigation(RemoteMessage message, BaseOdooService? odooService) {
     debugPrint('🔵 Handling notification navigation for message payload: ${message.data}');
     final context = navigatorKey.currentContext;
     if (context == null) return;
 
+    final String notifType = (message.data['notification_type'] ?? message.data['type'] ?? '').toString().toLowerCase();
+    final String resModel = (message.data['res_model'] ?? message.data['model'] ?? '').toString().toLowerCase();
     final String resIdStr = (message.data['res_id'] ?? message.data['order_id'] ?? message.data['sale_order_id'] ?? message.data['id'] ?? '').toString();
     final int? resId = int.tryParse(resIdStr);
+    final dynamic rawSaleOrderId = message.data['sale_order_id'];
 
-    final String typeStr = (message.data['type'] ?? message.data['model'] ?? message.data['notification_type'] ?? '').toString().toLowerCase();
+    int? saleOrderId;
+    if (rawSaleOrderId is List && rawSaleOrderId.isNotEmpty && rawSaleOrderId.first is int) {
+      saleOrderId = rawSaleOrderId.first as int;
+    } else if (rawSaleOrderId is int) {
+      saleOrderId = rawSaleOrderId;
+    } else if (rawSaleOrderId is String) {
+      saleOrderId = int.tryParse(rawSaleOrderId);
+    }
+
     final String titleStr = (message.notification?.title ?? message.data['title'] ?? '').toString().toLowerCase();
-    final bool isDownPaymentOrInvoice = typeStr.contains('down') || typeStr.contains('invoice') || typeStr.contains('account.move') || titleStr.contains('down payment') || titleStr.contains('invoice');
+    final String bodyStr = (message.notification?.body ?? message.data['body'] ?? message.data['message'] ?? '').toString().toLowerCase();
+
+    final bool isDownPaymentOrInvoice = notifType.contains('down') || notifType.contains('invoice') || resModel.contains('account.move') || titleStr.contains('down payment') || titleStr.contains('invoice');
 
     if (isDownPaymentOrInvoice && resId != null && odooService != null) {
       debugPrint('🔵 Fetching invoice details for res_id=$resId via account.move/web_read...');
@@ -140,13 +167,11 @@ class FirebaseNotificationService {
         final currentCtx = navigatorKey.currentContext;
         if (invoiceData != null && currentCtx != null) {
           final booking = Booking.fromInvoiceJson(invoiceData);
-          Navigator.push(
+          _navigateToScreenFromNotification(
             currentCtx,
-            MaterialPageRoute(
-              builder: (context) => UpcomingAppointmentDetailsScreen(
-                booking: booking,
-                isDownPaymentInvoice: true,
-              ),
+            UpcomingAppointmentDetailsScreen(
+              booking: booking,
+              isDownPaymentInvoice: true,
             ),
           );
         } else if (currentCtx != null) {
@@ -159,32 +184,54 @@ class FirebaseNotificationService {
       return;
     }
 
-    if (resId != null && odooService != null) {
-      odooService.getQuotationDetails(resId).then((quotationData) {
+    final bool isBookingConfirmed = notifType.contains('booking') ||
+        notifType.contains('appointment') ||
+        resModel == 'calendar.event' ||
+        resModel == 'appointment.booking' ||
+        titleStr.contains('booking confirmed') ||
+        titleStr.contains('booking confirmation') ||
+        titleStr.contains('appointment confirmed') ||
+        titleStr.contains('booking received') ||
+        bodyStr.contains('booking confirmed') ||
+        bodyStr.contains('booking confirmation') ||
+        bodyStr.contains('appointment confirmed') ||
+        bodyStr.contains('successfully booked') ||
+        bodyStr.contains('has been confirmed');
+
+    if (isBookingConfirmed) {
+      debugPrint('🔵 Booking confirmed notification tapped -> Navigating to NotificationsScreen');
+      _navigateToScreenFromNotification(context, const NotificationsScreen());
+      return;
+    }
+
+    final bool isQuotationSent = notifType == 'quotation_sent' ||
+        resModel == 'sale.order' ||
+        (saleOrderId != null && saleOrderId > 0);
+
+    final targetId = saleOrderId ?? resId;
+
+    if (isQuotationSent && targetId != null && odooService != null) {
+      odooService.getQuotationDetails(targetId).then((quotationData) {
         final currentCtx = navigatorKey.currentContext;
         if (quotationData != null && currentCtx != null) {
           final est = EstimationModel.fromOdooJson(quotationData);
-          Navigator.push(
+          _navigateToScreenFromNotification(
             currentCtx,
-            MaterialPageRoute(
-              builder: (context) => EstimationScreen(estimation: est),
-            ),
+            EstimationScreen(estimation: est),
           );
         } else if (currentCtx != null) {
-          Navigator.push(
+          final est = EstimationModel.fromNotificationJson(message.data);
+          _navigateToScreenFromNotification(
             currentCtx,
-            MaterialPageRoute(
-              builder: (context) => const EstimationScreen(),
-            ),
+            EstimationScreen(estimation: est),
           );
         }
       });
     } else {
-      Navigator.push(
+      final est = EstimationModel.fromNotificationJson(message.data);
+      _navigateToScreenFromNotification(
         context,
-        MaterialPageRoute(
-          builder: (context) => const EstimationScreen(),
-        ),
+        EstimationScreen(estimation: est),
       );
     }
   }
@@ -221,13 +268,11 @@ class FirebaseNotificationService {
       carDropOffStatus: 'Pending',
     );
 
-    Navigator.push(
+    _navigateToScreenFromNotification(
       context,
-      MaterialPageRoute(
-        builder: (context) => UpcomingAppointmentDetailsScreen(
-          booking: fallbackBooking,
-          isDownPaymentInvoice: true,
-        ),
+      UpcomingAppointmentDetailsScreen(
+        booking: fallbackBooking,
+        isDownPaymentInvoice: true,
       ),
     );
   }

@@ -12,6 +12,7 @@ import 'package:timeless_detailing_customer_app/features/bookings/models/garage_
 
 import 'package:timeless_detailing_customer_app/core/network/odoo_client.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/views/odoo_payment_webview_screen.dart';
+import 'package:timeless_detailing_customer_app/features/dashboard/views/main_navigation_scaffold.dart';
 import 'package:timeless_detailing_customer_app/features/invoices/views/invoices_screen.dart';
 
 class UpcomingAppointmentDetailsScreen extends StatefulWidget {
@@ -293,6 +294,20 @@ class _UpcomingAppointmentDetailsScreenState
     }
   }
 
+  void _handleBack(BuildContext context) {
+    if (Navigator.canPop(context)) {
+      Navigator.pop(context);
+    } else {
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const MainNavigationScaffold(),
+        ),
+        (route) => false,
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final b = _detailedBooking ?? widget.booking;
@@ -313,19 +328,25 @@ class _UpcomingAppointmentDetailsScreenState
     final bool showInvoiceView =
         widget.isDownPaymentInvoice || b.isDownPaymentInvoice;
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF7F5F0),
-      body: Column(
-        children: [
-          CustomAppBar(
-            title: 'Upcoming Appointment Details',
-            onBackPressed: () => Navigator.pop(context),
-            titleStyle: GoogleFonts.lora(
-              fontSize: 28,
-              fontWeight: FontWeight.w400,
-              color: const Color(0xFF3A2F1E),
+    return PopScope(
+      canPop: true,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        _handleBack(context);
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF7F5F0),
+        body: Column(
+          children: [
+            CustomAppBar(
+              title: 'Upcoming Appointment Details',
+              onBackPressed: () => _handleBack(context),
+              titleStyle: GoogleFonts.lora(
+                fontSize: 28,
+                fontWeight: FontWeight.w400,
+                color: const Color(0xFF3A2F1E),
+              ),
             ),
-          ),
           Expanded(
             child: _isLoadingInvoiceDetails
                 ? const Center(
@@ -649,8 +670,9 @@ class _UpcomingAppointmentDetailsScreenState
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildDownPaymentInvoiceBody(
     BuildContext context,

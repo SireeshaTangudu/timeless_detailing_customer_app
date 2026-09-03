@@ -45,6 +45,7 @@ class EstimationModel {
   final String serviceTime;
   final String disclaimerText;
   final String state; // 'draft', 'sent', 'sale', 'cancel'
+  final String? notificationType; // 'appointment_booked', 'quotation_sent', etc.
   final List<EstimationStepModel> nextSteps;
 
   const EstimationModel({
@@ -60,8 +61,12 @@ class EstimationModel {
     required this.serviceTime,
     required this.disclaimerText,
     this.state = 'sent',
+    this.notificationType,
     required this.nextSteps,
   });
+
+  bool get isQuotationSent =>
+      state == 'sent' || state == 'sale' || notificationType == 'quotation_sent';
 
   /// Static default estimation model matching Figma design prototype
   factory EstimationModel.defaultStatic() {
@@ -78,6 +83,7 @@ class EstimationModel {
       disclaimerText:
           'The above mentioned amount is the base price. We will share the final pricing after completing our inspection on 12th August at 12:00 PM.',
       state: 'sent',
+      notificationType: 'quotation_sent',
       nextSteps: [
         EstimationStepModel(
           stepNumber: 1,
@@ -135,6 +141,7 @@ class EstimationModel {
       disclaimerText:
           'The above mentioned amount is the base price. We will share the final pricing after completing our inspection on $dateStr at $timeStr.',
       state: isDraft ? 'draft' : 'sent',
+      notificationType: isDraft ? 'appointment_booked' : 'quotation_sent',
       nextSteps: const [
         EstimationStepModel(
           stepNumber: 1,
@@ -168,6 +175,7 @@ class EstimationModel {
     final orderState = json['state']?.toString() ?? 'sent';
     final nameStr = json['name']?.toString() ?? 'SO-001';
     final int? saleOrderId = json['id'] is int ? json['id'] as int : int.tryParse(json['id']?.toString() ?? '');
+    final notifType = json['notification_type']?.toString();
 
     String serviceNameStr = 'Vehicle Detailing Service';
     if (json['order_lines_detail'] is List && (json['order_lines_detail'] as List).isNotEmpty) {
@@ -212,6 +220,7 @@ class EstimationModel {
       disclaimerText:
           'Please review the breakdown above and click Accept & Sign below to confirm your estimate.',
       state: orderState,
+      notificationType: notifType ?? (orderState == 'draft' ? 'appointment_booked' : 'quotation_sent'),
       nextSteps: [
         const EstimationStepModel(
           stepNumber: 1,
@@ -241,8 +250,110 @@ class EstimationModel {
     );
   }
 
+  /// Factory specifically constructed from Odoo / Push notification JSON payload
+  factory EstimationModel.fromNotificationJson(Map<String, dynamic> json) {
+    final notifType = (json['notification_type'] ?? json['type'] ?? '').toString().toLowerCase();
+    final resModel = (json['res_model'] ?? json['model'] ?? '').toString().toLowerCase();
+    final rawSaleOrderId = json['sale_order_id'];
+
+    int? saleOrderId;
+    if (rawSaleOrderId is List && rawSaleOrderId.isNotEmpty && rawSaleOrderId.first is int) {
+      saleOrderId = rawSaleOrderId.first as int;
+    } else if (rawSaleOrderId is int) {
+      saleOrderId = rawSaleOrderId;
+    } else if (rawSaleOrderId is String) {
+      saleOrderId = int.tryParse(rawSaleOrderId);
+    }
+
+    final bool isQuotationSent = notifType == 'quotation_sent' ||
+        resModel == 'sale.order' ||
+        (saleOrderId != null && saleOrderId > 0);
+
+    final String notifMsg = json['message']?.toString() ?? json['body']?.toString() ?? '';
+
+    String serviceNameStr = 'Vehicle Detailing Service';
+    String serviceDateStr = json['service_date']?.toString() ?? 'Scheduled Slot';
+    String serviceTimeStr = json['service_time']?.toString() ?? '12:00 PM';
+
+    if (notifMsg.contains('for ') && notifMsg.contains(' is confirmed for ')) {
+      final parts = notifMsg.split(' is confirmed for ');
+      if (parts.length == 2) {
+        final servicePart = parts[0].replaceAll('Your appointment for ', '').trim();
+        if (servicePart.isNotEmpty) serviceNameStr = servicePart;
+
+        final dateTimePart = parts[1].replaceAll('.', '').trim();
+        final dtParts = dateTimePart.split(', ');
+        if (dtParts.length == 2) {
+          serviceDateStr = dtParts[0].trim();
+          serviceTimeStr = dtParts[1].trim();
+        } else if (dtParts.isNotEmpty) {
+          serviceDateStr = dtParts[0].trim();
+        }
+      }
+    } else if (notifMsg.contains('for ')) {
+      final parts = notifMsg.split('for ');
+      if (parts.length > 1) {
+        final sub = parts[1].split(' is confirmed')[0].split(' on ')[0].trim();
+        if (sub.isNotEmpty) serviceNameStr = sub;
+      }
+    }
+
+    final String resIdStr = (json['res_id'] ?? json['id'] ?? '100').toString();
+
+    final disclaimer = isQuotationSent
+        ? 'Please review the breakdown above and click Accept & Sign below to confirm your estimate.'
+        : 'The above mentioned amount is the base price. We will share the final pricing after completing our inspection on $serviceDateStr at $serviceTimeStr.';
+
+    return EstimationModel(
+      id: saleOrderId != null ? 'SO-00$saleOrderId' : 'EST-$resIdStr',
+      odooSaleOrderId: saleOrderId,
+      serviceName: serviceNameStr,
+      serviceDescription: isQuotationSent
+          ? 'Final quotation sent by Timeless Detailing Technician'
+          : 'Estimated cost for your ${serviceNameStr.toLowerCase()} service',
+      estimatedAmount: (json['estimated_amount'] as num?)?.toDouble() ?? 2800.0,
+      currencySymbol: 'R',
+      vehicleName: json['vehicle_name']?.toString() ?? 'Client Vehicle',
+      vehicleType: json['vehicle_type']?.toString() ?? 'Hatch Back',
+      serviceDate: serviceDateStr,
+      serviceTime: serviceTimeStr,
+      disclaimerText: disclaimer,
+      state: isQuotationSent ? 'sent' : 'draft',
+      notificationType: isQuotationSent ? 'quotation_sent' : 'appointment_booked',
+      nextSteps: [
+        const EstimationStepModel(
+          stepNumber: 1,
+          title: 'Book your slot with us',
+          isCompleted: true,
+        ),
+        EstimationStepModel(
+          stepNumber: 2,
+          title: 'Inspection of your car on the booked slot',
+          isCompleted: isQuotationSent,
+        ),
+        EstimationStepModel(
+          stepNumber: 3,
+          title: 'New quote with the updated amount post inspection',
+          isCompleted: isQuotationSent,
+        ),
+        EstimationStepModel(
+          stepNumber: 4,
+          title: 'Accept the quote',
+          isCompleted: false,
+        ),
+        const EstimationStepModel(
+          stepNumber: 5,
+          title: 'Get your car serviced!',
+        ),
+      ],
+    );
+  }
+
   /// Factory for API response parsing
   factory EstimationModel.fromJson(Map<String, dynamic> json) {
+    if (json.containsKey('notification_type') || json.containsKey('res_model')) {
+      return EstimationModel.fromNotificationJson(json);
+    }
     if (json.containsKey('order_line') || json.containsKey('amount_total')) {
       return EstimationModel.fromOdooJson(json);
     }
@@ -269,6 +380,7 @@ class EstimationModel {
       disclaimerText: json['disclaimer_text'] as String? ??
           'The above mentioned amount is the base price. We will share the final pricing after completing our inspection on 12th August at 12:00 PM.',
       state: json['state']?.toString() ?? 'sent',
+      notificationType: json['notification_type']?.toString(),
       nextSteps: stepsList,
     );
   }

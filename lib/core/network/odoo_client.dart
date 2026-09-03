@@ -2313,41 +2313,130 @@ class OdooApiService implements BaseOdooService {
     }
   }
 
-  /// STEP 15d: Get User Notifications (`timeless.notification` or `mail.message` fallback)
+  /// STEP 15d: Get User Notifications (`timeless.notification/web_search_read`)
   @override
   Future<List<Map<String, dynamic>>> getUserNotifications({int? partnerId}) async {
     try {
       final pid = partnerId ?? _partnerId ?? _uid;
 
-      // 1. Try custom timeless.notification model
+      // 1. Primary: web_search_read on timeless.notification using exact Odoo payload
+      try {
+        final response = await _callKw(
+          model: 'timeless.notification',
+          method: 'web_search_read',
+          args: [],
+          kwargs: {
+            'domain': pid != null
+                ? [
+                    '|',
+                    ['partner_id', '=', pid],
+                    ['partner_id', '=', false]
+                  ]
+                : [],
+            'specification': {
+              'notification_type': {},
+              'title': {},
+              'message': {},
+              'res_model': {},
+              'res_id': {},
+              'sale_order_id': {
+                'fields': {
+                  'id': {},
+                  'display_name': {},
+                }
+              },
+              'is_read': {},
+              'create_date': {},
+            },
+            'order': 'create_date desc',
+          },
+        );
+
+        final List records = (response is Map && response.containsKey('records'))
+            ? (response['records'] as List)
+            : (response is List ? response : []);
+
+        if (records.isNotEmpty) {
+          debugPrint('🟢 [OdooApiService] getUserNotifications web_search_read returned ${records.length} records');
+          return records.map((r) => Map<String, dynamic>.from(r as Map)).toList();
+        }
+      } catch (e) {
+        debugPrint('🟡 [OdooApiService] timeless.notification web_search_read with domain failed: $e');
+        // Fallback 1b: Try domain [] without partner_id restriction
+        try {
+          final response = await _callKw(
+            model: 'timeless.notification',
+            method: 'web_search_read',
+            args: [],
+            kwargs: {
+              'domain': [],
+              'specification': {
+                'notification_type': {},
+                'title': {},
+                'message': {},
+                'res_model': {},
+                'res_id': {},
+                'sale_order_id': {
+                  'fields': {
+                    'id': {},
+                    'display_name': {},
+                  }
+                },
+                'is_read': {},
+                'create_date': {},
+              },
+              'order': 'create_date desc',
+            },
+          );
+
+          final List records = (response is Map && response.containsKey('records'))
+              ? (response['records'] as List)
+              : (response is List ? response : []);
+
+          if (records.isNotEmpty) {
+            debugPrint('🟢 [OdooApiService] getUserNotifications web_search_read domain [] returned ${records.length} records');
+            return records.map((r) => Map<String, dynamic>.from(r as Map)).toList();
+          }
+        } catch (e2) {
+          debugPrint('🟡 [OdooApiService] timeless.notification web_search_read domain [] failed: $e2');
+        }
+      }
+
+      // 2. Fallback: search_read on timeless.notification
       try {
         final response = await _callKw(
           model: 'timeless.notification',
           method: 'search_read',
-          args: [
-            if (pid != null)
-              [
-                '|',
-                ['partner_id', '=', pid],
-                ['partner_id', '=', false]
-              ]
-            else
-              []
-          ],
+          args: [[]],
           kwargs: {
-            'fields': ['id', 'name', 'title', 'body', 'message', 'date', 'create_date', 'read', 'is_read', 'order_id'],
-            'order': 'id desc',
-            'limit': 50,
+            'fields': [
+              'id',
+              'notification_type',
+              'title',
+              'message',
+              'res_model',
+              'res_id',
+              'sale_order_id',
+              'is_read',
+              'create_date'
+            ],
+            'order': 'create_date desc',
           },
         );
-        if (response is List && response.isNotEmpty) {
-          return response.map((r) => Map<String, dynamic>.from(r as Map)).toList();
+
+        final List records = (response is Map && response.containsKey('records'))
+            ? (response['records'] as List)
+            : (response is List ? response : []);
+
+        if (records.isNotEmpty) {
+          debugPrint('🟢 [OdooApiService] getUserNotifications search_read returned ${records.length} records');
+          return records.map((r) => Map<String, dynamic>.from(r as Map)).toList();
         }
       } catch (e) {
         debugPrint('🟡 [OdooApiService] timeless.notification search_read fallback: $e');
       }
 
-      // 2. Fallback to mail.message model
+      // 3. Fallback to mail.message model
       if (pid != null) {
         try {
           final response = await _callKw(
@@ -2361,11 +2450,15 @@ class OdooApiService implements BaseOdooService {
             kwargs: {
               'fields': ['id', 'subject', 'body', 'date', 'model', 'res_id'],
               'order': 'id desc',
-              'limit': 30,
             },
           );
-          if (response is List) {
-            return response.map((r) => Map<String, dynamic>.from(r as Map)).toList();
+
+          final List records = (response is Map && response.containsKey('records'))
+              ? (response['records'] as List)
+              : (response is List ? response : []);
+
+          if (records.isNotEmpty) {
+            return records.map((r) => Map<String, dynamic>.from(r as Map)).toList();
           }
         } catch (_) {}
       }
@@ -2391,11 +2484,26 @@ class OdooApiService implements BaseOdooService {
             ]
           ],
           kwargs: {
-            'fields': ['id', 'name', 'title', 'body', 'message', 'date', 'create_date', 'read', 'is_read', 'order_id'],
+            'fields': [
+              'id',
+              'notification_type',
+              'title',
+              'message',
+              'res_model',
+              'res_id',
+              'sale_order_id',
+              'is_read',
+              'create_date'
+            ],
           },
         );
-        if (response is List && response.isNotEmpty) {
-          return Map<String, dynamic>.from(response.first as Map);
+
+        final List records = (response is Map && response.containsKey('records'))
+            ? (response['records'] as List)
+            : (response is List ? response : []);
+
+        if (records.isNotEmpty) {
+          return Map<String, dynamic>.from(records.first as Map);
         }
       } catch (_) {}
 

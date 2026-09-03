@@ -166,33 +166,55 @@ class _OdooPaymentWebviewScreenState extends State<OdooPaymentWebviewScreen> {
     }
   }
 
+  Future<void> _handleGoBack() async {
+    if (_controller != null && await _controller!.canGoBack()) {
+      await _controller!.goBack();
+    } else {
+      if (mounted) {
+        Navigator.pop(context, false);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF7F5F0),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF1D1813),
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.close, color: Colors.white),
-          onPressed: () => Navigator.pop(context, false),
-        ),
-        title: Text(
-          widget.title,
-          style: GoogleFonts.lora(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        await _handleGoBack();
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF7F5F0),
+        appBar: AppBar(
+          backgroundColor: const Color(0xFF1D1813),
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            onPressed: _handleGoBack,
+            tooltip: 'Go Back',
           ),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh, color: Color(0xFFC4913F)),
-            onPressed: () => _controller?.reload(),
-            tooltip: 'Refresh Page',
+          title: Text(
+            widget.title,
+            style: GoogleFonts.lora(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
           ),
-        ],
-      ),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.refresh, color: Color(0xFFC4913F)),
+              onPressed: () => _controller?.reload(),
+              tooltip: 'Refresh Page',
+            ),
+            IconButton(
+              icon: const Icon(Icons.close, color: Colors.white),
+              onPressed: () => Navigator.pop(context, false),
+              tooltip: 'Close',
+            ),
+          ],
+        ),
       body: Stack(
         children: [
           Positioned.fill(
@@ -265,6 +287,7 @@ class _OdooPaymentWebviewScreenState extends State<OdooPaymentWebviewScreen> {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }
