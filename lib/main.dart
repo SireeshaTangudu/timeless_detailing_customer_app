@@ -33,8 +33,8 @@ void main() async {
   // =========================================================================
   final odooService = OdooApiService(
     baseUrl:
-        'https://keerthan-lfi-lfi-timeless-detailing1-uat-37341397.dev.odoo.com',
-    db: 'keerthan-lfi-lfi-timeless-detailing1-uat-37341397',
+        'https://keerthan-lfi-lfi-timeless-detailing1-uat-37440283.dev.odoo.com',
+    db: 'keerthan-lfi-lfi-timeless-detailing1-uat-37440283',
   );
 
   // Initialize Firebase & FCM asynchronously so runApp is NEVER blocked on startup

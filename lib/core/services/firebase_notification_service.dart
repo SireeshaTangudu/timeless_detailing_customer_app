@@ -4,6 +4,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timeless_detailing_customer_app/core/network/odoo_client.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/models/estimation_model.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/views/estimation_screen.dart';
@@ -435,11 +436,22 @@ class FirebaseNotificationService {
 
       // Listen for token refreshes
       messaging.onTokenRefresh.listen((newToken) async {
+        String? oldToken = fcmToken;
+        if (oldToken == null || oldToken.isEmpty) {
+          try {
+            final prefs = await SharedPreferences.getInstance();
+            oldToken = prefs.getString('cached_fcm_token');
+          } catch (_) {}
+        }
         fcmToken = newToken;
-        debugPrint('FCM Token Refreshed: $newToken');
+        debugPrint('🔥 FCM Token Refreshed: old=$oldToken -> new=$newToken');
         if (odooService != null) {
           final platform = defaultTargetPlatform == TargetPlatform.iOS ? 'ios' : 'android';
-          await odooService.registerDeviceToken(token: newToken, platform: platform);
+          await odooService.registerDeviceToken(
+            token: newToken,
+            platform: platform,
+            previousToken: (oldToken != null && oldToken != newToken) ? oldToken : null,
+          );
         }
       });
 

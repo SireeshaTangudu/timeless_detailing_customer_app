@@ -12,7 +12,7 @@ import 'package:timeless_detailing_customer_app/features/tracking/models/project
 class MockOdooService implements BaseOdooService {
   @override
   String get baseUrl =>
-      'https://keerthan-lfi-lfi-timeless-detailing1-uat-37341397.dev.odoo.com';
+      'https://keerthan-lfi-lfi-timeless-detailing1-uat-37440283.dev.odoo.com';
 
   @override
   String get db => 'keerthan-lfi-lfi-timeless-detailing-uat-36684365';
@@ -731,6 +731,15 @@ class MockOdooService implements BaseOdooService {
   Future<bool> registerDeviceToken({
     required String token,
     String platform = 'android',
+    String? previousToken,
+  }) async {
+    return true;
+  }
+
+  @override
+  Future<bool> deactivateDeviceToken({
+    String? token,
+    int? deviceId,
   }) async {
     return true;
   }
@@ -874,7 +883,7 @@ class MockOdooService implements BaseOdooService {
         'amount_residual': 1345.5,
         'payment_state': 'not_paid',
         'timeless_is_down_payment_invoice': true,
-      }
+      },
     ];
   }
 

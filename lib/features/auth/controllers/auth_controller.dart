@@ -143,11 +143,11 @@ class AuthController extends ChangeNotifier {
     _isLoading = true;
     notifyListeners();
     try {
-      FirebaseNotificationService.resetTokenState();
       await _odooService.logout();
     } catch (e) {
       debugPrint('Logout service exception: $e');
     }
+    FirebaseNotificationService.resetTokenState();
     _isAuthenticated = false;
     _userProfile = null;
     _errorMessage = null;
@@ -168,6 +168,13 @@ class AuthController extends ChangeNotifier {
         _isAuthenticated = true;
         _userProfile = _odooService.savedUserInfo;
         notifyListeners(); // Instantly inform splash/UI that user IS logged in from local persistent storage
+
+        // Sync FCM token to Odoo post auto-login check
+        try {
+          FirebaseNotificationService.syncFcmTokenToOdoo(_odooService).catchError((e) {
+            debugPrint('Error syncing FCM token on splash check: $e');
+          });
+        } catch (_) {}
 
         // Fetch fresh profile in background without blocking splash transition or revoking auth on failure
         try {

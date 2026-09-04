@@ -110,7 +110,7 @@ class _UpcomingAppointmentDetailsScreenState
     Booking b,
   ) async {
     String baseUrl =
-        'https://keerthan-lfi-lfi-timeless-detailing1-uat-37341397.dev.odoo.com/';
+        'https://keerthan-lfi-lfi-timeless-detailing1-uat-37440283.dev.odoo.com/';
     BaseOdooService? odooService;
     try {
       odooService = Provider.of<BaseOdooService>(context, listen: false);
