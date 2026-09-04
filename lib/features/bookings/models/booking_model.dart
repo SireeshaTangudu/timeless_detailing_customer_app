@@ -49,6 +49,7 @@ class Booking {
   final String? invoiceAccessToken;
   final String? invoicePaymentState;
   final String? warrantyLabel;
+  final DateTime? invoiceDueDate;
 
   const Booking({
     required this.id,
@@ -87,6 +88,7 @@ class Booking {
     this.invoiceAccessToken,
     this.invoicePaymentState,
     this.warrantyLabel,
+    this.invoiceDueDate,
   });
 
   String get vehicleMake => bookingVehicleMake ?? (vehicleName.contains(' ') ? vehicleName.split(' ').first : vehicleName);
@@ -331,6 +333,7 @@ class Booking {
     final double pctVal = double.tryParse(pctLabel.replaceAll(RegExp(r'[^\d.]'), '')) ?? 50.0;
 
     final String invDateStr = (json['invoice_date'] ?? '').toString();
+    final String dueDateStr = (json['invoice_date_due'] ?? '').toString();
     final String payState = (json['payment_state'] ?? '').toString();
 
     final int? rawInvId = json['id'] is int ? json['id'] as int : int.tryParse(json['id']?.toString() ?? '');
@@ -373,6 +376,7 @@ class Booking {
       invoiceAccessToken: accToken.isNotEmpty ? accToken : null,
       invoicePaymentState: payState,
       warrantyLabel: warrantyLabel,
+      invoiceDueDate: DateTime.tryParse(dueDateStr),
     );
   }
 

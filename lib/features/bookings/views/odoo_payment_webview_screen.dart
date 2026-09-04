@@ -215,79 +215,84 @@ class _OdooPaymentWebviewScreenState extends State<OdooPaymentWebviewScreen> {
             ),
           ],
         ),
-      body: Stack(
-        children: [
-          Positioned.fill(
-            child: _controller != null
-                ? WebViewWidget(controller: _controller!)
-                : const Center(
-                    child: CircularProgressIndicator(color: Color(0xFFC4913F)),
-                  ),
-          ),
-          if (_isLoading)
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              child: SizedBox(
-                height: 3,
-                child: LinearProgressIndicator(
-                  value: _loadingProgress > 0 ? _loadingProgress / 100.0 : null,
-                  backgroundColor: const Color(0xFF2A231C),
-                  valueColor: const AlwaysStoppedAnimation<Color>(
-                    Color(0xFFC4913F),
-                  ),
-                ),
-              ),
+        body: Stack(
+          children: [
+            Positioned.fill(
+              child: _controller != null
+                  ? WebViewWidget(controller: _controller!)
+                  : const Center(
+                      child: CircularProgressIndicator(
+                        color: Color(0xFFC4913F),
+                      ),
+                    ),
             ),
-        ],
-      ),
-      bottomNavigationBar: SafeArea(
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          decoration: const BoxDecoration(
-            color: Color(0xFF1D1813),
-            border: Border(top: BorderSide(color: Color(0xFF332A1F), width: 1)),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Text(
-                  'Secure Odoo Payment Portal',
-                  style: GoogleFonts.montserrat(
-                    fontSize: 12,
-                    color: const Color(0xFFC5B7A1),
-                  ),
-                ),
-              ),
-              InkWell(
-                onTap: _completePaymentAndReturn,
-                borderRadius: BorderRadius.circular(8),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFC4913F),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    'Done with Payment',
-                    style: GoogleFonts.outfit(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
+            if (_isLoading)
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: SizedBox(
+                  height: 3,
+                  child: LinearProgressIndicator(
+                    value: _loadingProgress > 0
+                        ? _loadingProgress / 100.0
+                        : null,
+                    backgroundColor: const Color(0xFF2A231C),
+                    valueColor: const AlwaysStoppedAnimation<Color>(
+                      Color(0xFFC4913F),
                     ),
                   ),
                 ),
               ),
-            ],
-          ),
+          ],
         ),
+
+        // bottomNavigationBar: SafeArea(
+        //   child: Container(
+        //     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        //     decoration: const BoxDecoration(
+        //       color: Color(0xFF1D1813),
+        //       border: Border(top: BorderSide(color: Color(0xFF332A1F), width: 1)),
+        //     ),
+        //     child: Row(
+        //       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        //       children: [
+        //         Expanded(
+        //           child: Text(
+        //             'Secure Odoo Payment Portal',
+        //             style: GoogleFonts.montserrat(
+        //               fontSize: 12,
+        //               color: const Color(0xFFC5B7A1),
+        //             ),
+        //           ),
+        //         ),
+        //         InkWell(
+        //           onTap: _completePaymentAndReturn,
+        //           borderRadius: BorderRadius.circular(8),
+        //           child: Container(
+        //             padding: const EdgeInsets.symmetric(
+        //               horizontal: 14,
+        //               vertical: 8,
+        //             ),
+        //             decoration: BoxDecoration(
+        //               color: const Color(0xFFC4913F),
+        //               borderRadius: BorderRadius.circular(8),
+        //             ),
+        //             child: Text(
+        //               'Done with Payment',
+        //               style: GoogleFonts.outfit(
+        //                 fontSize: 12,
+        //                 fontWeight: FontWeight.bold,
+        //                 color: Colors.white,
+        //               ),
+        //             ),
+        //           ),
+        //         ),
+        //       ],
+        //     ),
+        //   ),
+        // ),
       ),
-    ),
-  );
-}
+    );
+  }
 }

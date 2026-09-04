@@ -15,6 +15,8 @@ import 'package:timeless_detailing_customer_app/features/bookings/views/odoo_pay
 import 'package:timeless_detailing_customer_app/features/dashboard/views/main_navigation_scaffold.dart';
 import 'package:timeless_detailing_customer_app/features/invoices/views/invoices_screen.dart';
 
+import 'package:url_launcher/url_launcher.dart';
+
 class UpcomingAppointmentDetailsScreen extends StatefulWidget {
   final Booking booking;
   final bool isDownPaymentInvoice;
@@ -310,6 +312,45 @@ class _UpcomingAppointmentDetailsScreenState
     }
   }
 
+  Future<void> _openGarageContact(BuildContext context) async {
+    try {
+      final odooService = Provider.of<BaseOdooService>(context, listen: false);
+      final compMap = await odooService.getCompanyLocationDetails();
+      final String phone = compMap?['phone']?.toString() ?? '';
+      final String cleanPhone = phone.replaceAll(RegExp(r'[^\d+]'), '');
+      if (cleanPhone.isNotEmpty) {
+        final Uri telUri = Uri.parse('tel:$cleanPhone');
+        if (await canLaunchUrl(telUri)) {
+          await launchUrl(telUri);
+          return;
+        }
+      }
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              phone.isNotEmpty
+                  ? 'Please contact garage at: $phone'
+                  : 'Please contact garage at 7 Crystal Crescent, Boksburg to resolve overdue payment.',
+            ),
+            backgroundColor: const Color(0xFF1D1813),
+          ),
+        );
+      }
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Please contact garage to resolve your overdue payment.',
+            ),
+            backgroundColor: Color(0xFF1D1813),
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final b = _detailedBooking ?? widget.booking;
@@ -329,7 +370,9 @@ class _UpcomingAppointmentDetailsScreenState
 
     final bool showInvoiceView =
         widget.isDownPaymentInvoice || b.isDownPaymentInvoice;
-    final String appBarTitle = widget.title ?? (showInvoiceView ? 'Invoice Details' : 'Appointment Details');
+    final String appBarTitle =
+        widget.title ??
+        (showInvoiceView ? 'Invoice Details' : 'Appointment Details');
 
     return PopScope(
       canPop: true,
@@ -714,18 +757,67 @@ class _UpcomingAppointmentDetailsScreenState
     );
     final double totalToPay = b.pendingAmount + addOnsTotal;
     final bool hasAddOns = b.addOns.isNotEmpty;
+    final DateTime now = DateTime.now();
+    final DateTime today = DateTime(now.year, now.month, now.day);
+    final DateTime? dueDate = b.invoiceDueDate;
 
-    // Payment button wording:
-    // When timeless_is_down_payment_invoice == true & remaining amount / residual is 0.0 (or paid) -> "Pay Balance"
-    // Otherwise -> "Accept and Pay Amount"
+    // Payment button wording & Overdue/Fully Paid status evaluation:
     final bool isDownPayment = b.isDownPaymentInvoice;
     final String paymentState = (b.invoicePaymentState ?? '').toLowerCase();
     final bool isPaid = paymentState == 'paid' || paymentState == 'in_payment';
     final bool isResidualZero = b.pendingAmount <= 0.0;
 
-    final String actionButtonText = (isDownPayment && (isPaid || isResidualZero))
-        ? 'Pay Balance'
-        : (isPaid ? 'Pay Balance' : 'Accept and Pay Amount');
+    // Fully paid when payment state is paid AND remaining/pending amount is 0
+    final bool isFullyPaid = isPaid && isResidualZero;
+
+    // Overdue if unpaid & due date strictly before today
+    final bool isOverdue =
+        !isPaid &&
+        !isResidualZero &&
+        dueDate != null &&
+        dueDate.isBefore(today);
+
+    String actionButtonText;
+    Color buttonColor;
+    VoidCallback? buttonAction;
+    Widget buttonIcon;
+
+    if (isFullyPaid) {
+      actionButtonText = 'Payment Done';
+      buttonColor = const Color(0xFF2E7D32);
+      buttonIcon = const Icon(
+        Icons.check_circle_outline,
+        size: 18,
+        color: Colors.white,
+      );
+      buttonAction = () {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Payment for this invoice is complete.'),
+            backgroundColor: Color(0xFF2E7D32),
+          ),
+        );
+      };
+    } else if (isOverdue) {
+      actionButtonText = 'Overdue - Contact Garage';
+      buttonColor = const Color(0xFFC62828);
+      buttonIcon = const Icon(
+        Icons.phone_in_talk,
+        size: 18,
+        color: Colors.white,
+      );
+      buttonAction = () => _openGarageContact(context);
+    } else if (isDownPayment && isPaid) {
+      actionButtonText = 'Pay Balance';
+      buttonColor = const Color(0xFFC4913F);
+      buttonIcon = const SizedBox.shrink();
+      buttonAction = () => _openInvoicePaymentWebview(context, b);
+    } else {
+      actionButtonText = 'Accept and Pay Amount';
+      buttonColor = const Color(0xFFC4913F);
+      buttonIcon = const SizedBox.shrink();
+      buttonAction = () => _openInvoicePaymentWebview(context, b);
+    }
 
     final String vMake = b.vehicleMake.isNotEmpty ? b.vehicleMake : selectedCar;
     final String vModel = b.vehicleModel.isNotEmpty ? b.vehicleModel : carType;
@@ -820,7 +912,7 @@ class _UpcomingAppointmentDetailsScreenState
                 right: -4,
                 child: CornerRibbonTag(
                   text: warranty,
-                  color: const Color(0xFFC4913F),
+                  color: const Color(0xFF4CAF50),
                 ),
               ),
           ],
@@ -924,23 +1016,71 @@ class _UpcomingAppointmentDetailsScreenState
           ),
         ),
 
-        const SizedBox(height: 24),
+        const SizedBox(height: 20),
 
-        // Bottom Action Button: Pay Balance / Accept & Pay Amount
+        // Overdue Warning Banner (Option 2)
+        if (isOverdue) ...[
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFEBEE),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFEF5350)),
+            ),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.error_outline,
+                  color: Color(0xFFC62828),
+                  size: 22,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Invoice Overdue / Expired',
+                        style: GoogleFonts.outfit(
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFFC62828),
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'The due date (${DateFormat('d MMMM, yyyy').format(dueDate)}) has passed. Online payment is disabled. Please contact the garage to resolve payment.',
+                        style: GoogleFonts.montserrat(
+                          fontSize: 11.5,
+                          color: const Color(0xFF7F0000),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+        ],
+
+        // Bottom Action Button: Payment Done / Pay Balance / Accept & Pay Amount / Overdue Contact Garage
         SizedBox(
           width: double.infinity,
           height: 50,
-          child: ElevatedButton(
-            onPressed: () => _openInvoicePaymentWebview(context, b),
+          child: ElevatedButton.icon(
+            onPressed: buttonAction,
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFC4913F),
+              backgroundColor: buttonColor,
               foregroundColor: Colors.white,
               elevation: 0,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
-            child: Text(
+            icon: buttonIcon,
+            label: Text(
               actionButtonText,
               style: GoogleFonts.outfit(
                 fontSize: 15,
