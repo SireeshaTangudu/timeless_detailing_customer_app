@@ -565,8 +565,19 @@ class _EstimationScreenState extends State<EstimationScreen> {
             color: lightBoxColor,
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                _buildLightDetailRow('Quotation Ref', data.id),
+                const SizedBox(height: 12),
                 _buildLightDetailRow('Selected Car', data.vehicleName),
+                if (data.vehicleRegistration != null && data.vehicleRegistration!.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  _buildLightDetailRow('Registration', data.vehicleRegistration!),
+                ],
+                if (data.vehicleVin != null && data.vehicleVin!.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  _buildLightDetailRow('VIN', data.vehicleVin!),
+                ],
                 const SizedBox(height: 12),
                 _buildLightDetailRow('Car Type', data.vehicleType),
                 const SizedBox(height: 12),
@@ -585,6 +596,128 @@ class _EstimationScreenState extends State<EstimationScreen> {
                 _buildLightDetailRow('Service Date', data.serviceDate),
                 const SizedBox(height: 12),
                 _buildLightDetailRow('Slot', data.serviceTime),
+                if (data.validityDate != null && data.validityDate!.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  _buildLightDetailRow('Valid Until', data.validityDate!),
+                ],
+
+                if (data.lineItems.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  CustomPaint(
+                    size: const Size(double.infinity, 1),
+                    painter: DashedLinePainter(color: const Color(0xFFE5DFD5)),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Item Breakdown',
+                        style: GoogleFonts.outfit(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFF1D1813),
+                        ),
+                      ),
+                      Text(
+                        '${data.lineItems.length} item(s)',
+                        style: GoogleFonts.montserrat(
+                          fontSize: 12,
+                          color: const Color(0xFF8C8273),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  ...data.lineItems.map((item) => Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF9F7F4),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: const Color(0xFFEBE7DF)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                item.productName,
+                                style: GoogleFonts.outfit(
+                                  fontSize: 13.5,
+                                  fontWeight: FontWeight.w600,
+                                  color: const Color(0xFF1D1813),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              '${data.currencySymbol} ${item.priceTotal.toStringAsFixed(2)}',
+                              style: GoogleFonts.outfit(
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.bold,
+                                color: const Color(0xFFC4913F),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Qty: ${item.quantity.toInt()} × ${data.currencySymbol} ${item.priceUnit.toStringAsFixed(2)}',
+                              style: GoogleFonts.montserrat(
+                                fontSize: 11.5,
+                                color: const Color(0xFF7A7063),
+                              ),
+                            ),
+                            if (item.discount > 0)
+                              Text(
+                                'Discount: ${item.discount}%',
+                                style: GoogleFonts.montserrat(
+                                  fontSize: 11.5,
+                                  color: const Color(0xFF2E7D32),
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  )),
+                ],
+
+                if (data.amountUntaxed != null || data.amountTax != null) ...[
+                  const SizedBox(height: 14),
+                  CustomPaint(
+                    size: const Size(double.infinity, 1),
+                    painter: DashedLinePainter(color: const Color(0xFFE5DFD5)),
+                  ),
+                  const SizedBox(height: 14),
+                  if (data.amountUntaxed != null) ...[
+                    _buildLightDetailRow(
+                      'Subtotal (Untaxed)',
+                      '${data.currencySymbol} ${data.amountUntaxed!.toStringAsFixed(2)}',
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+                  if (data.amountTax != null) ...[
+                    _buildLightDetailRow(
+                      'Tax / VAT',
+                      '${data.currencySymbol} ${data.amountTax!.toStringAsFixed(2)}',
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+                  _buildLightDetailRow(
+                    'Total Amount',
+                    '${data.currencySymbol} ${data.estimatedAmount.toStringAsFixed(2)}',
+                  ),
+                ],
 
                 const SizedBox(height: 22),
 

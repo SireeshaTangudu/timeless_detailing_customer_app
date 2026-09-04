@@ -2214,6 +2214,11 @@ class OdooApiService implements BaseOdooService {
       );
       if (response is List && response.isNotEmpty) {
         return Map<String, dynamic>.from(response.first as Map);
+      } else if (response is Map) {
+        if (response['result'] is List && (response['result'] as List).isNotEmpty) {
+          return Map<String, dynamic>.from((response['result'] as List).first as Map);
+        }
+        return Map<String, dynamic>.from(response);
       }
       return null;
     } catch (e) {
