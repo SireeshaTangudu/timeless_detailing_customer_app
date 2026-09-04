@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:timeless_detailing_customer_app/core/theme/app_theme.dart';
 import 'package:timeless_detailing_customer_app/core/theme/app_typography.dart';
 import 'package:timeless_detailing_customer_app/core/network/odoo_client.dart';
+import 'package:timeless_detailing_customer_app/core/services/firebase_notification_service.dart';
 import 'package:timeless_detailing_customer_app/features/auth/controllers/auth_controller.dart';
 import 'package:timeless_detailing_customer_app/features/services/controllers/services_controller.dart';
 import 'package:timeless_detailing_customer_app/features/services/models/service_model.dart';
@@ -20,6 +21,8 @@ import 'package:timeless_detailing_customer_app/features/bookings/views/upcoming
 import 'package:timeless_detailing_customer_app/features/bookings/models/estimation_model.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/views/estimation_screen.dart';
 import 'package:timeless_detailing_customer_app/features/notifications/views/notifications_screen.dart';
+import 'package:timeless_detailing_customer_app/features/tracking/models/project_model.dart';
+import 'package:timeless_detailing_customer_app/features/tracking/views/project_details_screen.dart';
 import 'package:timeless_detailing_customer_app/core/widgets/custom_loader.dart';
 import 'package:timeless_detailing_customer_app/core/utils/app_animations.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -94,6 +97,30 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
+  Map<String, dynamic>? _latestNotification;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _fetchLatestNotification();
+    });
+  }
+
+  Future<void> _fetchLatestNotification() async {
+    try {
+      final odooService = Provider.of<BaseOdooService>(context, listen: false);
+      final notifs = await odooService.getUserNotifications();
+      if (mounted && notifs.isNotEmpty) {
+        setState(() {
+          _latestNotification = notifs.first;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error fetching latest notification for dashboard card: $e');
+    }
+  }
+
   IconData _getServiceIcon(String serviceName) {
     final lower = serviceName.toLowerCase();
     if (lower.contains('interior')) {
@@ -202,9 +229,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
             backgroundColor: Colors.white,
             onRefresh: () async {
               debugPrint(
-                '🔄 Manual pull-to-refresh triggered on Home page! Fetching product categories...',
+                '🔄 Manual pull-to-refresh triggered on Home page! Fetching product categories & notifications...',
               );
               await servicesController.fetchProductCategories();
+              await _fetchLatestNotification();
               if (context.mounted) {
                 await Provider.of<BookingsController>(
                   context,
@@ -555,21 +583,35 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  Future<void> _handleAppointmentCardNavigation(
+    BuildContext context,
+    Booking booking,
+  ) async {
+    final odooService = Provider.of<BaseOdooService>(context, listen: false);
+    final notif = _latestNotification;
+
+    if (notif != null) {
+      await FirebaseNotificationService.handleNotificationMapNavigation(
+        context,
+        notif,
+        odooService,
+      );
+      return;
+    }
+
+    // Default fallback to booking details
+    if (context.mounted) {
+      Navigator.push(
+        context,
+        FadeSlidePageRoute(
+          page: UpcomingAppointmentDetailsScreen(booking: booking),
+        ),
+      );
+    }
+  }
+
   Widget _buildUpcomingAppointmentCard(BuildContext context, Booking booking) {
-    final bool isQuoteReceived =
-        booking.status == BookingStatus.received ||
-        booking.notes.toLowerCase().contains('quote') ||
-        booking.notes.toLowerCase().contains('estimate');
-
-    final bool isDraft =
-        booking.status == BookingStatus.confirmed &&
-        (booking.notes.toLowerCase().contains('draft') ||
-            booking.notes.toLowerCase().contains('inspection'));
-
-    final bool isAccepted =
-        booking.status == BookingStatus.completed ||
-        booking.notes.toLowerCase().contains('accepted') ||
-        booking.notes.toLowerCase().contains('signed');
+    final notif = _latestNotification;
 
     final dateDayStr = DateFormat('d MMMM').format(booking.bookingDateTime);
     final timeStr = DateFormat('hh:mm a').format(booking.bookingDateTime);
@@ -578,168 +620,249 @@ class _DashboardScreenState extends State<DashboardScreen> {
     String stageSubtitle =
         'You have an appointment booked for $dateDayStr, $timeStr';
     String buttonText = 'View Details';
+    String badgeText = 'CONFIRMED';
     Color badgeColor = const Color(0xFFC4913F);
 
-    final bool isDownPaymentInvoice =
-        booking.isDownPaymentInvoice ||
-        booking.notes.toLowerCase().contains('invoice') ||
-        booking.notes.toLowerCase().contains('down payment');
+    if (notif != null) {
+      final rawTitle =
+          (notif['title'] ?? notif['name'] ?? notif['subject'] ?? '')
+              .toString();
+      final rawBody =
+          (notif['message'] ?? notif['body'] ?? notif['description'] ?? '')
+              .toString();
+      final notifType =
+          (notif['notification_type'] ?? notif['type'] ?? '')
+              .toString()
+              .toLowerCase();
+      final resModel =
+          (notif['res_model'] ?? notif['model'] ?? '').toString().toLowerCase();
 
-    if (isDownPaymentInvoice) {
-      stageTitle = 'Down Payment Invoice Received';
-      stageSubtitle =
-          'Down payment invoice generated for ${booking.service.name}. Tap to view breakdown and pay balance.';
-      buttonText = 'Pay Balance';
-      badgeColor = const Color(0xFFC4913F);
-    } else if (isQuoteReceived) {
-      stageTitle = 'New Quote Received';
-      stageSubtitle =
-          'Our technician completed inspection and updated your quote for ${booking.service.name}. Tap to review & accept.';
-      buttonText = 'Review & Accept';
-      badgeColor = const Color(0xFFC4913F);
-    } else if (isDraft) {
-      stageTitle = 'Draft Estimate Created';
-      stageSubtitle =
-          'Base estimate generated. Technician inspection scheduled for $dateDayStr, $timeStr.';
-      buttonText = 'View Draft Estimate';
-      badgeColor = const Color(0xFFF57F17);
-    } else if (isAccepted) {
-      stageTitle = 'Quotation Accepted & Signed';
-      stageSubtitle =
-          'Your estimate is confirmed and signed. Detailing appointment set for $dateDayStr at $timeStr.';
-      buttonText = 'View Details';
-      badgeColor = const Color(0xFF2E7D32);
+      final cleanBody = rawBody
+          .replaceAll('&nbsp;', ' ')
+          .replaceAll('&amp;', '&')
+          .replaceAll('&quot;', '"')
+          .replaceAll('&#39;', "'")
+          .replaceAll('&lt;', '<')
+          .replaceAll('&gt;', '>')
+          .replaceAll(RegExp(r'<br\s*/?>', caseSensitive: false), ' ')
+          .replaceAll(RegExp(r'<[^>]*>'), '')
+          .trim();
+
+      if (rawTitle.isNotEmpty) {
+        stageTitle = rawTitle;
+      }
+      if (cleanBody.isNotEmpty) {
+        stageSubtitle = cleanBody;
+      }
+
+      final bool isProjectOrTask =
+          notifType == 'project_update' ||
+          notifType == 'task_update' ||
+          resModel == 'project.project' ||
+          resModel == 'project.task' ||
+          notifType.contains('track') ||
+          notifType.contains('pipeline');
+
+      final bool isInvoice =
+          notifType.contains('down') ||
+          notifType.contains('invoice') ||
+          resModel.contains('account.move');
+
+      final bool isQuote =
+          notifType == 'quotation_sent' ||
+          resModel == 'sale.order' ||
+          rawTitle.toLowerCase().contains('quote') ||
+          rawTitle.toLowerCase().contains('estimate');
+
+      if (isProjectOrTask) {
+        buttonText = 'Track Progress';
+        badgeText = 'LIVE TRACKING';
+        badgeColor = const Color(0xFF2196F3);
+      } else if (isInvoice) {
+        buttonText = 'Pay Balance';
+        badgeText = 'INVOICE READY';
+        badgeColor = const Color(0xFFC4913F);
+      } else if (isQuote) {
+        buttonText = 'Review & Accept';
+        badgeText = 'ACTION REQUIRED';
+        badgeColor = const Color(0xFFC4913F);
+      } else {
+        buttonText = 'View Details';
+        badgeText = 'CONFIRMED';
+        badgeColor = const Color(0xFF2E7D32);
+      }
+    } else {
+      final bookingsCtrl =
+          Provider.of<BookingsController>(context, listen: false);
+      final bool isAccepted = bookingsCtrl.isQuotationAccepted(booking);
+
+      final bool isTrackingOrProject =
+          booking.status == BookingStatus.inProgress ||
+          booking.notes.toLowerCase().contains('track') ||
+          booking.notes.toLowerCase().contains('project') ||
+          booking.notes.toLowerCase().contains('stage') ||
+          booking.notes.toLowerCase().contains('bay') ||
+          booking.notes.toLowerCase().contains('coating') ||
+          booking.notes.toLowerCase().contains('polishing');
+
+      final bool isDownPaymentInvoice =
+          booking.isDownPaymentInvoice ||
+          booking.notes.toLowerCase().contains('invoice') ||
+          booking.notes.toLowerCase().contains('down payment');
+
+      final bool isQuoteReceived =
+          !isAccepted &&
+          (booking.status == BookingStatus.received ||
+              booking.notes.toLowerCase().contains('quote') ||
+              booking.notes.toLowerCase().contains('estimate'));
+
+      final bool isDraft =
+          !isAccepted &&
+          booking.status == BookingStatus.confirmed &&
+          (booking.notes.toLowerCase().contains('draft') ||
+              booking.notes.toLowerCase().contains('inspection'));
+
+      final bool isReadyForPickup =
+          booking.status == BookingStatus.ready ||
+          booking.notes.toLowerCase().contains('ready') ||
+          booking.notes.toLowerCase().contains('pickup');
+
+      if (isReadyForPickup) {
+        stageTitle = 'Ready for Pickup';
+        stageSubtitle =
+            'Detailing complete! Your vehicle is ready for client pickup at the studio.';
+        buttonText = 'View Details';
+        badgeText = 'COMPLETED';
+        badgeColor = const Color(0xFF2E7D32);
+      } else if (isTrackingOrProject) {
+        stageTitle = 'Detailing In Progress';
+        stageSubtitle =
+            'Your vehicle is currently in the detailing bay. Tap to view live progress stages.';
+        buttonText = 'Track Progress';
+        badgeText = 'LIVE TRACKING';
+        badgeColor = const Color(0xFF2196F3);
+      } else if (isDownPaymentInvoice) {
+        stageTitle = 'Down Payment Invoice Received';
+        stageSubtitle =
+            'Down payment invoice generated for ${booking.service.name}. Tap to view breakdown and pay balance.';
+        buttonText = 'Pay Balance';
+        badgeText = 'INVOICE READY';
+        badgeColor = const Color(0xFFC4913F);
+      } else if (isAccepted) {
+        stageTitle = 'Quotation Accepted & Signed';
+        stageSubtitle =
+            'Your estimate is confirmed and signed. Detailing appointment set for $dateDayStr at $timeStr.';
+        buttonText = 'View Details';
+        badgeText = 'CONFIRMED';
+        badgeColor = const Color(0xFF2E7D32);
+      } else if (isQuoteReceived) {
+        stageTitle = 'New Quote Received';
+        stageSubtitle =
+            'Our technician completed inspection and updated your quote for ${booking.service.name}. Tap to review & accept.';
+        buttonText = 'Review & Accept';
+        badgeText = 'ACTION REQUIRED';
+        badgeColor = const Color(0xFFC4913F);
+      } else if (isDraft) {
+        stageTitle = 'Draft Estimate Created';
+        stageSubtitle =
+            'Base estimate generated. Technician inspection scheduled for $dateDayStr, $timeStr.';
+        buttonText = 'View Draft Estimate';
+        badgeText = 'PENDING INSPECTION';
+        badgeColor = const Color(0xFFF57F17);
+      }
     }
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Color(0xFF121212), Color(0xFF22190C)],
-        ),
-        borderRadius: BorderRadius.circular(8),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.2),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+    return AnimatedPressable(
+      onTap: () => _handleAppointmentCardNavigation(context, booking),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFF121212), Color(0xFF22190C)],
           ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Title with Pulsing Glow Dot and Stage Badge
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  PulseGlow(
-                    child: Icon(Icons.circle, size: 8, color: badgeColor),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    stageTitle,
-                    style: GoogleFonts.lora(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w500,
-                      color: badgeColor,
+          borderRadius: BorderRadius.circular(8),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.2),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Title with Pulsing Glow Dot and Stage Badge
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    PulseGlow(
+                      child: Icon(Icons.circle, size: 8, color: badgeColor),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      stageTitle,
+                      style: GoogleFonts.lora(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
+                        color: badgeColor,
+                      ),
+                    ),
+                  ],
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: badgeColor.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(
+                      color: badgeColor.withValues(alpha: 0.4),
+                      width: 0.8,
                     ),
                   ),
-                ],
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: badgeColor.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(
-                    color: badgeColor.withValues(alpha: 0.4),
-                    width: 0.8,
+                  child: Text(
+                    badgeText,
+                    style: GoogleFonts.outfit(
+                      fontSize: 9.5,
+                      fontWeight: FontWeight.bold,
+                      color: badgeColor,
+                      letterSpacing: 0.5,
+                    ),
                   ),
                 ),
-                child: Text(
-                  isDownPaymentInvoice
-                      ? 'INVOICE READY'
-                      : isQuoteReceived
-                      ? 'ACTION REQUIRED'
-                      : isDraft
-                      ? 'PENDING INSPECTION'
-                      : 'CONFIRMED',
-                  style: GoogleFonts.outfit(
-                    fontSize: 9.5,
-                    fontWeight: FontWeight.bold,
-                    color: badgeColor,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-
-          // Divider
-          const Divider(color: Color(0xFF332A1F), height: 1, thickness: 1),
-          const SizedBox(height: 12),
-
-          // Stage Subtitle
-          Text(
-            stageSubtitle,
-            style: GoogleFonts.montserrat(
-              fontSize: 11.5,
-              fontWeight: FontWeight.w400,
-              color: const Color(0xFF9E9384),
-              height: 1.35,
+              ],
             ),
-          ),
-          const SizedBox(height: 14),
+            const SizedBox(height: 8),
 
-          // Stage Action Button
-          Align(
-            alignment: Alignment.centerRight,
-            child: SizedBox(
-              height: 38,
-              child: AnimatedPressable(
-                onTap: null,
+            // Divider
+            const Divider(color: Color(0xFF332A1F), height: 1, thickness: 1),
+            const SizedBox(height: 12),
+
+            // Stage Subtitle
+            Text(
+              stageSubtitle,
+              style: GoogleFonts.montserrat(
+                fontSize: 11.5,
+                fontWeight: FontWeight.w400,
+                color: const Color(0xFF9E9384),
+                height: 1.35,
+              ),
+            ),
+            const SizedBox(height: 14),
+
+            // Stage Action Button
+            Align(
+              alignment: Alignment.centerRight,
+              child: SizedBox(
+                height: 38,
                 child: ElevatedButton(
-                  onPressed: () {
-                    if (isDownPaymentInvoice) {
-                      Navigator.push(
-                        context,
-                        FadeSlidePageRoute(
-                          page: UpcomingAppointmentDetailsScreen(
-                            booking: booking,
-                            isDownPaymentInvoice: true,
-                          ),
-                        ),
-                      );
-                    } else if (isQuoteReceived || isDraft) {
-                      Navigator.push(
-                        context,
-                        FadeSlidePageRoute(
-                          page: EstimationScreen(
-                            estimation: EstimationModel.fromBooking(
-                              booking,
-                              isDraft: isDraft,
-                            ),
-                          ),
-                        ),
-                      );
-                    } else {
-                      Navigator.push(
-                        context,
-                        FadeSlidePageRoute(
-                          page: UpcomingAppointmentDetailsScreen(
-                            booking: booking,
-                          ),
-                        ),
-                      );
-                    }
-                  },
+                  onPressed: () =>
+                      _handleAppointmentCardNavigation(context, booking),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFC4913F),
                     foregroundColor: Colors.white,
@@ -760,8 +883,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

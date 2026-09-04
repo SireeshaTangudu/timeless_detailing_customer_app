@@ -1893,7 +1893,22 @@ class OdooApiService implements BaseOdooService {
   @override
   Future<List<ProjectTaskModel>> getProjectTasks(int projectId) async {
     try {
-      final response = await _callKw(
+      final spec = {
+        'id': {},
+        'name': {},
+        'priority': {},
+        'portal_user_names': {},
+        'state': {},
+        'stage_id': {
+          'fields': {'id': {}, 'name': {}},
+        },
+        'project_id': {
+          'fields': {'id': {}, 'name': {}},
+        },
+      };
+
+      // Tier 1: Search by project_id with display_in_project = true
+      dynamic response = await _callKw(
         model: 'project.task',
         method: 'web_search_read',
         args: [],
@@ -1902,26 +1917,66 @@ class OdooApiService implements BaseOdooService {
             ['project_id', '=', projectId],
             ['display_in_project', '=', true],
           ],
-          'specification': {
-            'id': {},
-            'name': {},
-            'priority': {},
-            'portal_user_names': {},
-            'state': {},
-            'stage_id': {
-              'fields': {'id': {}, 'name': {}},
-            },
-            'project_id': {
-              'fields': {'id': {}, 'name': {}},
-            },
-          },
+          'specification': spec,
           'order': 'id desc',
         },
       );
 
-      final List records = (response is Map && response.containsKey('records'))
+      List records = (response is Map && response.containsKey('records'))
           ? (response['records'] as List)
           : (response is List ? response : []);
+
+      // Tier 2: Search by project_id without display_in_project filter
+      if (records.isEmpty) {
+        response = await _callKw(
+          model: 'project.task',
+          method: 'web_search_read',
+          args: [],
+          kwargs: {
+            'domain': [
+              ['project_id', '=', projectId],
+            ],
+            'specification': spec,
+            'order': 'id desc',
+          },
+        );
+        records = (response is Map && response.containsKey('records'))
+            ? (response['records'] as List)
+            : (response is List ? response : []);
+      }
+
+      // Tier 3: Search by task id (in case projectId passed was actually a task ID)
+      if (records.isEmpty) {
+        response = await _callKw(
+          model: 'project.task',
+          method: 'web_search_read',
+          args: [],
+          kwargs: {
+            'domain': [
+              ['id', '=', projectId],
+            ],
+            'specification': spec,
+            'order': 'id desc',
+          },
+        );
+        records = (response is Map && response.containsKey('records'))
+            ? (response['records'] as List)
+            : (response is List ? response : []);
+
+        // If a task was found by task ID, attempt to re-fetch all tasks for that task's project
+        if (records.isNotEmpty) {
+          final firstTask = records.first;
+          if (firstTask is Map && firstTask['project_id'] is Map) {
+            final realProjId = firstTask['project_id']['id'];
+            if (realProjId is int && realProjId > 0 && realProjId != projectId) {
+              final projectTasks = await getProjectTasks(realProjId);
+              if (projectTasks.isNotEmpty) {
+                return projectTasks;
+              }
+            }
+          }
+        }
+      }
 
       return records.map((item) {
         return ProjectTaskModel.fromJson(

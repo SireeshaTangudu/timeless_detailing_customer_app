@@ -18,12 +18,30 @@ class BookingsController extends ChangeNotifier {
     loadBookings();
   }
 
+  final Set<int> _acceptedQuotationIds = {};
+
   List<Booking> get bookings => _bookings;
   BookableSlotsResult? get currentBookableSlots => _currentBookableSlots;
   bool get isLoading => _isLoading;
   bool get isLoadingSlots => _isLoadingSlots;
   String? get errorMessage => _errorMessage;
   int? get currentPartnerId => _odooService.currentPartnerId ?? _odooService.currentUid;
+
+  void markQuotationAccepted(int orderId) {
+    _acceptedQuotationIds.add(orderId);
+    notifyListeners();
+  }
+
+  bool isQuotationAccepted(Booking booking) {
+    final idInt = int.tryParse(booking.id) ?? booking.odooSaleOrderId;
+    if (idInt != null && _acceptedQuotationIds.contains(idInt)) return true;
+    if (booking.odooSaleOrderId != null && _acceptedQuotationIds.contains(booking.odooSaleOrderId)) return true;
+    final notesLower = booking.notes.toLowerCase();
+    return booking.status == BookingStatus.completed ||
+        notesLower.contains('accepted') ||
+        notesLower.contains('signed') ||
+        notesLower.contains('confirmed');
+  }
 
   /// Endpoint 5: Get User Bookings (`calendar.event/web_search_read`)
   Future<void> loadBookings({int? partnerId}) async {

@@ -40,7 +40,15 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
     await controller.loadProjects(projectId: widget.project.id);
 
     // Load tasks for project
-    final tasks = await controller.loadTasksForProject(widget.project.id);
+    var tasks = await controller.loadTasksForProject(widget.project.id);
+
+    // Fallback: if tasks list is empty but initialTaskId is provided, try loading by task ID
+    if (tasks.isEmpty && widget.initialTaskId != null && widget.initialTaskId! > 0) {
+      final taskFallback = await controller.loadTasksForProject(widget.initialTaskId!);
+      if (taskFallback.isNotEmpty) {
+        tasks = taskFallback;
+      }
+    }
 
     // Fetch customer stage progress for each task using get_customer_stage_progress([task.id])
     final Map<int, CustomerTaskStageProgressModel> progressMap = {};

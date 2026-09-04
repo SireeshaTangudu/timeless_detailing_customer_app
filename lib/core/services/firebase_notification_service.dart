@@ -12,6 +12,7 @@ import 'package:timeless_detailing_customer_app/features/bookings/models/booking
 import 'package:timeless_detailing_customer_app/features/bookings/views/upcoming_appointment_details_screen.dart';
 import 'package:timeless_detailing_customer_app/features/services/models/service_model.dart';
 import 'package:timeless_detailing_customer_app/features/notifications/views/notifications_screen.dart';
+import 'package:timeless_detailing_customer_app/features/notifications/views/notification_detail_screen.dart';
 import 'package:timeless_detailing_customer_app/features/tracking/models/project_model.dart';
 import 'package:timeless_detailing_customer_app/features/tracking/views/project_details_screen.dart';
 import 'package:timeless_detailing_customer_app/features/dashboard/views/main_navigation_scaffold.dart';
@@ -127,12 +128,18 @@ class FirebaseNotificationService {
     }
   }
 
-  static void _navigateToScreenFromNotification(BuildContext context, Widget screen) {
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(builder: (context) => const MainNavigationScaffold()),
-      (route) => false,
-    );
+  static void _navigateToScreenFromNotification(
+    BuildContext context,
+    Widget screen, {
+    bool resetToHome = false,
+  }) {
+    if (resetToHome) {
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => const MainNavigationScaffold()),
+        (route) => false,
+      );
+    }
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => screen),
@@ -144,66 +151,70 @@ class FirebaseNotificationService {
     final context = navigatorKey.currentContext;
     if (context == null) return;
 
-    final String notifType = (message.data['notification_type'] ?? message.data['type'] ?? '').toString().toLowerCase();
-    final String resModel = (message.data['res_model'] ?? message.data['model'] ?? '').toString().toLowerCase();
-    final String resIdStr = (message.data['res_id'] ?? message.data['order_id'] ?? message.data['sale_order_id'] ?? message.data['id'] ?? '').toString();
-    final int? resId = int.tryParse(resIdStr);
-    final dynamic rawSaleOrderId = message.data['sale_order_id'];
-
-    int? saleOrderId;
-    if (rawSaleOrderId is List && rawSaleOrderId.isNotEmpty && rawSaleOrderId.first is int) {
-      saleOrderId = rawSaleOrderId.first as int;
-    } else if (rawSaleOrderId is int) {
-      saleOrderId = rawSaleOrderId;
-    } else if (rawSaleOrderId is String) {
-      saleOrderId = int.tryParse(rawSaleOrderId);
+    final notifMap = Map<String, dynamic>.from(message.data);
+    if (message.notification?.title != null && notifMap['title'] == null) {
+      notifMap['title'] = message.notification!.title;
+    }
+    if (message.notification?.body != null && notifMap['body'] == null) {
+      notifMap['body'] = message.notification!.body;
     }
 
-    final String titleStr = (message.notification?.title ?? message.data['title'] ?? '').toString().toLowerCase();
-    final String bodyStr = (message.notification?.body ?? message.data['body'] ?? message.data['message'] ?? '').toString().toLowerCase();
+    handleNotificationMapNavigation(context, notifMap, odooService, resetToHome: true);
+  }
 
-    final bool isDownPaymentOrInvoice = notifType.contains('down') || notifType.contains('invoice') || resModel.contains('account.move') || titleStr.contains('down payment') || titleStr.contains('invoice');
+  static Future<void> handleNotificationMapNavigation(
+    BuildContext context,
+    Map<String, dynamic> notif,
+    BaseOdooService? odooService, {
+    bool resetToHome = false,
+  }) async {
+    int? extractId(dynamic raw) {
+      if (raw is int) return raw;
+      if (raw is String) return int.tryParse(raw);
+      if (raw is List && raw.isNotEmpty && raw.first is int) return raw.first as int;
+      if (raw is Map && raw['id'] is int) return raw['id'] as int;
+      if (raw is Map && raw['id'] is String) return int.tryParse(raw['id'] as String);
+      return null;
+    }
 
-    if (isDownPaymentOrInvoice && resId != null && odooService != null) {
-      debugPrint('🔵 Fetching invoice details for res_id=$resId via account.move/web_read...');
-      odooService.getInvoiceDetails(resId).then((invoiceData) {
-        final currentCtx = navigatorKey.currentContext;
-        if (invoiceData != null && currentCtx != null) {
+    final String notifType = (notif['notification_type'] ?? notif['type'] ?? '').toString().toLowerCase();
+    final String resModel = (notif['res_model'] ?? notif['model'] ?? '').toString().toLowerCase();
+    final String titleStr = (notif['title'] ?? notif['name'] ?? notif['subject'] ?? '').toString().toLowerCase();
+    final String bodyStr = (notif['body'] ?? notif['message'] ?? notif['description'] ?? '').toString().toLowerCase();
+
+    final int? resId = extractId(notif['res_id'] ?? notif['order_id'] ?? notif['sale_order_id'] ?? notif['id']);
+    final int? saleOrderId = extractId(notif['sale_order_id']);
+
+    final bool isDownPaymentOrInvoice = notifType.contains('down') ||
+        notifType.contains('invoice') ||
+        resModel.contains('account.move') ||
+        titleStr.contains('down payment') ||
+        titleStr.contains('invoice');
+
+    if (isDownPaymentOrInvoice) {
+      final targetInvoiceId = resId ?? saleOrderId;
+      if (targetInvoiceId != null && odooService != null) {
+        final invoiceData = await odooService.getInvoiceDetails(targetInvoiceId);
+        if (context.mounted && invoiceData != null) {
           final booking = Booking.fromInvoiceJson(invoiceData);
           _navigateToScreenFromNotification(
-            currentCtx,
+            context,
             UpcomingAppointmentDetailsScreen(
               booking: booking,
               isDownPaymentInvoice: true,
             ),
+            resetToHome: resetToHome,
           );
-        } else if (currentCtx != null) {
-          _navigateToDefaultInvoiceScreen(currentCtx, resIdStr);
+          return;
         }
-      });
-      return;
-    } else if (isDownPaymentOrInvoice) {
-      _navigateToDefaultInvoiceScreen(context, resIdStr);
-      return;
-    }
-
-    final bool isBookingConfirmed = notifType.contains('booking') ||
-        notifType.contains('appointment') ||
-        resModel == 'calendar.event' ||
-        resModel == 'appointment.booking' ||
-        titleStr.contains('booking confirmed') ||
-        titleStr.contains('booking confirmation') ||
-        titleStr.contains('appointment confirmed') ||
-        titleStr.contains('booking received') ||
-        bodyStr.contains('booking confirmed') ||
-        bodyStr.contains('booking confirmation') ||
-        bodyStr.contains('appointment confirmed') ||
-        bodyStr.contains('successfully booked') ||
-        bodyStr.contains('has been confirmed');
-
-    if (isBookingConfirmed) {
-      debugPrint('🔵 Booking confirmed notification tapped -> Navigating to NotificationsScreen');
-      _navigateToScreenFromNotification(context, const NotificationsScreen());
+      }
+      if (context.mounted) {
+        _navigateToDefaultInvoiceScreen(
+          context,
+          (targetInvoiceId ?? 101).toString(),
+          resetToHome: resetToHome,
+        );
+      }
       return;
     }
 
@@ -219,94 +230,59 @@ class FirebaseNotificationService {
         titleStr.contains('pipeline update') ||
         titleStr.contains('live track') ||
         bodyStr.contains('status has been updated') ||
-        bodyStr.contains('vehicle\'s status has been updated');
+        bodyStr.contains("vehicle's status has been updated");
 
     if (isProjectOrTaskUpdate) {
-      int? projectIdFromData;
-      final rawProjId = message.data['project_id'];
-      if (rawProjId is Map) {
-        projectIdFromData = int.tryParse(rawProjId['id']?.toString() ?? '');
-      } else if (rawProjId is List && rawProjId.isNotEmpty) {
-        projectIdFromData = int.tryParse(rawProjId.first.toString());
-      } else if (rawProjId is int) {
-        projectIdFromData = rawProjId;
-      } else if (rawProjId is String && rawProjId.isNotEmpty) {
-        try {
-          final decoded = jsonDecode(rawProjId);
-          if (decoded is Map) {
-            projectIdFromData = int.tryParse(decoded['id']?.toString() ?? '');
-          } else if (decoded is int) {
-            projectIdFromData = decoded;
-          }
-        } catch (_) {
-          projectIdFromData = int.tryParse(rawProjId);
-        }
-      }
-
-      int targetProjectId;
-      int? targetTaskId;
+      int? projId = extractId(notif['project_id']);
+      int? taskId;
 
       if (notifType == 'task_update' || resModel == 'project.task') {
-        targetTaskId = resId;
-        targetProjectId = projectIdFromData ?? resId ?? 37;
+        taskId = resId;
+        projId = projId ?? resId;
       } else {
-        targetProjectId = resId ?? projectIdFromData ?? 36;
+        projId = resId ?? projId;
       }
 
-      debugPrint('🔵 Project/Task update notification tapped -> Navigating to ProjectDetailsScreen for project ID=$targetProjectId, task ID=$targetTaskId');
-
-      final String projectTitle = (message.data['title'] ?? message.notification?.title ?? '').toString();
-      final String cleanTitle = projectTitle.isNotEmpty ? projectTitle : 'Project #$targetProjectId';
+      final targetProjId = projId ?? taskId ?? 36;
+      final String projectTitle = (notif['title'] ?? notif['name'] ?? '').toString();
+      final String cleanTitle = projectTitle.isNotEmpty ? projectTitle : 'Project #$targetProjId';
 
       if (odooService != null) {
-        odooService.getProjects(projectId: targetProjectId).then((projects) {
-          final currentCtx = navigatorKey.currentContext;
-          if (currentCtx == null) return;
-
-          ProjectModel? matchedProject;
-          for (final p in projects) {
-            if (p.id == targetProjectId) {
-              matchedProject = p;
-              break;
+        try {
+          final projects = await odooService.getProjects(projectId: targetProjId);
+          if (context.mounted) {
+            ProjectModel? matchedProject;
+            for (final p in projects) {
+              if (p.id == targetProjId) {
+                matchedProject = p;
+                break;
+              }
             }
-          }
 
-          final targetProject = matchedProject ?? ProjectModel(
-            id: targetProjectId,
-            name: cleanTitle,
-            taskCount: 1,
-            labelTasks: 'Tasks',
-          );
+            final targetProject = matchedProject ??
+                ProjectModel(
+                  id: targetProjId,
+                  name: cleanTitle,
+                  taskCount: 1,
+                  labelTasks: 'Tasks',
+                );
 
-          _navigateToScreenFromNotification(
-            currentCtx,
-            ProjectDetailsScreen(
-              project: targetProject,
-              initialTaskId: targetTaskId,
-            ),
-          );
-        }).catchError((err) {
-          debugPrint('🟡 Error fetching project details for notification navigation: $err');
-          final currentCtx = navigatorKey.currentContext;
-          if (currentCtx != null) {
-            final fallbackProject = ProjectModel(
-              id: targetProjectId,
-              name: cleanTitle,
-              taskCount: 1,
-              labelTasks: 'Tasks',
-            );
             _navigateToScreenFromNotification(
-              currentCtx,
+              context,
               ProjectDetailsScreen(
-                project: fallbackProject,
-                initialTaskId: targetTaskId,
+                project: targetProject,
+                initialTaskId: taskId,
               ),
+              resetToHome: resetToHome,
             );
+            return;
           }
-        });
-      } else {
+        } catch (_) {}
+      }
+
+      if (context.mounted) {
         final fallbackProject = ProjectModel(
-          id: targetProjectId,
+          id: targetProjId,
           name: cleanTitle,
           taskCount: 1,
           labelTasks: 'Tasks',
@@ -315,8 +291,9 @@ class FirebaseNotificationService {
           context,
           ProjectDetailsScreen(
             project: fallbackProject,
-            initialTaskId: targetTaskId,
+            initialTaskId: taskId,
           ),
+          resetToHome: resetToHome,
         );
       }
       return;
@@ -324,37 +301,52 @@ class FirebaseNotificationService {
 
     final bool isQuotationSent = notifType == 'quotation_sent' ||
         resModel == 'sale.order' ||
-        (saleOrderId != null && saleOrderId > 0);
+        (saleOrderId != null && saleOrderId > 0) ||
+        titleStr.contains('quotation') ||
+        titleStr.contains('estimation');
 
     final targetId = saleOrderId ?? resId;
 
     if (isQuotationSent && targetId != null && odooService != null) {
-      odooService.getQuotationDetails(targetId).then((quotationData) {
-        final currentCtx = navigatorKey.currentContext;
-        if (quotationData != null && currentCtx != null) {
-          final est = EstimationModel.fromOdooJson(quotationData);
-          _navigateToScreenFromNotification(
-            currentCtx,
-            EstimationScreen(estimation: est),
-          );
-        } else if (currentCtx != null) {
-          final est = EstimationModel.fromNotificationJson(message.data);
-          _navigateToScreenFromNotification(
-            currentCtx,
-            EstimationScreen(estimation: est),
-          );
-        }
-      });
-    } else {
-      final est = EstimationModel.fromNotificationJson(message.data);
+      final quotationData = await odooService.getQuotationDetails(targetId);
+      if (context.mounted) {
+        final est = quotationData != null
+            ? EstimationModel.fromOdooJson(quotationData)
+            : EstimationModel.fromNotificationJson(notif);
+        _navigateToScreenFromNotification(
+          context,
+          EstimationScreen(estimation: est),
+          resetToHome: resetToHome,
+        );
+        return;
+      }
+    } else if (isQuotationSent) {
+      if (context.mounted) {
+        final est = EstimationModel.fromNotificationJson(notif);
+        _navigateToScreenFromNotification(
+          context,
+          EstimationScreen(estimation: est),
+          resetToHome: resetToHome,
+        );
+      }
+      return;
+    }
+
+    // Default fallback: open NotificationDetailScreen
+    if (context.mounted) {
       _navigateToScreenFromNotification(
         context,
-        EstimationScreen(estimation: est),
+        NotificationDetailScreen(notification: notif),
+        resetToHome: resetToHome,
       );
     }
   }
 
-  static void _navigateToDefaultInvoiceScreen(BuildContext context, String resIdStr) {
+  static void _navigateToDefaultInvoiceScreen(
+    BuildContext context,
+    String resIdStr, {
+    bool resetToHome = false,
+  }) {
     final fallbackBooking = Booking(
       id: resIdStr.isNotEmpty ? resIdStr : '101',
       service: const DetailService(
@@ -392,6 +384,7 @@ class FirebaseNotificationService {
         booking: fallbackBooking,
         isDownPaymentInvoice: true,
       ),
+      resetToHome: resetToHome,
     );
   }
 

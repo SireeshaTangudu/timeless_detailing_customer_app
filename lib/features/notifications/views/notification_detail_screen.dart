@@ -3,11 +3,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:timeless_detailing_customer_app/core/network/odoo_client.dart';
+import 'package:timeless_detailing_customer_app/core/services/firebase_notification_service.dart';
 import 'package:timeless_detailing_customer_app/core/widgets/custom_app_bar.dart';
-import 'package:timeless_detailing_customer_app/features/bookings/models/estimation_model.dart';
-import 'package:timeless_detailing_customer_app/features/bookings/views/estimation_screen.dart';
-import 'package:timeless_detailing_customer_app/features/tracking/models/project_model.dart';
-import 'package:timeless_detailing_customer_app/features/tracking/views/project_details_screen.dart';
 
 class NotificationDetailScreen extends StatefulWidget {
   final Map<String, dynamic> notification;
@@ -208,140 +205,143 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
                   ),
                   const SizedBox(height: 24),
 
-                  // Action button navigating to Estimation Screen
-                  SizedBox(
-                    width: double.infinity,
-                    height: 50,
-                    child: ElevatedButton.icon(
-                      onPressed: () {
-                        final notifType = (notif['notification_type'] ?? notif['type'] ?? '').toString().toLowerCase();
-                        final resModel = (notif['res_model'] ?? notif['model'] ?? '').toString().toLowerCase();
-                        final odooService = Provider.of<BaseOdooService>(context, listen: false);
+                  // Dynamic Action Button based on notification_type
+                  Builder(
+                    builder: (context) {
+                      final notifType =
+                          (notif['notification_type'] ?? notif['type'] ?? '')
+                              .toString()
+                              .toLowerCase();
+                      final resModel =
+                          (notif['res_model'] ?? notif['model'] ?? '')
+                              .toString()
+                              .toLowerCase();
+                      final titleStr =
+                          (notif['title'] ??
+                                  notif['name'] ??
+                                  notif['subject'] ??
+                                  '')
+                              .toString()
+                              .toLowerCase();
+                      final String bodyStr =
+                          (notif['body'] ??
+                                  notif['message'] ??
+                                  notif['description'] ??
+                                  '')
+                              .toString()
+                              .toLowerCase();
 
-                        final bool isProjectOrTaskUpdate = notifType == 'project_update' ||
-                            notifType == 'task_update' ||
-                            resModel == 'project.project' ||
-                            resModel == 'project.task';
+                      final bool isBookingConfirmed =
+                          notifType.contains('booking') ||
+                          notifType.contains('appointment') ||
+                          resModel == 'calendar.event' ||
+                          resModel == 'appointment.booking' ||
+                          titleStr.contains('booking confirmed') ||
+                          titleStr.contains('booking confirmation') ||
+                          titleStr.contains('appointment confirmed') ||
+                          titleStr.contains('booking received') ||
+                          bodyStr.contains('booking confirmed') ||
+                          bodyStr.contains('booking confirmation') ||
+                          bodyStr.contains('appointment confirmed') ||
+                          bodyStr.contains('successfully booked') ||
+                          bodyStr.contains('has been confirmed');
 
-                        if (isProjectOrTaskUpdate) {
-                          int? projId;
-                          int? taskId;
-                          final rawProj = notif['project_id'];
-                          if (rawProj is Map && rawProj['id'] is int) {
-                            projId = rawProj['id'] as int;
-                          } else if (rawProj is int) {
-                            projId = rawProj;
-                          }
+                      if (isBookingConfirmed) {
+                        return const SizedBox.shrink();
+                      }
 
-                          final resIdRaw = notif['res_id'] ?? notif['order_id'];
-                          final resId = int.tryParse(resIdRaw?.toString() ?? '');
+                      int? extractId(dynamic raw) {
+                        if (raw is int && raw > 0) return raw;
+                        if (raw is String) return int.tryParse(raw);
+                        if (raw is List && raw.isNotEmpty && raw.first is int)
+                          return raw.first as int;
+                        if (raw is Map && raw['id'] is int)
+                          return raw['id'] as int;
+                        if (raw is Map && raw['id'] is String)
+                          return int.tryParse(raw['id'] as String);
+                        return null;
+                      }
 
-                          if (notifType == 'task_update' || resModel == 'project.task') {
-                            taskId = resId;
-                            projId = projId ?? resId ?? 37;
-                          } else {
-                            projId = resId ?? projId ?? 36;
-                          }
+                      final int? saleOrderId = extractId(
+                        notif['sale_order_id'],
+                      );
 
-                          final title = notif['title']?.toString() ?? 'Project #$projId';
+                      final bool isProjectOrTaskUpdate =
+                          notifType == 'project_update' ||
+                          notifType == 'task_update' ||
+                          notifType.contains('pipeline') ||
+                          notifType.contains('tracking') ||
+                          resModel == 'project.project' ||
+                          resModel == 'project.task' ||
+                          titleStr.contains('status') ||
+                          titleStr.contains('pipeline') ||
+                          titleStr.contains('live track') ||
+                          titleStr.contains('progress');
 
-                          odooService.getProjects(projectId: projId).then((projects) {
-                            if (!mounted) return;
-                            ProjectModel? matched;
-                            for (final p in projects) {
-                              if (p.id == projId) {
-                                matched = p;
-                                break;
-                              }
-                            }
-                            final targetProj = matched ?? ProjectModel(
-                              id: projId!,
-                              name: title,
-                              taskCount: 1,
-                              labelTasks: 'Tasks',
-                            );
-                            Navigator.push(
+                      final bool isQuotationSent =
+                          notifType == 'quotation_sent' ||
+                          resModel == 'sale.order' ||
+                          (saleOrderId != null && saleOrderId > 0) ||
+                          titleStr.contains('quotation') ||
+                          titleStr.contains('estimation') ||
+                          titleStr.contains('quote');
+
+                      final bool isDownPaymentOrInvoice =
+                          notifType.contains('down') ||
+                          notifType.contains('invoice') ||
+                          resModel.contains('account.move') ||
+                          titleStr.contains('down payment') ||
+                          titleStr.contains('invoice');
+
+                      String buttonText = 'VIEW DETAILS';
+                      IconData buttonIcon = Icons.arrow_forward_rounded;
+
+                      if (isProjectOrTaskUpdate) {
+                        buttonText = 'VIEW TRACKING PROGRESS';
+                        buttonIcon = Icons.track_changes_outlined;
+                      } else if (isQuotationSent) {
+                        buttonText = 'REVIEW';
+                        buttonIcon = Icons.request_quote_outlined;
+                      } else if (isDownPaymentOrInvoice) {
+                        buttonText = 'VIEW INVOICE & PAY';
+                        buttonIcon = Icons.receipt_long_outlined;
+                      }
+
+                      return SizedBox(
+                        width: double.infinity,
+                        height: 50,
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            final odooService = Provider.of<BaseOdooService>(
                               context,
-                              MaterialPageRoute(
-                                builder: (context) => ProjectDetailsScreen(
-                                  project: targetProj,
-                                  initialTaskId: taskId,
-                                ),
-                              ),
+                              listen: false,
                             );
-                          });
-                          return;
-                        }
-
-                        final rawSaleOrderId = notif['sale_order_id'];
-                        int? saleOrderId;
-                        if (rawSaleOrderId is List && rawSaleOrderId.isNotEmpty && rawSaleOrderId.first is int) {
-                          saleOrderId = rawSaleOrderId.first as int;
-                        } else if (rawSaleOrderId is int) {
-                          saleOrderId = rawSaleOrderId;
-                        } else if (rawSaleOrderId is String) {
-                          saleOrderId = int.tryParse(rawSaleOrderId);
-                        }
-
-                        final resIdRaw = notif['order_id'] ?? notif['res_id'];
-                        final resId = int.tryParse(resIdRaw?.toString() ?? '');
-
-                        final bool isQuotationSent = notifType == 'quotation_sent' ||
-                            resModel == 'sale.order' ||
-                            (saleOrderId != null && saleOrderId > 0);
-
-                        final targetId = saleOrderId ?? resId;
-
-                        if (isQuotationSent && targetId != null) {
-                          odooService.getQuotationDetails(targetId).then((quotationData) {
-                            if (mounted && quotationData != null) {
-                              final est = EstimationModel.fromOdooJson(quotationData);
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => EstimationScreen(estimation: est),
-                                ),
-                              );
-                            } else if (mounted) {
-                              final est = EstimationModel.fromNotificationJson(notif);
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => EstimationScreen(estimation: est),
-                                ),
-                              );
-                            }
-                          });
-                        } else {
-                          final est = EstimationModel.fromNotificationJson(notif);
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => EstimationScreen(estimation: est),
+                            FirebaseNotificationService.handleNotificationMapNavigation(
+                              context,
+                              notif,
+                              odooService,
+                            );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFC4913F),
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
                             ),
-                          );
-                        }
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFC4913F),
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          ),
+                          icon: Icon(buttonIcon, size: 20),
+                          label: Text(
+                            buttonText,
+                            style: GoogleFonts.outfit(
+                              fontSize: 14.5,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
                         ),
-                      ),
-                      icon: const Icon(Icons.track_changes_outlined, size: 20),
-                      label: Text(
-                        (notif['notification_type'] ?? '') == 'task_update' || (notif['notification_type'] ?? '') == 'project_update'
-                            ? 'VIEW TRACKING PROGRESS'
-                            : 'VIEW DETAILS',
-                        style: GoogleFonts.outfit(
-                          fontSize: 14.5,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
+                      );
+                    },
                   ),
                 ],
               ),
