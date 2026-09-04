@@ -578,21 +578,81 @@ class MockOdooService implements BaseOdooService {
   }
 
   @override
-  Future<List<ProjectModel>> getProjects() async {
+  Future<List<ProjectModel>> getProjects({int? projectId}) async {
     return const [
       ProjectModel(
-        id: 14,
-        name: 'Detailing Bay Alpha',
-        taskCount: 5,
-        labelTasks: 'In Progress, To Do',
+        id: 37,
+        name: 'S00028 - Paint Protection Film',
+        taskCount: 1,
+        labelTasks: 'Tasks',
+        stageId: 1,
+        stageName: 'To Do',
       ),
       ProjectModel(
-        id: 15,
-        name: 'Ceramic Shield Workshop',
-        taskCount: 3,
-        labelTasks: 'Done, In Progress',
+        id: 36,
+        name: 'S00027 - Paint Protection Film',
+        taskCount: 1,
+        labelTasks: 'Tasks',
+        stageId: 2,
+        stageName: 'In Progress',
       ),
     ];
+  }
+
+  @override
+  Future<List<ProjectStageModel>> getProjectStages() async {
+    return const [
+      ProjectStageModel(id: 1, name: 'To Do', sequence: 0, fold: false),
+      ProjectStageModel(id: 2, name: 'In Progress', sequence: 1, fold: false),
+      ProjectStageModel(id: 3, name: 'Done', sequence: 2, fold: false),
+      ProjectStageModel(id: 4, name: 'Cancelled', sequence: 3, fold: false),
+    ];
+  }
+
+  @override
+  Future<CustomerTaskStageProgressModel?> getTaskStageProgress(
+    int taskId,
+  ) async {
+    return const CustomerTaskStageProgressModel(
+      taskId: 78,
+      taskName: 'Paint Protection Film(PPF) (Full Car)',
+      projectId: 37,
+      projectName: 'S00028 - Paint Protection Film',
+      state: '01_in_progress',
+      isClosed: false,
+      currentStageId: 101,
+      currentStageName: 'cleaning',
+      stages: [
+        TaskStageItemModel(
+          id: 100,
+          name: 'wheels removed',
+          sequence: 0,
+          fold: false,
+          status: 'done',
+        ),
+        TaskStageItemModel(
+          id: 101,
+          name: 'cleaning',
+          sequence: 1,
+          fold: false,
+          status: 'current',
+        ),
+        TaskStageItemModel(
+          id: 102,
+          name: 'installation',
+          sequence: 2,
+          fold: false,
+          status: 'pending',
+        ),
+        TaskStageItemModel(
+          id: 103,
+          name: 'done',
+          sequence: 3,
+          fold: false,
+          status: 'pending',
+        ),
+      ],
+    );
   }
 
   @override

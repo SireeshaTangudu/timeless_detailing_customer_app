@@ -6,6 +6,8 @@ import 'package:timeless_detailing_customer_app/core/network/odoo_client.dart';
 import 'package:timeless_detailing_customer_app/core/widgets/custom_app_bar.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/models/estimation_model.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/views/estimation_screen.dart';
+import 'package:timeless_detailing_customer_app/features/tracking/models/project_model.dart';
+import 'package:timeless_detailing_customer_app/features/tracking/views/project_details_screen.dart';
 
 class NotificationDetailScreen extends StatefulWidget {
   final Map<String, dynamic> notification;
@@ -214,8 +216,64 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
                       onPressed: () {
                         final notifType = (notif['notification_type'] ?? notif['type'] ?? '').toString().toLowerCase();
                         final resModel = (notif['res_model'] ?? notif['model'] ?? '').toString().toLowerCase();
-                        final rawSaleOrderId = notif['sale_order_id'];
+                        final odooService = Provider.of<BaseOdooService>(context, listen: false);
 
+                        final bool isProjectOrTaskUpdate = notifType == 'project_update' ||
+                            notifType == 'task_update' ||
+                            resModel == 'project.project' ||
+                            resModel == 'project.task';
+
+                        if (isProjectOrTaskUpdate) {
+                          int? projId;
+                          int? taskId;
+                          final rawProj = notif['project_id'];
+                          if (rawProj is Map && rawProj['id'] is int) {
+                            projId = rawProj['id'] as int;
+                          } else if (rawProj is int) {
+                            projId = rawProj;
+                          }
+
+                          final resIdRaw = notif['res_id'] ?? notif['order_id'];
+                          final resId = int.tryParse(resIdRaw?.toString() ?? '');
+
+                          if (notifType == 'task_update' || resModel == 'project.task') {
+                            taskId = resId;
+                            projId = projId ?? resId ?? 37;
+                          } else {
+                            projId = resId ?? projId ?? 36;
+                          }
+
+                          final title = notif['title']?.toString() ?? 'Project #$projId';
+
+                          odooService.getProjects(projectId: projId).then((projects) {
+                            if (!mounted) return;
+                            ProjectModel? matched;
+                            for (final p in projects) {
+                              if (p.id == projId) {
+                                matched = p;
+                                break;
+                              }
+                            }
+                            final targetProj = matched ?? ProjectModel(
+                              id: projId!,
+                              name: title,
+                              taskCount: 1,
+                              labelTasks: 'Tasks',
+                            );
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ProjectDetailsScreen(
+                                  project: targetProj,
+                                  initialTaskId: taskId,
+                                ),
+                              ),
+                            );
+                          });
+                          return;
+                        }
+
+                        final rawSaleOrderId = notif['sale_order_id'];
                         int? saleOrderId;
                         if (rawSaleOrderId is List && rawSaleOrderId.isNotEmpty && rawSaleOrderId.first is int) {
                           saleOrderId = rawSaleOrderId.first as int;
@@ -232,7 +290,6 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
                             resModel == 'sale.order' ||
                             (saleOrderId != null && saleOrderId > 0);
 
-                        final odooService = Provider.of<BaseOdooService>(context, listen: false);
                         final targetId = saleOrderId ?? resId;
 
                         if (isQuotationSent && targetId != null) {
@@ -273,9 +330,11 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      icon: const Icon(Icons.assignment_outlined, size: 20),
+                      icon: const Icon(Icons.track_changes_outlined, size: 20),
                       label: Text(
-                        'VIEW ESTIMATION',
+                        (notif['notification_type'] ?? '') == 'task_update' || (notif['notification_type'] ?? '') == 'project_update'
+                            ? 'VIEW TRACKING PROGRESS'
+                            : 'VIEW DETAILS',
                         style: GoogleFonts.outfit(
                           fontSize: 14.5,
                           fontWeight: FontWeight.bold,

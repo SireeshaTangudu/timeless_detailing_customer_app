@@ -180,9 +180,34 @@ class _ProjectsListScreenState extends State<ProjectsListScreen> {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 4),
-                  Row(
+                  const SizedBox(height: 6),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 4,
                     children: [
+                      // Dynamic Project Status Badge from API
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFC4913F).withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(
+                            color: const Color(0xFFC4913F).withValues(alpha: 0.3),
+                            width: 1,
+                          ),
+                        ),
+                        child: Text(
+                          'Status: ${project.stageName}',
+                          style: GoogleFonts.montserrat(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFFC4913F),
+                          ),
+                        ),
+                      ),
                       Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 8,
@@ -199,14 +224,6 @@ class _ProjectsListScreenState extends State<ProjectsListScreen> {
                             fontWeight: FontWeight.w600,
                             color: const Color(0xFF8C6D37),
                           ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'ID: ${project.id}',
-                        style: GoogleFonts.montserrat(
-                          fontSize: 11.5,
-                          color: const Color(0xFF8C8273),
                         ),
                       ),
                     ],

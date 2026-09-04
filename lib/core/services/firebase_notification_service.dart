@@ -207,7 +207,9 @@ class FirebaseNotificationService {
       return;
     }
 
-    final bool isLiveTrackOrPipeline = notifType.contains('pipeline') ||
+    final bool isProjectOrTaskUpdate = notifType == 'project_update' ||
+        notifType == 'task_update' ||
+        notifType.contains('pipeline') ||
         notifType.contains('live_track') ||
         notifType.contains('tracking') ||
         resModel == 'crm.lead' ||
@@ -219,15 +221,45 @@ class FirebaseNotificationService {
         bodyStr.contains('status has been updated') ||
         bodyStr.contains('vehicle\'s status has been updated');
 
-    if (isLiveTrackOrPipeline) {
-      final targetProjectId = resId ?? saleOrderId ?? 108;
-      debugPrint('🔵 Pipeline / Live track update notification tapped -> Navigating to ProjectDetailsScreen for project ID=$targetProjectId');
+    if (isProjectOrTaskUpdate) {
+      int? projectIdFromData;
+      final rawProjId = message.data['project_id'];
+      if (rawProjId is Map) {
+        projectIdFromData = int.tryParse(rawProjId['id']?.toString() ?? '');
+      } else if (rawProjId is List && rawProjId.isNotEmpty) {
+        projectIdFromData = int.tryParse(rawProjId.first.toString());
+      } else if (rawProjId is int) {
+        projectIdFromData = rawProjId;
+      } else if (rawProjId is String && rawProjId.isNotEmpty) {
+        try {
+          final decoded = jsonDecode(rawProjId);
+          if (decoded is Map) {
+            projectIdFromData = int.tryParse(decoded['id']?.toString() ?? '');
+          } else if (decoded is int) {
+            projectIdFromData = decoded;
+          }
+        } catch (_) {
+          projectIdFromData = int.tryParse(rawProjId);
+        }
+      }
+
+      int targetProjectId;
+      int? targetTaskId;
+
+      if (notifType == 'task_update' || resModel == 'project.task') {
+        targetTaskId = resId;
+        targetProjectId = projectIdFromData ?? resId ?? 37;
+      } else {
+        targetProjectId = resId ?? projectIdFromData ?? 36;
+      }
+
+      debugPrint('🔵 Project/Task update notification tapped -> Navigating to ProjectDetailsScreen for project ID=$targetProjectId, task ID=$targetTaskId');
 
       final String projectTitle = (message.data['title'] ?? message.notification?.title ?? '').toString();
-      final String cleanTitle = projectTitle.isNotEmpty ? projectTitle : 'Vehicle Detailing Tracking';
+      final String cleanTitle = projectTitle.isNotEmpty ? projectTitle : 'Project #$targetProjectId';
 
       if (odooService != null) {
-        odooService.getProjects().then((projects) {
+        odooService.getProjects(projectId: targetProjectId).then((projects) {
           final currentCtx = navigatorKey.currentContext;
           if (currentCtx == null) return;
 
@@ -242,27 +274,33 @@ class FirebaseNotificationService {
           final targetProject = matchedProject ?? ProjectModel(
             id: targetProjectId,
             name: cleanTitle,
-            taskCount: 0,
+            taskCount: 1,
             labelTasks: 'Tasks',
           );
 
           _navigateToScreenFromNotification(
             currentCtx,
-            ProjectDetailsScreen(project: targetProject),
+            ProjectDetailsScreen(
+              project: targetProject,
+              initialTaskId: targetTaskId,
+            ),
           );
         }).catchError((err) {
-          debugPrint('🟡 Error fetching projects for notification navigation: $err');
+          debugPrint('🟡 Error fetching project details for notification navigation: $err');
           final currentCtx = navigatorKey.currentContext;
           if (currentCtx != null) {
             final fallbackProject = ProjectModel(
               id: targetProjectId,
               name: cleanTitle,
-              taskCount: 0,
+              taskCount: 1,
               labelTasks: 'Tasks',
             );
             _navigateToScreenFromNotification(
               currentCtx,
-              ProjectDetailsScreen(project: fallbackProject),
+              ProjectDetailsScreen(
+                project: fallbackProject,
+                initialTaskId: targetTaskId,
+              ),
             );
           }
         });
@@ -270,12 +308,15 @@ class FirebaseNotificationService {
         final fallbackProject = ProjectModel(
           id: targetProjectId,
           name: cleanTitle,
-          taskCount: 0,
+          taskCount: 1,
           labelTasks: 'Tasks',
         );
         _navigateToScreenFromNotification(
           context,
-          ProjectDetailsScreen(project: fallbackProject),
+          ProjectDetailsScreen(
+            project: fallbackProject,
+            initialTaskId: targetTaskId,
+          ),
         );
       }
       return;

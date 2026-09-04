@@ -83,7 +83,9 @@ abstract class BaseOdooService {
     required int bookingId,
     required List<int> partnerIds,
   });
-  Future<List<ProjectModel>> getProjects();
+  Future<List<ProjectModel>> getProjects({int? projectId});
+  Future<List<ProjectStageModel>> getProjectStages();
+  Future<CustomerTaskStageProgressModel?> getTaskStageProgress(int taskId);
   Future<List<ProjectTaskModel>> getProjectTasks(int projectId);
   Future<List<ProjectTaskTypeModel>> getProjectTaskTypes(int projectId);
   Future<List<Map<String, dynamic>>> getSentQuotations({int? partnerId});
@@ -1779,21 +1781,32 @@ class OdooApiService implements BaseOdooService {
 
   /// ENDPOINT 8: Get All Projects (`project.project/web_search_read`)
   @override
-  Future<List<ProjectModel>> getProjects() async {
+  Future<List<ProjectModel>> getProjects({int? projectId}) async {
     try {
+      final List domain = [
+        ['is_template', '=', false],
+      ];
+      if (projectId != null && projectId > 0) {
+        domain.add(['id', '=', projectId]);
+      }
+
       final response = await _callKw(
         model: 'project.project',
         method: 'web_search_read',
         args: [],
         kwargs: {
-          'domain': [
-            ['is_template', '=', false],
-          ],
+          'domain': domain,
           'specification': {
             'id': {},
             'name': {},
             'task_count': {},
             'label_tasks': {},
+            'stage_id': {
+              'fields': {
+                'id': {},
+                'name': {},
+              },
+            },
           },
           'order': 'name desc',
         },
@@ -1809,6 +1822,70 @@ class OdooApiService implements BaseOdooService {
     } catch (e) {
       debugPrint('Endpoint 8 (project.project/web_search_read) error: $e');
       return [];
+    }
+  }
+
+  /// Get Project Stage Definitions (`project.project.stage/web_search_read`)
+  @override
+  Future<List<ProjectStageModel>> getProjectStages() async {
+    try {
+      final response = await _callKw(
+        model: 'project.project.stage',
+        method: 'web_search_read',
+        args: [],
+        kwargs: {
+          'domain': [],
+          'specification': {
+            'id': {},
+            'name': {},
+            'sequence': {},
+            'fold': {},
+          },
+          'order': 'sequence asc',
+        },
+      );
+
+      final List records = (response is Map && response.containsKey('records'))
+          ? (response['records'] as List)
+          : (response is List ? response : []);
+
+      return records.map((item) {
+        return ProjectStageModel.fromJson(
+          Map<String, dynamic>.from(item as Map),
+        );
+      }).toList();
+    } catch (e) {
+      debugPrint('project.project.stage/web_search_read error: $e');
+      return [];
+    }
+  }
+
+  /// Get Customer Task Stage Progress (`project.task/get_customer_stage_progress`)
+  @override
+  Future<CustomerTaskStageProgressModel?> getTaskStageProgress(
+    int taskId,
+  ) async {
+    try {
+      final response = await _callKw(
+        model: 'project.task',
+        method: 'get_customer_stage_progress',
+        args: [
+          [taskId],
+        ],
+        kwargs: {},
+      );
+
+      if (response != null && response is Map) {
+        return CustomerTaskStageProgressModel.fromJson(
+          Map<String, dynamic>.from(response),
+        );
+      }
+      return null;
+    } catch (e) {
+      debugPrint(
+        'project.task/get_customer_stage_progress error for task $taskId: $e',
+      );
+      return null;
     }
   }
 
@@ -2424,6 +2501,9 @@ class OdooApiService implements BaseOdooService {
               'message': {},
               'res_model': {},
               'res_id': {},
+              'project_id': {
+                'fields': {'id': {}, 'name': {}, 'display_name': {}},
+              },
               'sale_order_id': {
                 'fields': {'id': {}, 'display_name': {}},
               },
