@@ -788,6 +788,11 @@ class MockOdooService implements BaseOdooService {
   }
 
   @override
+  Future<bool> declineQuotation(int orderId, {String? declineReason}) async {
+    return true;
+  }
+
+  @override
   Future<bool> registerDeviceToken({
     required String token,
     String platform = 'android',

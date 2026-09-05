@@ -58,6 +58,185 @@ class _EstimationScreenState extends State<EstimationScreen> {
     }
   }
 
+  void _showDeclineReasonDialog(
+    BuildContext parentContext,
+    EstimationModel data,
+    VoidCallback onDeclinedSuccess,
+  ) {
+    final reasonController = TextEditingController();
+    String? errorText;
+    bool isSubmitting = false;
+
+    showDialog(
+      context: parentContext,
+      barrierDismissible: false,
+      builder: (dialogCtx) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            backgroundColor: const Color(0xFF1D1813),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+              side: const BorderSide(color: Color(0xFF4A3E30)),
+            ),
+            title: Row(
+              children: [
+                const Icon(
+                  Icons.report_problem_outlined,
+                  color: Color(0xFFE57373),
+                  size: 24,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Decline Quotation',
+                    style: GoogleFonts.outfit(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Please provide a reason for declining quotation #${data.id}:',
+                  style: GoogleFonts.montserrat(
+                    fontSize: 12.5,
+                    color: const Color(0xFFC5B7A1),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                TextField(
+                  controller: reasonController,
+                  maxLines: 3,
+                  style: GoogleFonts.montserrat(color: Colors.white, fontSize: 13),
+                  decoration: InputDecoration(
+                    hintText: 'Enter reason (e.g. Price too high, plans changed...)',
+                    hintStyle: GoogleFonts.montserrat(
+                      color: const Color(0xFF7A7063),
+                      fontSize: 12.5,
+                    ),
+                    errorText: errorText,
+                    errorStyle: GoogleFonts.montserrat(
+                      color: const Color(0xFFE57373),
+                      fontSize: 11.5,
+                    ),
+                    filled: true,
+                    fillColor: const Color(0xFF2A231C),
+                    contentPadding: const EdgeInsets.all(12),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: const BorderSide(color: Color(0xFF4A3E30)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: const BorderSide(color: Color(0xFFC4913F)),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(
+                        color: errorText != null ? const Color(0xFFE57373) : const Color(0xFF4A3E30),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            actions: [
+              TextButton(
+                onPressed: isSubmitting ? null : () => Navigator.pop(dialogCtx),
+                child: Text(
+                  'Cancel',
+                  style: GoogleFonts.outfit(
+                    color: const Color(0xFF8C8273),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              ElevatedButton(
+                onPressed: isSubmitting
+                    ? null
+                    : () async {
+                        final reason = reasonController.text.trim();
+                        if (reason.isEmpty) {
+                          setDialogState(() {
+                            errorText = 'Reason is required to decline quotation';
+                          });
+                          return;
+                        }
+
+                        setDialogState(() {
+                          isSubmitting = true;
+                          errorText = null;
+                        });
+
+                        final odooService = Provider.of<BaseOdooService>(
+                          parentContext,
+                          listen: false,
+                        );
+                        final orderId = data.odooSaleOrderId ??
+                            int.tryParse(
+                              data.id.replaceAll(RegExp(r'[^\d]'), ''),
+                            );
+
+                        bool success = false;
+                        if (orderId != null && orderId > 0) {
+                          success = await odooService.declineQuotation(
+                            orderId,
+                            declineReason: reason,
+                          );
+                        }
+
+                        if (dialogCtx.mounted) {
+                          Navigator.pop(dialogCtx);
+                        }
+
+                        if (success) {
+                          onDeclinedSuccess();
+                        } else if (parentContext.mounted) {
+                          ScaffoldMessenger.of(parentContext).showSnackBar(
+                            const SnackBar(
+                              content: Text('Failed to decline quotation. Please try again.'),
+                              backgroundColor: Color(0xFFC62828),
+                            ),
+                          );
+                        }
+                      },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFB71C1C),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                child: isSubmitting
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : Text(
+                        'Submit Decline',
+                        style: GoogleFonts.outfit(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
   void _showAcceptAndSignModal(BuildContext context, EstimationModel data) {
     final authController = Provider.of<AuthController>(context, listen: false);
     final initialName = authController.userName != 'Guest Customer'
@@ -219,43 +398,23 @@ class _EstimationScreenState extends State<EstimationScreen> {
                           child: SizedBox(
                             height: 48,
                             child: OutlinedButton(
-                              onPressed: () async {
-                                final nav = Navigator.of(context);
-                                final messenger = ScaffoldMessenger.of(context);
-                                setModalState(() => isSubmitting = true);
-                                try {
-                                  final odooService =
-                                      Provider.of<BaseOdooService>(
-                                        context,
-                                        listen: false,
-                                      );
-                                  final orderId =
-                                      int.tryParse(
-                                        data.id.replaceAll(
-                                          RegExp(r'[^\d]'),
-                                          '',
+                              onPressed: () {
+                                _showDeclineReasonDialog(
+                                  modalContext,
+                                  data,
+                                  () {
+                                    if (mounted) {
+                                      setState(() => _status = 'declined');
+                                      Navigator.pop(modalContext);
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(
+                                          content: Text('Quotation declined successfully.'),
+                                          backgroundColor: Color(0xFFB71C1C),
                                         ),
-                                      ) ??
-                                      23;
-                                  final partnerId =
-                                      odooService.currentPartnerId ??
-                                      odooService.currentUid ??
-                                      28;
-                                  await odooService.cancelBooking(
-                                    bookingId: orderId,
-                                    partnerIds: [partnerId],
-                                  );
-                                } catch (_) {}
-                                if (mounted) {
-                                  setState(() => _status = 'declined');
-                                  nav.pop();
-                                  messenger.showSnackBar(
-                                    const SnackBar(
-                                      content: Text('Quotation declined.'),
-                                      backgroundColor: Color(0xFFB71C1C),
-                                    ),
-                                  );
-                                }
+                                      );
+                                    }
+                                  },
+                                );
                               },
                               style: OutlinedButton.styleFrom(
                                 side: const BorderSide(

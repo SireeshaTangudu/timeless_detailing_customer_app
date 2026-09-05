@@ -97,6 +97,7 @@ abstract class BaseOdooService {
     String? signatureBase64,
     String? accessToken,
   });
+  Future<bool> declineQuotation(int orderId, {String? declineReason});
   Future<Map<String, dynamic>?> getCompanyLocationDetails();
   Future<bool> registerDeviceToken({
     required String token,
@@ -2417,6 +2418,65 @@ class OdooApiService implements BaseOdooService {
         '🔴 [OdooApiService] Quotation $orderId could not be confirmed in Odoo.',
       );
       return false;
+    }
+  }
+
+  /// STEP 15b: Decline Quotation (`sale.order/action_timeless_portal_decline`)
+  @override
+  Future<bool> declineQuotation(int orderId, {String? declineReason}) async {
+    debugPrint('🔵 [OdooApiService] declineQuotation called for sale.order=$orderId');
+    if (orderId <= 0) return false;
+    final message = (declineReason != null && declineReason.trim().isNotEmpty)
+        ? declineReason.trim()
+        : 'Customer changed mind on this quote';
+    try {
+      final response = await _callKw(
+        model: 'sale.order',
+        method: 'action_timeless_portal_decline',
+        args: [
+          [orderId],
+        ],
+        kwargs: {
+          'decline_message': message,
+        },
+      );
+      debugPrint('🟢 [OdooApiService] Declined quotation sale.order $orderId via action_timeless_portal_decline: $response');
+      return true;
+    } catch (e) {
+      debugPrint('⚠️ [OdooApiService] Error executing action_timeless_portal_decline for sale.order $orderId: $e');
+      try {
+        await _callKw(
+          model: 'sale.order',
+          method: 'action_cancel',
+          args: [
+            [orderId],
+          ],
+          kwargs: {},
+        );
+        debugPrint('🟢 [OdooApiService] Declined quotation sale.order $orderId via action_cancel fallback');
+        return true;
+      } catch (cancelErr) {
+        debugPrint('⚠️ [OdooApiService] Error executing action_cancel fallback: $cancelErr');
+        try {
+          await _callKw(
+            model: 'sale.order',
+            method: 'message_post',
+            args: [
+              [orderId],
+            ],
+            kwargs: {
+              'body': '<p><b>Quotation Declined</b><br/>Decline Reason: $message</p>',
+              'message_type': 'comment',
+              'subtype_xmlid': 'mail.mt_comment',
+            },
+          );
+          debugPrint('🟢 [OdooApiService] Posted decline message to sale.order $orderId');
+          return true;
+        } catch (msgErr) {
+          debugPrint('🔴 [OdooApiService] Could not decline quotation: $msgErr');
+          return false;
+        }
+      }
     }
   }
 
