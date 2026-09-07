@@ -126,6 +126,12 @@ class Booking {
     }
   }
 
+  // Indicates whether the booking can still be cancelled by the user.
+  // Cancellation is only allowed for confirmed appointments whose start time is in the future.
+  bool get canCancel {
+    return status == BookingStatus.confirmed && bookingDateTime.isAfter(DateTime.now());
+  }
+
   // Factory constructor for Odoo integration (supports both calendar.event and sale.order)
   factory Booking.fromOdooJson(Map<String, dynamic> json, DetailService service) {
     int parseStep(BookingStatus bookingStatus) {

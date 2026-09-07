@@ -799,22 +799,29 @@ class _DashboardScreenState extends State<DashboardScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  children: [
-                    PulseGlow(
-                      child: Icon(Icons.circle, size: 8, color: badgeColor),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      stageTitle,
-                      style: GoogleFonts.lora(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w500,
-                        color: badgeColor,
+                Expanded(
+                  child: Row(
+                    children: [
+                      PulseGlow(
+                        child: Icon(Icons.circle, size: 8, color: badgeColor),
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          stageTitle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.lora(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w500,
+                            color: badgeColor,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
+                const SizedBox(width: 8),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(

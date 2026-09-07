@@ -139,6 +139,28 @@ class MockOdooService implements BaseOdooService {
       ),
     );
 
+    // Populate a confirmed upcoming booking (before vehicle handover)
+    _mockBookings.add(
+      Booking(
+        id: 'bk_983',
+        service: _mockServices[0],
+        vehicleName: 'BMW M4 Competition',
+        vehicleLicensePlate: 'TIMELESS-2',
+        bookingDateTime: now.add(const Duration(days: 2)),
+        status: BookingStatus.confirmed,
+        carDropOffStatus: 'Pending',
+        currentStep: 0,
+        totalPrice: 499.99,
+        notes: 'Scheduled ceramic coating appointment.',
+        beforeImages: [],
+        afterImages: [],
+        technicianName: 'Marcus Vance',
+        technicianAvatar:
+            'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&auto=format&fit=crop&q=60',
+        odooSaleOrderId: 983,
+      ),
+    );
+
     // Populate a history booking (completed)
     _mockBookings.add(
       Booking(

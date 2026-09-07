@@ -655,39 +655,41 @@ class _UpcomingAppointmentDetailsScreenState
                                 // Bottom Action Buttons
                                 Row(
                                   children: [
-                                    Expanded(
-                                      child: SizedBox(
-                                        height: 48,
-                                        child: OutlinedButton.icon(
-                                          onPressed: _confirmCancelAppointment,
-                                          style: OutlinedButton.styleFrom(
-                                            foregroundColor: const Color(
-                                              0xFFB71C1C,
+                                    if (b.canCancel) ...[
+                                      Expanded(
+                                        child: SizedBox(
+                                          height: 48,
+                                          child: OutlinedButton.icon(
+                                            onPressed: _confirmCancelAppointment,
+                                            style: OutlinedButton.styleFrom(
+                                              foregroundColor: const Color(
+                                                0xFFB71C1C,
+                                              ),
+                                              side: const BorderSide(
+                                                color: Color(0xFFE57373),
+                                                width: 1.2,
+                                              ),
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                              ),
                                             ),
-                                            side: const BorderSide(
-                                              color: Color(0xFFE57373),
-                                              width: 1.2,
+                                            icon: const Icon(
+                                              Icons.cancel_outlined,
+                                              size: 16,
                                             ),
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(12),
-                                            ),
-                                          ),
-                                          icon: const Icon(
-                                            Icons.cancel_outlined,
-                                            size: 16,
-                                          ),
-                                          label: Text(
-                                            'Cancel',
-                                            style: GoogleFonts.outfit(
-                                              fontSize: 13,
-                                              fontWeight: FontWeight.bold,
+                                            label: Text(
+                                              'Cancel',
+                                              style: GoogleFonts.outfit(
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.bold,
+                                              ),
                                             ),
                                           ),
                                         ),
                                       ),
-                                    ),
-                                    const SizedBox(width: 12),
+                                      const SizedBox(width: 12),
+                                    ],
                                     Expanded(
                                       child: SizedBox(
                                         height: 48,

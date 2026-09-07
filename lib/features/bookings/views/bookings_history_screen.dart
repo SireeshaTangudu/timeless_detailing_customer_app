@@ -866,7 +866,7 @@ class _NewEstimateScreenState extends State<NewEstimateScreen> {
                               ),
 
                               // Cancel Appointment Button (ENDPOINT 7: calendar.event/action_cancel_meeting)
-                              if (b != null) ...[
+                              if (b != null && b.canCancel) ...[
                                 const SizedBox(height: 12),
                                 SizedBox(
                                   width: double.infinity,
