@@ -13,6 +13,7 @@ import 'package:timeless_detailing_customer_app/features/tracking/controllers/tr
 import 'package:timeless_detailing_customer_app/features/tracking/controllers/projects_controller.dart';
 import 'package:timeless_detailing_customer_app/core/theme/theme_controller.dart';
 
+import 'package:timeless_detailing_customer_app/core/services/network_connectivity_service.dart';
 import 'package:timeless_detailing_customer_app/core/services/firebase_notification_service.dart';
 
 class MyHttpOverrides extends HttpOverrides {
@@ -59,6 +60,7 @@ void main() async {
       providers: [
         // Core Odoo service provider injection
         Provider<BaseOdooService>.value(value: odooService),
+        ChangeNotifierProvider(create: (context) => NetworkConnectivityService()),
 
         // Feature Controller Providers
         ChangeNotifierProvider(

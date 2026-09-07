@@ -11,6 +11,10 @@ import 'package:timeless_detailing_customer_app/features/auth/views/profile_scre
 import 'package:timeless_detailing_customer_app/features/auth/views/login_screen.dart';
 import 'package:timeless_detailing_customer_app/features/about/views/about_us_screen.dart';
 
+import 'package:timeless_detailing_customer_app/core/services/network_connectivity_service.dart';
+import 'package:timeless_detailing_customer_app/core/widgets/no_internet_screen.dart';
+import 'package:timeless_detailing_customer_app/features/bookings/controllers/bookings_controller.dart';
+import 'package:timeless_detailing_customer_app/features/services/controllers/services_controller.dart';
 import 'package:timeless_detailing_customer_app/features/invoices/views/invoices_screen.dart';
 import 'package:timeless_detailing_customer_app/features/tracking/views/projects_list_screen.dart';
 
@@ -101,6 +105,29 @@ class _MainNavigationScaffoldState extends State<MainNavigationScaffold>
   @override
   Widget build(BuildContext context) {
     final auth = Provider.of<AuthController>(context);
+    final netService = Provider.of<NetworkConnectivityService>(context);
+
+    // Auto-retry callback when connection is restored
+    netService.onReconnected = () {
+      try {
+        debugPrint('🟢 [MainNavigationScaffold] Auto-triggering API refreshes on reconnection...');
+        Provider.of<BookingsController>(context, listen: false).loadBookings();
+        Provider.of<ServicesController>(context, listen: false).fetchProductCategories();
+      } catch (e) {
+        debugPrint('Error triggering auto-retry API calls: $e');
+      }
+    };
+
+    if (!netService.isConnected) {
+      return NoInternetScreen(
+        onRetry: () {
+          try {
+            Provider.of<BookingsController>(context, listen: false).loadBookings();
+            Provider.of<ServicesController>(context, listen: false).fetchProductCategories();
+          } catch (_) {}
+        },
+      );
+    }
 
     return Scaffold(
       key: _scaffoldKey,
