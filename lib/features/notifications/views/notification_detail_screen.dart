@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:timeless_detailing_customer_app/core/network/odoo_client.dart';
 import 'package:timeless_detailing_customer_app/core/services/firebase_notification_service.dart';
 import 'package:timeless_detailing_customer_app/core/widgets/custom_app_bar.dart';
+import 'package:timeless_detailing_customer_app/core/widgets/custom_shimmer_loading.dart';
 
 class NotificationDetailScreen extends StatefulWidget {
   final Map<String, dynamic> notification;
@@ -76,9 +77,7 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
         onBackPressed: () => Navigator.pop(context),
       ),
       body: _isLoading
-          ? const Center(
-              child: CircularProgressIndicator(color: Color(0xFFC4913F)),
-            )
+          ? const ShimmerDetailLoader()
           : SingleChildScrollView(
               padding: const EdgeInsets.all(20),
               child: Column(

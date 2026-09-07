@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:timeless_detailing_customer_app/core/theme/app_theme.dart';
 import 'package:timeless_detailing_customer_app/core/widgets/custom_app_bar.dart';
+import 'package:timeless_detailing_customer_app/core/widgets/custom_shimmer_loading.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/models/booking_model.dart';
 import 'package:timeless_detailing_customer_app/features/tracking/controllers/tracking_controller.dart';
 import 'package:timeless_detailing_customer_app/core/widgets/custom_loader.dart';
@@ -45,7 +46,7 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
           ),
           Expanded(
             child: tracking.isLoading
-                ? const FourRotatingDotsLoader()
+                ? const ShimmerDetailLoader()
                 : SingleChildScrollView(
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                     child: Column(

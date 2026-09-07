@@ -77,11 +77,11 @@ class Booking {
     this.appointmentTypeName,
     this.opportunityName,
     this.isDownPaymentInvoice = false,
-    this.percentageAmountPaid = 50.0,
-    this.amountPaid = 1656.0,
-    this.amountPaidOn = '31st July, 2026, 01:43 PM',
-    this.pendingAmount = 1126.0,
-    this.carDropOffStatus = 'Pending',
+    this.percentageAmountPaid = 0.0,
+    this.amountPaid = 0.0,
+    this.amountPaidOn = '',
+    this.pendingAmount = 0.0,
+    this.carDropOffStatus = '',
     this.addOns = const [],
     this.invoiceId,
     this.invoiceAccessUrl,
@@ -276,7 +276,7 @@ class Booking {
       afterImages: json['after_images'] is List 
           ? List<String>.from(json['after_images']) 
           : [],
-      technicianName: collectorName ?? (json['technician_name'] is String ? json['technician_name'] : 'Lead Detailer'),
+      technicianName: collectorName ?? (json['technician_name'] is String ? json['technician_name'] as String : ''),
       technicianAvatar: json['technician_avatar'] is String ? json['technician_avatar'] : '',
       odooSaleOrderId: json['id'] is int ? json['id'] as int : int.tryParse(json['id']?.toString() ?? ''),
       bookingPhone: phone,
@@ -314,7 +314,7 @@ class Booking {
     double origTotal = (summary['original_quotation_total'] as num?)?.toDouble() ??
         (snapshot['original_quotation_total'] as num?)?.toDouble() ??
         (json['amount_total'] as num?)?.toDouble() ??
-        2800.0;
+        0.0;
 
     if (serviceLines.isNotEmpty && serviceLines[0] is Map) {
       serviceName = (serviceLines[0]['name'] ?? serviceName).toString();
@@ -329,14 +329,14 @@ class Booking {
 
     final double depositAmt = (summary['deposit_amount'] as num?)?.toDouble() ??
         (json['amount_total'] as num?)?.toDouble() ??
-        1345.5;
+        0.0;
 
     final double remainAmt = (summary['remaining_amount'] as num?)?.toDouble() ??
         (json['amount_residual'] as num?)?.toDouble() ??
-        (origTotal - depositAmt);
+        (origTotal > 0 ? (origTotal - depositAmt) : 0.0);
 
-    final String pctLabel = (summary['deposit_percentage_label'] ?? '50%').toString();
-    final double pctVal = double.tryParse(pctLabel.replaceAll(RegExp(r'[^\d.]'), '')) ?? 50.0;
+    final String pctLabel = (summary['deposit_percentage_label'] ?? '').toString();
+    final double pctVal = double.tryParse(pctLabel.replaceAll(RegExp(r'[^\d.]'), '')) ?? 0.0;
 
     final String invDateStr = (json['invoice_date'] ?? '').toString();
     final String dueDateStr = (json['invoice_date_due'] ?? '').toString();
@@ -347,7 +347,7 @@ class Booking {
     final String accToken = (json['access_token'] is String) ? json['access_token'] as String : '';
 
     return Booking(
-      id: json['id']?.toString() ?? '101',
+      id: json['id']?.toString() ?? '',
       service: DetailService(
         id: 'inv_${json['id']}',
         name: serviceName,
@@ -358,7 +358,7 @@ class Booking {
         category: 'Detailing',
         whatsIncluded: const [],
       ),
-      vehicleName: vehicleName.isNotEmpty ? vehicleName : 'Client Vehicle',
+      vehicleName: vehicleName,
       vehicleLicensePlate: vReg,
       bookingDateTime: DateTime.tryParse(invDateStr) ?? DateTime.now(),
       status: BookingStatus.confirmed,
@@ -367,7 +367,7 @@ class Booking {
       notes: json['name']?.toString() ?? 'Invoice',
       beforeImages: const [],
       afterImages: const [],
-      technicianName: 'Master Detailer',
+      technicianName: '',
       technicianAvatar: '',
       bookingVehicleMake: vMake.isNotEmpty ? vMake : null,
       bookingVehicleModel: vModel.isNotEmpty ? vModel : null,
@@ -376,7 +376,7 @@ class Booking {
       amountPaid: depositAmt,
       amountPaidOn: invDateStr.isNotEmpty ? invDateStr : '',
       pendingAmount: remainAmt,
-      carDropOffStatus: 'Pending',
+      carDropOffStatus: '',
       invoiceId: rawInvId,
       invoiceAccessUrl: accUrl.isNotEmpty ? accUrl : null,
       invoiceAccessToken: accToken.isNotEmpty ? accToken : null,

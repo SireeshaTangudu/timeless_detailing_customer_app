@@ -8,6 +8,8 @@ import '../models/booking_model.dart';
 import 'estimation_screen.dart';
 import '../../tracking/views/live_tracking_screen.dart';
 import '../../services/models/service_model.dart';
+import 'package:timeless_detailing_customer_app/core/widgets/custom_shimmer_loading.dart';
+import 'package:timeless_detailing_customer_app/features/bookings/views/upcoming_appointment_details_screen.dart';
 import '../../../core/widgets/custom_loader.dart';
 
 class BookingsHistoryScreen extends StatefulWidget {
@@ -44,11 +46,9 @@ class _BookingsHistoryScreenState extends State<BookingsHistoryScreen> {
 
     final displayList = _selectedTabIndex == 0 ? completedList : upcomingList;
 
-    return FullPageLoadingOverlay(
-      isLoading: controller.isLoading,
-      child: Container(
-        color: const Color(0xFFF7F5F0), // Warm light cream matching Figma
-        child: SafeArea(
+    return Container(
+      color: const Color(0xFFF7F5F0), // Warm light cream matching Figma
+      child: SafeArea(
           child: Column(
             children: [
               CustomAppBar(
@@ -91,7 +91,9 @@ class _BookingsHistoryScreenState extends State<BookingsHistoryScreen> {
                         const SizedBox(height: 24),
 
                         // Orders / Bookings List View
-                        if (displayList.isEmpty && !controller.isLoading)
+                        if (controller.isLoading)
+                          const ShimmerListLoader(padding: EdgeInsets.zero)
+                        else if (displayList.isEmpty)
                           _buildEmptyState()
                         else
                           ListView.separated(
@@ -115,9 +117,8 @@ class _BookingsHistoryScreenState extends State<BookingsHistoryScreen> {
             ],
           ),
         ),
-      ),
-    );
-  }
+      );
+    }
 
   /// Segmented Tab Pill matching Figma
   Widget _buildTabPill(int index, String label) {

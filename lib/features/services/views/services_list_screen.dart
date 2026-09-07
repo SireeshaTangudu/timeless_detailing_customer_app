@@ -7,6 +7,7 @@ import 'package:timeless_detailing_customer_app/core/network/odoo_client.dart';
 import 'package:timeless_detailing_customer_app/features/services/controllers/services_controller.dart';
 import 'package:timeless_detailing_customer_app/features/services/models/service_model.dart';
 import 'package:timeless_detailing_customer_app/features/services/views/service_interactive_detail_screen.dart';
+import 'package:timeless_detailing_customer_app/core/widgets/custom_shimmer_loading.dart';
 import 'package:timeless_detailing_customer_app/core/widgets/custom_loader.dart';
 import 'package:timeless_detailing_customer_app/core/widgets/custom_app_bar.dart';
 import 'package:timeless_detailing_customer_app/core/utils/app_animations.dart';
@@ -198,10 +199,8 @@ class _ServicesListScreenState extends State<ServicesListScreen> {
     final selectedCategoryName = controller.selectedCategory;
     final displayServices = controller.filteredServices;
 
-    return FullPageLoadingOverlay(
-      isLoading: controller.isLoading,
-      child: Scaffold(
-        backgroundColor: const Color(0xFFF9F7F4),
+    return Scaffold(
+      backgroundColor: const Color(0xFFF9F7F4),
         body: Column(
           children: [
             CustomAppBar(
@@ -234,45 +233,47 @@ class _ServicesListScreenState extends State<ServicesListScreen> {
 
                 // 2-Column Child Services Grid
                 Expanded(
-                  child: controller.errorMessage != null
-                      ? Center(
-                          child: Text(
-                            controller.errorMessage!,
-                            style: GoogleFonts.outfit(
-                              color: AppTheme.error,
-                              fontSize: 14,
-                            ),
-                          ),
-                        )
-                      : (displayServices.isEmpty && !controller.isLoading)
-                      ? Center(
-                          child: Text(
-                            'No services available in this category.',
-                            style: GoogleFonts.lora(
-                              fontSize: 15,
-                              color: const Color(0xFF7A6F5D),
-                            ),
-                          ),
-                        )
-                      : GridView.builder(
-                          physics: const BouncingScrollPhysics(),
-                          itemCount: displayServices.length,
-                          gridDelegate:
-                              const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 2,
-                                mainAxisSpacing: 16,
-                                crossAxisSpacing: 16,
-                                childAspectRatio: 0.72,
+                  child: controller.isLoading
+                      ? const ShimmerListLoader(padding: EdgeInsets.zero)
+                      : controller.errorMessage != null
+                          ? Center(
+                              child: Text(
+                                controller.errorMessage!,
+                                style: GoogleFonts.outfit(
+                                  color: AppTheme.error,
+                                  fontSize: 14,
+                                ),
                               ),
-                          itemBuilder: (context, index) {
-                            final childService = displayServices[index];
-                            return FadeSlideIn(
-                              delay: Duration(milliseconds: 200 + (index * 60)),
-                              slideOffset: const Offset(0, 0.1),
-                              child: _buildChildServiceCard(context, childService),
-                            );
-                          },
-                        ),
+                            )
+                          : displayServices.isEmpty
+                              ? Center(
+                                  child: Text(
+                                    'No services available in this category.',
+                                    style: GoogleFonts.lora(
+                                      fontSize: 15,
+                                      color: const Color(0xFF7A6F5D),
+                                    ),
+                                  ),
+                                )
+                              : GridView.builder(
+                                  physics: const BouncingScrollPhysics(),
+                                  itemCount: displayServices.length,
+                                  gridDelegate:
+                                      const SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: 2,
+                                    mainAxisSpacing: 16,
+                                    crossAxisSpacing: 16,
+                                    childAspectRatio: 0.72,
+                                  ),
+                                  itemBuilder: (context, index) {
+                                    final childService = displayServices[index];
+                                    return FadeSlideIn(
+                                      delay: Duration(milliseconds: 200 + (index * 60)),
+                                      slideOffset: const Offset(0, 0.1),
+                                      child: _buildChildServiceCard(context, childService),
+                                    );
+                                  },
+                                ),
                 ),
               ],
             ),
@@ -280,8 +281,7 @@ class _ServicesListScreenState extends State<ServicesListScreen> {
         ),
       ],
     ),
-  ),
-);
+  );
 }
 
   Widget _buildChildServiceCard(BuildContext context, DetailService service) {

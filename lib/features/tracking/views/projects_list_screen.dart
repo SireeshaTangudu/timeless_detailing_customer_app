@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:timeless_detailing_customer_app/core/widgets/custom_app_bar.dart';
+import 'package:timeless_detailing_customer_app/core/widgets/custom_shimmer_loading.dart';
 import 'package:timeless_detailing_customer_app/core/widgets/custom_loader.dart';
 import 'package:timeless_detailing_customer_app/features/tracking/controllers/projects_controller.dart';
 import 'package:timeless_detailing_customer_app/features/tracking/models/project_model.dart';
@@ -46,7 +47,7 @@ class _ProjectsListScreenState extends State<ProjectsListScreen> {
           ),
           Expanded(
             child: controller.isLoading
-                ? const Center(child: FourRotatingDotsLoader())
+                ? const ShimmerListLoader()
                 : RefreshIndicator(
                     color: const Color(0xFFC4913F),
                     onRefresh: () => controller.loadProjects(),

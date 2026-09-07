@@ -140,22 +140,22 @@ class EstimationModel {
   bool get isQuotationSent =>
       state == 'sent' || state == 'sale' || notificationType == 'quotation_sent';
 
-  /// Static default estimation model matching Figma design prototype
+  /// Default estimation model structure when API data is absent
   factory EstimationModel.defaultStatic() {
     return const EstimationModel(
-      id: 'EST-28001',
-      serviceName: 'Interior Detailing',
-      serviceDescription: 'Estimated cost for your interior detailing service',
-      estimatedAmount: 2800.0,
-      amountUntaxed: 2434.78,
-      amountTax: 365.22,
+      id: '',
+      serviceName: 'Detailing Service',
+      serviceDescription: '',
+      estimatedAmount: 0.0,
+      amountUntaxed: 0.0,
+      amountTax: 0.0,
       currencySymbol: 'R',
-      vehicleName: 'Volkswagen Polo TDI 2.0',
-      vehicleType: 'Hatch Back',
-      serviceDate: '12th August',
-      serviceTime: '12:00 PM',
+      vehicleName: '',
+      vehicleType: '',
+      serviceDate: '',
+      serviceTime: '',
       disclaimerText:
-          'The above mentioned amount is the base price. We will share the final pricing after completing our inspection on 12th August at 12:00 PM.',
+          'The above mentioned amount is the estimated base price. Final pricing will be confirmed after inspection.',
       state: 'sent',
       notificationType: 'quotation_sent',
       lineItems: [],

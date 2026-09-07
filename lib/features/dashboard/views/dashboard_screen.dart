@@ -18,6 +18,7 @@ import 'package:timeless_detailing_customer_app/features/services/views/service_
 import 'package:timeless_detailing_customer_app/features/bookings/controllers/bookings_controller.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/models/booking_model.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/views/upcoming_appointment_details_screen.dart';
+import 'package:timeless_detailing_customer_app/core/widgets/custom_shimmer_loading.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/models/estimation_model.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/views/estimation_screen.dart';
 import 'package:timeless_detailing_customer_app/features/notifications/views/notifications_screen.dart';
@@ -218,10 +219,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final media = MediaQuery.of(context);
     final safeBottom = media.padding.bottom;
 
-    return FullPageLoadingOverlay(
-      isLoading: servicesController.isLoading,
-      child: Scaffold(
-        backgroundColor: const Color(0xFFF9F7F4),
+    return Scaffold(
+      backgroundColor: const Color(0xFFF9F7F4),
         body: SafeArea(
           bottom: false,
           child: RefreshIndicator(
@@ -508,7 +507,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                                   servicesController
                                                       .productCategories
                                                       .isEmpty)
-                                              ? const FourRotatingDotsLoader()
+                                              ? ListView.separated(
+                                                   scrollDirection: Axis.horizontal,
+                                                   padding: const EdgeInsets.symmetric(horizontal: 24),
+                                                   itemCount: 3,
+                                                   separatorBuilder: (_, index) => const SizedBox(width: 16),
+                                                   itemBuilder: (_, index) => const CustomShimmerContainer(
+                                                     width: 160,
+                                                     height: 220,
+                                                     borderRadius: BorderRadius.all(Radius.circular(16)),
+                                                   ),
+                                                 )
                                               : ListView.separated(
                                                   clipBehavior: Clip.none,
                                                   scrollDirection:
@@ -551,20 +560,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                         ),
                                       ),
                                     ),
-
-                                    if (hasUpcoming) ...[
-                                      const SizedBox(height: 18),
-                                      // Upcoming Appointment Card placed BELOW Services
-                                      FadeSlideIn(
-                                        delay: const Duration(
-                                          milliseconds: 500,
-                                        ),
-                                        child: _buildUpcomingAppointmentCard(
-                                          context,
-                                          upcoming.first,
-                                        ),
-                                      ),
-                                    ],
+                                    if (bookingsController.isLoading) ...[
+                                       const SizedBox(height: 18),
+                                       const ShimmerCardLoader(padding: EdgeInsets.zero),
+                                     ] else if (hasUpcoming) ...[
+                                       const SizedBox(height: 18),
+                                       // Upcoming Appointment Card placed BELOW Services
+                                       FadeSlideIn(
+                                         delay: const Duration(
+                                           milliseconds: 500,
+                                         ),
+                                         child: _buildUpcomingAppointmentCard(
+                                           context,
+                                           upcoming.first,
+                                         ),
+                                       ),
+                                     ],
                                   ],
                                 ),
                               ),
@@ -579,9 +590,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
           ),
         ),
-      ),
-    );
-  }
+      );
+    }
 
   Future<void> _handleAppointmentCardNavigation(
     BuildContext context,

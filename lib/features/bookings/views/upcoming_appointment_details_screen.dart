@@ -12,6 +12,7 @@ import 'package:timeless_detailing_customer_app/features/bookings/models/garage_
 
 import 'package:timeless_detailing_customer_app/core/network/odoo_client.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/views/odoo_payment_webview_screen.dart';
+import 'package:timeless_detailing_customer_app/core/widgets/custom_shimmer_loading.dart';
 import 'package:timeless_detailing_customer_app/features/dashboard/views/main_navigation_scaffold.dart';
 import 'package:timeless_detailing_customer_app/features/invoices/views/invoices_screen.dart';
 
@@ -356,12 +357,8 @@ class _UpcomingAppointmentDetailsScreenState
     final b = _detailedBooking ?? widget.booking;
     final String serviceTitle = b.service.name;
     final String priceStr = 'R ${b.totalPrice.toStringAsFixed(0)}';
-    final String selectedCar = b.vehicleName.isNotEmpty
-        ? b.vehicleName
-        : 'Client Vehicle';
-    final String carType = b.vehicleModel.isNotEmpty
-        ? b.vehicleModel
-        : 'Hatch Back';
+    final String selectedCar = b.vehicleName;
+    final String carType = b.vehicleModel;
     final String dateDayStr = DateFormat('d MMMM').format(b.bookingDateTime);
     final String fullDateStr = DateFormat(
       'd MMMM, yyyy',
@@ -390,11 +387,7 @@ class _UpcomingAppointmentDetailsScreenState
             ),
             Expanded(
               child: _isLoadingInvoiceDetails
-                  ? const Center(
-                      child: CircularProgressIndicator(
-                        color: Color(0xFFC4913F),
-                      ),
-                    )
+                  ? const ShimmerDetailLoader()
                   : SingleChildScrollView(
                       physics: const BouncingScrollPhysics(),
                       padding: const EdgeInsets.symmetric(
@@ -502,16 +495,20 @@ class _UpcomingAppointmentDetailsScreenState
                                         padding: const EdgeInsets.all(20),
                                         child: Column(
                                           children: [
-                                            _buildLightDetailRow(
-                                              'Selected Car',
-                                              selectedCar,
-                                            ),
-                                            const SizedBox(height: 12),
-                                            _buildLightDetailRow(
-                                              'Car Type',
-                                              carType,
-                                            ),
-                                            const SizedBox(height: 12),
+                                            if (selectedCar.isNotEmpty) ...[
+                                              _buildLightDetailRow(
+                                                'Selected Car',
+                                                selectedCar,
+                                              ),
+                                              const SizedBox(height: 12),
+                                            ],
+                                            if (carType.isNotEmpty) ...[
+                                              _buildLightDetailRow(
+                                                'Car Type',
+                                                carType,
+                                              ),
+                                              const SizedBox(height: 12),
+                                            ],
                                             _buildLightDetailRow(
                                               'Service',
                                               serviceTitle,
@@ -942,21 +939,27 @@ class _UpcomingAppointmentDetailsScreenState
             children: [
               _buildLightDetailRow(
                 'Estimated Cost',
-                'R ${(b.totalPrice > 0 ? b.totalPrice : 2800.0).toStringAsFixed(2)}',
+                'R ${b.totalPrice.toStringAsFixed(2)}',
               ),
               const SizedBox(height: 12),
-              _buildLightDetailRow(
-                'Percentage Amount Paid',
-                '${b.percentageAmountPaid.toStringAsFixed(0)}%',
-              ),
-              const SizedBox(height: 12),
-              _buildLightDetailRow(
-                'Amount Paid',
-                'R ${b.amountPaid.toStringAsFixed(2)}',
-              ),
-              const SizedBox(height: 12),
-              _buildLightDetailRow('Amount Paid On', b.amountPaidOn),
-              const SizedBox(height: 12),
+              if (b.percentageAmountPaid > 0) ...[
+                _buildLightDetailRow(
+                  'Deposit Required (%)',
+                  '${b.percentageAmountPaid.toStringAsFixed(0)}%',
+                ),
+                const SizedBox(height: 12),
+              ],
+              if (b.amountPaid > 0) ...[
+                _buildLightDetailRow(
+                  'Amount Paid',
+                  'R ${b.amountPaid.toStringAsFixed(2)}',
+                ),
+                const SizedBox(height: 12),
+              ],
+              if (b.amountPaidOn.isNotEmpty) ...[
+                _buildLightDetailRow('Amount Paid On', b.amountPaidOn),
+                const SizedBox(height: 12),
+              ],
               _buildLightDetailRow(
                 'Pending Amount',
                 'R ${b.pendingAmount.toStringAsFixed(2)}',

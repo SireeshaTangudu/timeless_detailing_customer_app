@@ -6,6 +6,7 @@ import 'package:timeless_detailing_customer_app/core/widgets/custom_app_bar.dart
 import 'package:timeless_detailing_customer_app/features/bookings/controllers/bookings_controller.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/models/booking_model.dart';
 import 'package:timeless_detailing_customer_app/features/dashboard/views/main_navigation_scaffold.dart';
+import 'package:timeless_detailing_customer_app/core/widgets/custom_shimmer_loading.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/views/upcoming_appointment_details_screen.dart';
 
 class InvoicesScreen extends StatefulWidget {
@@ -71,45 +72,36 @@ class _InvoicesScreenState extends State<InvoicesScreen> {
       child: Scaffold(
         backgroundColor: const Color(0xFFF7F5F0), // Warm light cream
         body: SafeArea(
-          child: Stack(
+          child: Column(
             children: [
-              Column(
-                children: [
-                  CustomAppBar(
-                    title: 'My Invoices',
-                    backIcon: Icons.arrow_back_sharp,
-                    onBackPressed: () => _handleBack(context),
-                  ),
-                  Expanded(
-                    child: RefreshIndicator(
-                      onRefresh: _fetchInvoices,
-                      color: const Color(0xFFC4913F),
-                      child: invoices.isEmpty && !isBusy
-                          ? _buildEmptyInvoicesView()
-                          : ListView.separated(
-                              physics: const AlwaysScrollableScrollPhysics(
-                                parent: BouncingScrollPhysics(),
-                              ),
-                              padding: const EdgeInsets.all(20),
-                              itemCount: invoices.length,
-                              separatorBuilder: (context, index) =>
-                                  const SizedBox(height: 14),
-                              itemBuilder: (context, index) {
-                                final invMap = invoices[index];
-                                return _buildInvoiceCard(context, invMap);
-                              },
-                            ),
-                    ),
-                  ),
-                ],
+              CustomAppBar(
+                title: 'My Invoices',
+                backIcon: Icons.arrow_back_sharp,
+                onBackPressed: () => _handleBack(context),
               ),
-              if (isBusy)
-                Container(
-                  color: Colors.black.withValues(alpha: 0.15),
-                  child: const Center(
-                    child: CircularProgressIndicator(color: Color(0xFFC4913F)),
-                  ),
-                ),
+              Expanded(
+                child: isBusy
+                    ? const ShimmerListLoader()
+                    : RefreshIndicator(
+                        onRefresh: _fetchInvoices,
+                        color: const Color(0xFFC4913F),
+                        child: invoices.isEmpty
+                            ? _buildEmptyInvoicesView()
+                            : ListView.separated(
+                                physics: const AlwaysScrollableScrollPhysics(
+                                  parent: BouncingScrollPhysics(),
+                                ),
+                                padding: const EdgeInsets.all(20),
+                                itemCount: invoices.length,
+                                separatorBuilder: (context, index) =>
+                                    const SizedBox(height: 14),
+                                itemBuilder: (context, index) {
+                                  final invMap = invoices[index];
+                                  return _buildInvoiceCard(context, invMap);
+                                },
+                              ),
+                      ),
+              ),
             ],
           ),
         ),

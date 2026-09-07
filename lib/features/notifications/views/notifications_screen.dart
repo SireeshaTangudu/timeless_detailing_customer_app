@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:timeless_detailing_customer_app/core/network/odoo_client.dart';
 import 'package:timeless_detailing_customer_app/core/widgets/custom_app_bar.dart';
+import 'package:timeless_detailing_customer_app/core/widgets/custom_shimmer_loading.dart';
 import 'package:timeless_detailing_customer_app/core/widgets/custom_loader.dart';
 import 'package:timeless_detailing_customer_app/features/notifications/views/notification_detail_screen.dart';
 
@@ -53,7 +54,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         onBackPressed: () => Navigator.pop(context),
       ),
       body: _isLoading
-          ? const Center(child: FourRotatingDotsLoader())
+          ? const ShimmerListLoader()
           : RefreshIndicator(
               color: const Color(0xFFC4913F),
               onRefresh: _fetchNotifications,
