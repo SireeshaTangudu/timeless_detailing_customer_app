@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:timeless_detailing_customer_app/core/network/odoo_client.dart';
+import 'package:timeless_detailing_customer_app/core/config/app_config.dart';
 import 'package:timeless_detailing_customer_app/features/services/models/service_model.dart';
 import 'package:timeless_detailing_customer_app/features/services/models/service_variant_model.dart';
 import 'package:timeless_detailing_customer_app/features/services/models/product_category_model.dart';
@@ -11,11 +12,10 @@ import 'package:timeless_detailing_customer_app/features/tracking/models/project
 
 class MockOdooService implements BaseOdooService {
   @override
-  String get baseUrl =>
-      'https://keerthan-lfi-lfi-timeless-detailing1-uat-37440283.dev.odoo.com';
+  String get baseUrl => AppConfig.instance.baseUrl;
 
   @override
-  String get db => 'keerthan-lfi-lfi-timeless-detailing-uat-36684365';
+  String get db => AppConfig.instance.db;
 
   @override
   Map<String, dynamic>? get savedUserInfo => _mockProfile;

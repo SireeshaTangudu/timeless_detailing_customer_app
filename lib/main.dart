@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:timeless_detailing_customer_app/core/config/app_config.dart';
 import 'package:timeless_detailing_customer_app/core/theme/app_theme.dart';
 import 'package:timeless_detailing_customer_app/core/network/odoo_client.dart';
 import 'package:timeless_detailing_customer_app/features/auth/controllers/auth_controller.dart';
@@ -26,16 +27,30 @@ class MyHttpOverrides extends HttpOverrides {
 }
 
 void main() async {
+  if (!AppConfig.isInitialized) {
+    AppConfig.init(
+      environment: Environment.uat,
+      appName: 'Timeless Detailing UAT',
+      baseUrl:
+          'https://keerthan-lfi-lfi-timeless-detailing1-uat-37440283.dev.odoo.com',
+      db: 'keerthan-lfi-lfi-timeless-detailing1-uat-37440283',
+    );
+  }
+  await bootstrap();
+}
+
+/// Shared initialization logic called by main.dart, main_uat.dart, and main_prod.dart
+Future<void> bootstrap() async {
   WidgetsFlutterBinding.ensureInitialized();
   HttpOverrides.global = MyHttpOverrides();
 
   // =========================================================================
-  // ODOO INTEGRATION CONFIGURATION
+  // ODOO INTEGRATION CONFIGURATION FROM APPCONFIG
   // =========================================================================
+  final config = AppConfig.instance;
   final odooService = OdooApiService(
-    baseUrl:
-        'https://keerthan-lfi-lfi-timeless-detailing1-uat-37440283.dev.odoo.com',
-    db: 'keerthan-lfi-lfi-timeless-detailing1-uat-37440283',
+    baseUrl: config.baseUrl,
+    db: config.db,
   );
 
   // Initialize Firebase & FCM asynchronously so runApp is NEVER blocked on startup

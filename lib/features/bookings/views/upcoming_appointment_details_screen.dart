@@ -15,6 +15,7 @@ import 'package:timeless_detailing_customer_app/features/bookings/views/odoo_pay
 import 'package:timeless_detailing_customer_app/core/widgets/custom_shimmer_loading.dart';
 import 'package:timeless_detailing_customer_app/features/dashboard/views/main_navigation_scaffold.dart';
 import 'package:timeless_detailing_customer_app/features/invoices/views/invoices_screen.dart';
+import 'package:timeless_detailing_customer_app/core/config/app_config.dart';
 
 import 'package:url_launcher/url_launcher.dart';
 
@@ -110,8 +111,7 @@ class _UpcomingAppointmentDetailsScreenState
     BuildContext context,
     Booking b,
   ) async {
-    String baseUrl =
-        'https://keerthan-lfi-lfi-timeless-detailing1-uat-37440283.dev.odoo.com/';
+    String baseUrl = AppConfig.instance.baseUrl;
     BaseOdooService? odooService;
     try {
       odooService = Provider.of<BaseOdooService>(context, listen: false);

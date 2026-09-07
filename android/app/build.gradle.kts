@@ -16,15 +16,33 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
+    buildFeatures {
+        resValues = true
+    }
+
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
+        // Default application ID and app name
         applicationId = "com.example.timeless_detailing_customer_app"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
+        resValue("string", "app_name", "Timeless Detail")
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+    }
+
+    flavorDimensions.add("default")
+
+    productFlavors {
+        create("uat") {
+            dimension = "default"
+            applicationId = "com.example.timeless_detailing_customer_app"
+            resValue("string", "app_name", "Timeless Detailing UAT")
+        }
+        create("prod") {
+            dimension = "default"
+            applicationId = "com.timelessdetail.customer"
+            resValue("string", "app_name", "Timeless Detail")
+        }
     }
 
     buildTypes {
