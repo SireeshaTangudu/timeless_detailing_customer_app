@@ -10,8 +10,11 @@ import 'package:timeless_detailing_customer_app/features/bookings/models/estimat
 import 'package:timeless_detailing_customer_app/features/bookings/views/estimation_screen.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/models/booking_model.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/views/upcoming_appointment_details_screen.dart';
+import 'package:timeless_detailing_customer_app/features/bookings/views/bookings_history_screen.dart';
+import 'package:timeless_detailing_customer_app/features/invoices/views/invoices_screen.dart';
+import 'package:timeless_detailing_customer_app/features/warranties/views/warranties_screen.dart';
+import 'package:timeless_detailing_customer_app/features/subscriptions/views/subscriptions_screen.dart';
 import 'package:timeless_detailing_customer_app/features/services/models/service_model.dart';
-import 'package:timeless_detailing_customer_app/features/notifications/views/notifications_screen.dart';
 import 'package:timeless_detailing_customer_app/features/notifications/views/notification_detail_screen.dart';
 import 'package:timeless_detailing_customer_app/features/tracking/models/project_model.dart';
 import 'package:timeless_detailing_customer_app/features/tracking/views/project_details_screen.dart';
@@ -26,11 +29,11 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   try {
     final title = message.notification?.title ??
         message.data['title'] ??
-        'New Quotation Received!';
+        'New Notification Received!';
     final body = message.notification?.body ??
         message.data['body'] ??
         message.data['message'] ??
-        'Your technician has generated your vehicle estimate.';
+        'You have received an update on your service.';
 
     const AndroidNotificationChannel channel = AndroidNotificationChannel(
       'high_importance_channel',
@@ -171,10 +174,24 @@ class FirebaseNotificationService {
     int? extractId(dynamic raw) {
       if (raw is int) return raw;
       if (raw is String) return int.tryParse(raw);
-      if (raw is List && raw.isNotEmpty && raw.first is int) return raw.first as int;
-      if (raw is Map && raw['id'] is int) return raw['id'] as int;
-      if (raw is Map && raw['id'] is String) return int.tryParse(raw['id'] as String);
+      if (raw is List && raw.isNotEmpty) {
+        if (raw.first is int) return raw.first as int;
+        if (raw.first is String) return int.tryParse(raw.first as String);
+      }
+      if (raw is Map) {
+        if (raw['id'] is int) return raw['id'] as int;
+        if (raw['id'] is String) return int.tryParse(raw['id'] as String);
+      }
       return null;
+    }
+
+    final int? notifPartnerId = extractId(notif['partner_id'] ?? notif['partnerId'] ?? notif['partner']);
+    if (notifPartnerId != null && odooService?.currentPartnerId != null) {
+      if (notifPartnerId != odooService!.currentPartnerId) {
+        debugPrint(
+          '⚠️ Notification partner_id ($notifPartnerId) does not match logged-in partner (${odooService.currentPartnerId}).',
+        );
+      }
     }
 
     final String notifType = (notif['notification_type'] ?? notif['type'] ?? '').toString().toLowerCase();
@@ -185,6 +202,141 @@ class FirebaseNotificationService {
     final int? resId = extractId(notif['res_id'] ?? notif['order_id'] ?? notif['sale_order_id'] ?? notif['id']);
     final int? saleOrderId = extractId(notif['sale_order_id']);
 
+    // 1. Warranty Notifications (warranty_created, warranty_expiring, warranty_expired)
+    final bool isWarrantyNotif = notifType.startsWith('warranty_') ||
+        resModel == 'sale.warranty' ||
+        titleStr.contains('warranty') ||
+        bodyStr.contains('warranty');
+
+    if (isWarrantyNotif) {
+      if (context.mounted) {
+        _navigateToScreenFromNotification(
+          context,
+          const WarrantiesScreen(),
+          resetToHome: resetToHome,
+        );
+      }
+      return;
+    }
+
+    // 2. Subscription Notifications (subscription_started, subscription_closed)
+    final bool isSubscriptionNotif = notifType.startsWith('subscription_') ||
+        titleStr.contains('subscription') ||
+        bodyStr.contains('subscription');
+
+    if (isSubscriptionNotif) {
+      if (context.mounted) {
+        _navigateToScreenFromNotification(
+          context,
+          const SubscriptionsScreen(),
+          resetToHome: resetToHome,
+        );
+      }
+      return;
+    }
+
+    // 3. Invoice Cancelled Notification (invoice_cancelled)
+    final bool isInvoiceCancelled = notifType == 'invoice_cancelled' ||
+        (notifType.contains('invoice') && (notifType.contains('cancel') || titleStr.contains('invoice cancel')));
+
+    if (isInvoiceCancelled) {
+      if (context.mounted) {
+        _navigateToScreenFromNotification(
+          context,
+          const InvoicesScreen(),
+          resetToHome: resetToHome,
+        );
+      }
+      return;
+    }
+
+    // 4. Appointment Notifications (appointment_cancelled, appointment_rescheduled)
+    final bool isAppointmentCancelled = notifType == 'appointment_cancelled' ||
+        (resModel == 'calendar.event' && (titleStr.contains('cancel') || bodyStr.contains('cancel')));
+
+    if (isAppointmentCancelled) {
+      if (context.mounted) {
+        _navigateToScreenFromNotification(
+          context,
+          const BookingsHistoryScreen(),
+          resetToHome: resetToHome,
+        );
+      }
+      return;
+    }
+
+    final bool isAppointmentRescheduled = notifType == 'appointment_rescheduled' ||
+        (resModel == 'calendar.event' && (titleStr.contains('resched') || bodyStr.contains('resched') || notifType.contains('resched')));
+
+    if (isAppointmentRescheduled) {
+      if (resId != null && odooService != null) {
+        try {
+          final appointmentData = await odooService.getBookingDetails(resId);
+          if (context.mounted && appointmentData != null) {
+            final booking = Booking.fromOdooJson(
+              appointmentData,
+              const DetailService(
+                id: '',
+                name: '',
+                description: '',
+                price: 0,
+                durationHours: 0,
+                imageUrl: '',
+                category: '',
+                whatsIncluded: [],
+              ),
+            );
+            _navigateToScreenFromNotification(
+              context,
+              UpcomingAppointmentDetailsScreen(booking: booking),
+              resetToHome: resetToHome,
+            );
+            return;
+          }
+        } catch (_) {}
+      }
+      if (context.mounted) {
+        _navigateToScreenFromNotification(
+          context,
+          const BookingsHistoryScreen(),
+          resetToHome: resetToHome,
+        );
+      }
+      return;
+    }
+
+    // 5. Quotation / Order Cancelled & Expired (quotation_cancelled, order_cancelled, quotation_expired)
+    final bool isQuotationOrOrderCancelledOrExpired = notifType == 'quotation_cancelled' ||
+        notifType == 'order_cancelled' ||
+        notifType == 'quotation_expired';
+
+    if (isQuotationOrOrderCancelledOrExpired) {
+      final targetId = saleOrderId ?? resId;
+      if (targetId != null && odooService != null && notifType != 'order_cancelled') {
+        try {
+          final quotationData = await odooService.getQuotationDetails(targetId);
+          if (context.mounted && quotationData != null) {
+            final est = EstimationModel.fromOdooJson(quotationData);
+            _navigateToScreenFromNotification(
+              context,
+              EstimationScreen(estimation: est),
+              resetToHome: resetToHome,
+            );
+            return;
+          }
+        } catch (_) {}
+      }
+      if (context.mounted) {
+        _navigateToScreenFromNotification(
+          context,
+          const BookingsHistoryScreen(),
+          resetToHome: resetToHome,
+        );
+      }
+      return;
+    }
+
+    // 6. Active Invoices / Down Payment Notifications
     final bool isDownPaymentOrInvoice = notifType.contains('down') ||
         notifType.contains('invoice') ||
         resModel.contains('account.move') ||
@@ -194,19 +346,21 @@ class FirebaseNotificationService {
     if (isDownPaymentOrInvoice) {
       final targetInvoiceId = resId ?? saleOrderId;
       if (targetInvoiceId != null && odooService != null) {
-        final invoiceData = await odooService.getInvoiceDetails(targetInvoiceId);
-        if (context.mounted && invoiceData != null) {
-          final booking = Booking.fromInvoiceJson(invoiceData);
-          _navigateToScreenFromNotification(
-            context,
-            UpcomingAppointmentDetailsScreen(
-              booking: booking,
-              isDownPaymentInvoice: true,
-            ),
-            resetToHome: resetToHome,
-          );
-          return;
-        }
+        try {
+          final invoiceData = await odooService.getInvoiceDetails(targetInvoiceId);
+          if (context.mounted && invoiceData != null) {
+            final booking = Booking.fromInvoiceJson(invoiceData);
+            _navigateToScreenFromNotification(
+              context,
+              UpcomingAppointmentDetailsScreen(
+                booking: booking,
+                isDownPaymentInvoice: true,
+              ),
+              resetToHome: resetToHome,
+            );
+            return;
+          }
+        } catch (_) {}
       }
       if (context.mounted) {
         _navigateToDefaultInvoiceScreen(
@@ -218,6 +372,7 @@ class FirebaseNotificationService {
       return;
     }
 
+    // 7. Live Project / Task Updates
     final bool isProjectOrTaskUpdate = notifType == 'project_update' ||
         notifType == 'task_update' ||
         notifType.contains('pipeline') ||
@@ -299,6 +454,7 @@ class FirebaseNotificationService {
       return;
     }
 
+    // 8. Quotation Sent
     final bool isQuotationSent = notifType == 'quotation_sent' ||
         resModel == 'sale.order' ||
         (saleOrderId != null && saleOrderId > 0) ||
@@ -308,18 +464,20 @@ class FirebaseNotificationService {
     final targetId = saleOrderId ?? resId;
 
     if (isQuotationSent && targetId != null && odooService != null) {
-      final quotationData = await odooService.getQuotationDetails(targetId);
-      if (context.mounted) {
-        final est = quotationData != null
-            ? EstimationModel.fromOdooJson(quotationData)
-            : EstimationModel.fromNotificationJson(notif);
-        _navigateToScreenFromNotification(
-          context,
-          EstimationScreen(estimation: est),
-          resetToHome: resetToHome,
-        );
-        return;
-      }
+      try {
+        final quotationData = await odooService.getQuotationDetails(targetId);
+        if (context.mounted) {
+          final est = quotationData != null
+              ? EstimationModel.fromOdooJson(quotationData)
+              : EstimationModel.fromNotificationJson(notif);
+          _navigateToScreenFromNotification(
+            context,
+            EstimationScreen(estimation: est),
+            resetToHome: resetToHome,
+          );
+          return;
+        }
+      } catch (_) {}
     } else if (isQuotationSent) {
       if (context.mounted) {
         final est = EstimationModel.fromNotificationJson(notif);
@@ -347,43 +505,9 @@ class FirebaseNotificationService {
     String resIdStr, {
     bool resetToHome = false,
   }) {
-    final fallbackBooking = Booking(
-      id: resIdStr.isNotEmpty ? resIdStr : '101',
-      service: const DetailService(
-        id: '1',
-        name: 'Ceramic Coating',
-        description: '',
-        price: 2242.5,
-        durationHours: 2.0,
-        imageUrl: '',
-        category: 'Detailing',
-        whatsIncluded: [],
-      ),
-      vehicleName: 'accept test test',
-      vehicleLicensePlate: 'gfhj',
-      bookingDateTime: DateTime.now(),
-      status: BookingStatus.confirmed,
-      currentStep: 1,
-      totalPrice: 2242.5,
-      notes: 'Down payment invoice',
-      beforeImages: const [],
-      afterImages: const [],
-      technicianName: 'Master Detailer',
-      technicianAvatar: '',
-      isDownPaymentInvoice: true,
-      percentageAmountPaid: 60.0,
-      amountPaid: 1345.5,
-      amountPaidOn: '2026-09-01',
-      pendingAmount: 897.0,
-      carDropOffStatus: 'Pending',
-    );
-
     _navigateToScreenFromNotification(
       context,
-      UpcomingAppointmentDetailsScreen(
-        booking: fallbackBooking,
-        isDownPaymentInvoice: true,
-      ),
+      const InvoicesScreen(),
       resetToHome: resetToHome,
     );
   }

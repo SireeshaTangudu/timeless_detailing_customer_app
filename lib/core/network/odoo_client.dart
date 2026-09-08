@@ -110,6 +110,8 @@ abstract class BaseOdooService {
   Future<Map<String, dynamic>?> getNotificationDetail(int notificationId);
   Future<Map<String, dynamic>?> getInvoiceDetails(int invoiceId);
   Future<List<Map<String, dynamic>>> getUserInvoices({int? partnerId});
+  Future<List<Map<String, dynamic>>> getWarranties({int? partnerId});
+  Future<List<Map<String, dynamic>>> getSubscriptions({int? partnerId});
   Future<List<Cookie>> getCookies();
 }
 
@@ -476,26 +478,52 @@ class OdooApiService implements BaseOdooService {
     try {
       await _ensureInitialized();
 
-      // 1. Fetch CSRF token via GET request first
-      print('Odoo signup: fetching CSRF token from page...');
+      debugPrint('Odoo signup: fetching CSRF token from /web/signup...');
+      // 1. Fetch CSRF token via GET request first with HTML headers
       final getResponse = await _dio!.get(
         '/web/signup',
         queryParameters: {'db': db},
+        options: Options(
+          responseType: ResponseType.plain,
+          headers: {
+            'Accept':
+                'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          },
+          validateStatus: (status) => status != null && status < 500,
+        ),
       );
+
+      final html = getResponse.data.toString();
 
       String? csrfToken;
-      final html = getResponse.data.toString();
-      final tokenRegex = RegExp(
-        r'name="csrf_token"\s+value="([^"]+)"|csrf_token:\s*"([^"]+)"',
-      );
-      final match = tokenRegex.firstMatch(html);
-      if (match != null) {
-        csrfToken = match.group(1) ?? match.group(2);
+      // Pattern 1: input tag <input type="hidden" name="csrf_token" value="..."/>
+      // Pattern 2: csrf_token: "..."
+      // Pattern 3: "csrf_token": "..."
+      RegExp csrfRegex = RegExp(r'name="csrf_token"\s*value="([^"]+)"');
+      Match? match = csrfRegex.firstMatch(html);
+
+      if (match == null) {
+        csrfRegex = RegExp(r'csrf_token:\s*"([^"]+)"');
+        match = csrfRegex.firstMatch(html);
       }
 
-      print('Odoo signup CSRF: $csrfToken');
+      if (match == null) {
+        csrfRegex = RegExp(r'"csrf_token"\s*:\s*"([^"]+)"');
+        match = csrfRegex.firstMatch(html);
+      }
+
+      if (match != null) {
+        csrfToken = match.group(1);
+      }
+
+      debugPrint('Odoo signup CSRF token: $csrfToken');
+
+      if (csrfToken == null || csrfToken.isEmpty) {
+        debugPrint('Warning: CSRF token not found in /web/signup HTML response.');
+      }
 
       // 2. Perform POST registration with CSRF token included
+      debugPrint('Odoo signup: submitting registration form to /web/signup...');
       final response = await _dio!.post(
         '/web/signup',
         data: {
@@ -509,21 +537,69 @@ class OdooApiService implements BaseOdooService {
         },
         options: Options(
           contentType: Headers.formUrlEncodedContentType,
-          // Let Dio handle redirects normally, but allow 302 and 200 responses
-          validateStatus: (status) => status != null && status < 400,
+          headers: {
+            'Accept':
+                'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          },
+          responseType: ResponseType.plain,
+          followRedirects: false,
+          validateStatus: (status) => status != null && status < 500,
         ),
       );
 
-      print('Odoo signup response path: ${response.realUri.path}');
-      // Odoo stays on '/web/signup' if registration fails (displays validation errors).
-      // On success, Odoo redirects the session to '/web' or '/my/home'.
-      final success =
-          response.statusCode == 200 && response.realUri.path != '/web/signup';
-      print('Odoo signup result: success=$success');
-      return success;
+      debugPrint('Odoo signup response status: ${response.statusCode}');
+      debugPrint('Odoo signup realUri path: ${response.realUri.path}');
+
+      // Status 302 or 303 means Odoo processed signup and issued a redirect
+      if (response.statusCode == 302 || response.statusCode == 303) {
+        debugPrint('Odoo signup successful (Redirect ${response.statusCode})');
+        return true;
+      }
+
+      final responseHtml = response.data.toString();
+
+      // Check for alert-danger error message in HTML
+      final alertMatch = RegExp(
+        r'class="[^"]*alert-danger[^"]*"[^>]*>\s*([\s\S]*?)\s*</',
+        caseSensitive: false,
+      ).firstMatch(responseHtml);
+
+      if (alertMatch != null) {
+        String errorText = alertMatch
+            .group(1)!
+            .replaceAll(RegExp(r'<[^>]*>'), '')
+            .trim();
+        errorText = errorText.replaceAll(RegExp(r'\s+'), ' ');
+        if (errorText.isNotEmpty) {
+          debugPrint('Odoo signup server validation error: $errorText');
+          throw Exception(errorText);
+        }
+      }
+
+      if (responseHtml.contains('alert-danger') ||
+          responseHtml.contains('alert alert-danger')) {
+        debugPrint('Odoo signup failed: HTML contains alert-danger tag.');
+        throw Exception(
+          'Registration failed. Account may already exist or signup is restricted.',
+        );
+      }
+
+      final bool success =
+          response.statusCode == 200 &&
+          (response.realUri.path != '/web/signup' ||
+              responseHtml.contains('/web/session/logout') ||
+              responseHtml.contains('o_portal'));
+
+      debugPrint('Odoo signup result: success=$success');
+      if (!success) {
+        throw Exception(
+          'Registration failed. Could not create account on Odoo server.',
+        );
+      }
+      return true;
     } catch (e) {
-      print('Odoo signup error: $e');
-      return false;
+      debugPrint('Odoo signup error caught: $e');
+      rethrow;
     }
   }
 
@@ -1656,13 +1732,8 @@ class OdooApiService implements BaseOdooService {
         args: [],
         kwargs: {
           'domain': [
-            '|',
-            [
-              'partner_ids',
-              'in',
-              [partnerId],
-            ],
             ['appointment_booker_id', '=', partnerId],
+            ['appointment_type_id', '!=', false],
           ],
           'specification': {
             'id': {},
@@ -1677,6 +1748,19 @@ class OdooApiService implements BaseOdooService {
             'appointment_resource_ids': {
               'fields': {'id': {}, 'name': {}},
             },
+            'product_id': {
+              'fields': {
+                'id': {},
+                'name': {},
+                'display_name': {},
+                'product_tmpl_id': {
+                  'fields': {'id': {}, 'name': {}},
+                },
+                'product_template_variant_value_ids': {
+                  'fields': {'id': {}, 'name': {}},
+                },
+              },
+            },
             'booking_phone': {},
             'booking_vehicle_make': {},
             'booking_vehicle_model': {},
@@ -1685,6 +1769,19 @@ class OdooApiService implements BaseOdooService {
             'booking_collector_license': {},
             'opportunity_id': {
               'fields': {'id': {}, 'name': {}},
+            },
+            'timeless_project_ids': {
+              'fields': {
+                'id': {},
+                'name': {},
+                'stage_id': {
+                  'fields': {
+                    'id': {},
+                    'name': {},
+                    'fold': {},
+                  },
+                },
+              },
             },
           },
           'order': 'start desc',
@@ -1727,6 +1824,32 @@ class OdooApiService implements BaseOdooService {
             },
             'appointment_resource_ids': {
               'fields': {'id': {}, 'name': {}},
+            },
+            'timeless_project_ids': {
+              'fields': {
+                'id': {},
+                'name': {},
+                'stage_id': {
+                  'fields': {
+                    'id': {},
+                    'name': {},
+                    'fold': {},
+                  },
+                },
+              },
+            },
+            'product_id': {
+              'fields': {
+                'id': {},
+                'name': {},
+                'display_name': {},
+                'product_tmpl_id': {
+                  'fields': {'id': {}, 'name': {}},
+                },
+                'product_template_variant_value_ids': {
+                  'fields': {'id': {}, 'name': {}},
+                },
+              },
             },
             'booking_phone': {},
             'booking_vehicle_make': {},
@@ -2177,6 +2300,12 @@ class OdooApiService implements BaseOdooService {
             },
             'access_url': {},
             'access_token': {},
+            'invoice_ids': {
+              'fields': {
+                'id': {},
+                'name': {},
+              },
+            },
             'warranty_ids': {
               'fields': {
                 'id': {},
@@ -2600,6 +2729,11 @@ class OdooApiService implements BaseOdooService {
   }) async {
     try {
       final pid = partnerId ?? _partnerId ?? _uid;
+      if (pid == null) {
+        debugPrint('⚠️ [OdooApiService] partnerId is null for getUserNotifications');
+        return [];
+      }
+      debugPrint('🔵 [OdooApiService] getUserNotifications called for partnerId=$pid');
 
       // 1. Primary: web_search_read on timeless.notification using exact Odoo payload
       try {
@@ -2608,24 +2742,33 @@ class OdooApiService implements BaseOdooService {
           method: 'web_search_read',
           args: [],
           kwargs: {
-            'domain': pid != null
-                ? [
-                    '|',
-                    ['partner_id', '=', pid],
-                    ['partner_id', '=', false],
-                  ]
-                : [],
+            'domain': [
+              ['partner_id', '=', pid],
+            ],
             'specification': {
               'notification_type': {},
               'title': {},
               'message': {},
               'res_model': {},
               'res_id': {},
+              'partner_id': {
+                'fields': {
+                  'id': {},
+                  'name': {},
+                  'display_name': {},
+                },
+              },
               'project_id': {
-                'fields': {'id': {}, 'name': {}, 'display_name': {}},
+                'fields': {
+                  'id': {},
+                  'name': {},
+                  'display_name': {},
+                },
               },
               'sale_order_id': {
-                'fields': {'id': {}, 'display_name': {}},
+                'fields': {
+                  'display_name': {},
+                },
               },
               'is_read': {},
               'create_date': {},
@@ -2639,68 +2782,28 @@ class OdooApiService implements BaseOdooService {
             ? (response['records'] as List)
             : (response is List ? response : []);
 
-        if (records.isNotEmpty) {
-          debugPrint(
-            '🟢 [OdooApiService] getUserNotifications web_search_read returned ${records.length} records',
-          );
-          return records
-              .map((r) => Map<String, dynamic>.from(r as Map))
-              .toList();
-        }
+        debugPrint(
+          '🟢 [OdooApiService] getUserNotifications web_search_read returned ${records.length} records for partnerId=$pid',
+        );
+        return records
+            .map((r) => Map<String, dynamic>.from(r as Map))
+            .toList();
       } catch (e) {
         debugPrint(
-          '🟡 [OdooApiService] timeless.notification web_search_read with domain failed: $e',
+          '🟡 [OdooApiService] timeless.notification web_search_read with partner_id domain failed: $e',
         );
-        // Fallback 1b: Try domain [] without partner_id restriction
-        try {
-          final response = await _callKw(
-            model: 'timeless.notification',
-            method: 'web_search_read',
-            args: [],
-            kwargs: {
-              'domain': [],
-              'specification': {
-                'notification_type': {},
-                'title': {},
-                'message': {},
-                'res_model': {},
-                'res_id': {},
-                'sale_order_id': {
-                  'fields': {'id': {}, 'display_name': {}},
-                },
-                'is_read': {},
-                'create_date': {},
-              },
-              'order': 'create_date desc',
-            },
-          );
-
-          final List records =
-              (response is Map && response.containsKey('records'))
-              ? (response['records'] as List)
-              : (response is List ? response : []);
-
-          if (records.isNotEmpty) {
-            debugPrint(
-              '🟢 [OdooApiService] getUserNotifications web_search_read domain [] returned ${records.length} records',
-            );
-            return records
-                .map((r) => Map<String, dynamic>.from(r as Map))
-                .toList();
-          }
-        } catch (e2) {
-          debugPrint(
-            '🟡 [OdooApiService] timeless.notification web_search_read domain [] failed: $e2',
-          );
-        }
       }
 
-      // 2. Fallback: search_read on timeless.notification
+      // 2. Fallback: search_read on timeless.notification filtering by partner_id
       try {
         final response = await _callKw(
           model: 'timeless.notification',
           method: 'search_read',
-          args: [[]],
+          args: [
+            [
+              ['partner_id', '=', pid],
+            ],
+          ],
           kwargs: {
             'fields': [
               'id',
@@ -2709,6 +2812,8 @@ class OdooApiService implements BaseOdooService {
               'message',
               'res_model',
               'res_id',
+              'partner_id',
+              'project_id',
               'sale_order_id',
               'is_read',
               'create_date',
@@ -2737,38 +2842,37 @@ class OdooApiService implements BaseOdooService {
       }
 
       // 3. Fallback to mail.message model
-      if (pid != null) {
-        try {
-          final response = await _callKw(
-            model: 'mail.message',
-            method: 'search_read',
-            args: [
+      try {
+        final response = await _callKw(
+          model: 'mail.message',
+          method: 'search_read',
+          args: [
+            [
               [
-                [
-                  'partner_ids',
-                  'in',
-                  [pid],
-                ],
+                'partner_ids',
+                'in',
+                [pid],
               ],
             ],
-            kwargs: {
-              'fields': ['id', 'subject', 'body', 'date', 'model', 'res_id'],
-              'order': 'id desc',
-            },
-          );
+          ],
+          kwargs: {
+            'fields': ['id', 'subject', 'body', 'date', 'model', 'res_id'],
+            'order': 'id desc',
+          },
+        );
 
-          final List records =
-              (response is Map && response.containsKey('records'))
-              ? (response['records'] as List)
-              : (response is List ? response : []);
+        final List records =
+            (response is Map && response.containsKey('records'))
+            ? (response['records'] as List)
+            : (response is List ? response : []);
 
-          if (records.isNotEmpty) {
-            return records
-                .map((r) => Map<String, dynamic>.from(r as Map))
-                .toList();
-          }
-        } catch (_) {}
-      }
+        if (records.isNotEmpty) {
+          return records
+              .map((r) => Map<String, dynamic>.from(r as Map))
+              .toList();
+        }
+      } catch (_) {}
+
       return [];
     } catch (e) {
       debugPrint('🔴 [OdooApiService] getUserNotifications error: $e');
@@ -3624,6 +3728,7 @@ class OdooApiService implements BaseOdooService {
             ['move_type', '=', 'out_invoice'],
             ['state', '!=', 'draft'],
             ['partner_id', '=', pid],
+            ['is_move_sent', '=', true],
           ],
           'specification': {
             'id': {},
@@ -3647,6 +3752,147 @@ class OdooApiService implements BaseOdooService {
       return records.map((r) => Map<String, dynamic>.from(r as Map)).toList();
     } catch (e) {
       debugPrint('🔴 [OdooApiService] getUserInvoices error: $e');
+      return [];
+    }
+  }
+
+  /// Get User Warranties (`sale.warranty/web_search_read`)
+  @override
+  Future<List<Map<String, dynamic>>> getWarranties({int? partnerId}) async {
+    try {
+      final response = await _callKw(
+        model: 'sale.warranty',
+        method: 'web_search_read',
+        args: [],
+        kwargs: {
+          'domain': [
+            ['active', '=', true],
+          ],
+          'specification': {
+            'id': {},
+            'name': {},
+            'product_id': {
+              'fields': {
+                'id': {},
+                'display_name': {},
+              },
+            },
+            'vehicle_make': {},
+            'vehicle_model': {},
+            'vehicle_registration': {},
+            'warranty_start': {},
+            'warranty_end': {},
+            'status': {},
+            'sale_order_id': {
+              'fields': {
+                'id': {},
+                'name': {},
+              },
+            },
+          },
+          'order': 'warranty_end desc',
+        },
+      );
+      final List records = (response is Map && response['records'] is List)
+          ? response['records'] as List
+          : (response is List ? response : []);
+      debugPrint(
+        '🟢 [OdooApiService] getWarranties returned ${records.length} records',
+      );
+      return records.map((r) => Map<String, dynamic>.from(r as Map)).toList();
+    } catch (e) {
+      debugPrint('🔴 [OdooApiService] getWarranties error: $e');
+      return [];
+    }
+  }
+
+  /// Get User Subscriptions (`sale.order/web_search_read`)
+  @override
+  Future<List<Map<String, dynamic>>> getSubscriptions({int? partnerId}) async {
+    try {
+      final pid = partnerId ?? _partnerId ?? _uid;
+      final response = await _callKw(
+        model: 'sale.order',
+        method: 'web_search_read',
+        args: [],
+        kwargs: {
+          'domain': pid != null
+              ? [
+                  ['is_subscription', '=', true],
+                  ['state', '=', 'sale'],
+                  ['partner_id', '=', pid],
+                ]
+              : [
+                  ['is_subscription', '=', true],
+                  ['state', '=', 'sale'],
+                ],
+          'specification': {
+            'id': {},
+            'name': {},
+            'date_order': {},
+            'state': {},
+            'is_subscription': {},
+            'subscription_state': {},
+            'plan_id': {
+              'fields': {
+                'id': {},
+                'name': {},
+                'display_name': {},
+              },
+            },
+            'start_date': {},
+            'end_date': {},
+            'next_invoice_date': {},
+            'recurring_total': {},
+            'amount_total': {},
+            'currency_id': {
+              'fields': {
+                'id': {},
+                'name': {},
+                'symbol': {},
+              },
+            },
+            'invoice_ids': {
+              'fields': {
+                'id': {},
+                'name': {},
+              },
+            },
+            'subscription_id': {
+              'fields': {
+                'id': {},
+                'name': {},
+              },
+            },
+            'order_line': {
+              'fields': {
+                'product_id': {
+                  'fields': {
+                    'id': {},
+                    'display_name': {},
+                  },
+                },
+                'name': {},
+                'product_uom_qty': {},
+                'price_unit': {},
+                'price_subtotal': {},
+                'price_total': {},
+                'recurring_invoice': {},
+              },
+            },
+          },
+          'order': 'date_order desc, id desc',
+        },
+      );
+      final List records = (response is Map && response['records'] is List)
+          ? response['records'] as List
+          : (response is List ? response : []);
+      debugPrint(
+        '🟢 [OdooApiService] getSubscriptions returned ${records.length} records',
+      );
+      return records.map((r) => Map<String, dynamic>.from(r as Map)).toList();
+    } catch (e) {
+      debugPrint('🔴 [OdooApiService] getSubscriptions error: $e');
       return [];
     }
   }

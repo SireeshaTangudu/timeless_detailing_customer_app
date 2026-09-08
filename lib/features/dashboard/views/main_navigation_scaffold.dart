@@ -17,6 +17,8 @@ import 'package:timeless_detailing_customer_app/features/bookings/controllers/bo
 import 'package:timeless_detailing_customer_app/features/services/controllers/services_controller.dart';
 import 'package:timeless_detailing_customer_app/features/invoices/views/invoices_screen.dart';
 import 'package:timeless_detailing_customer_app/features/tracking/views/projects_list_screen.dart';
+import 'package:timeless_detailing_customer_app/features/warranties/views/warranties_screen.dart';
+import 'package:timeless_detailing_customer_app/features/subscriptions/views/subscriptions_screen.dart';
 
 class MainNavigationScaffold extends StatefulWidget {
   const MainNavigationScaffold({super.key});
@@ -242,6 +244,40 @@ class _MainNavigationScaffoldState extends State<MainNavigationScaffold>
                             context,
                             MaterialPageRoute(
                               builder: (context) => ProjectsListScreen(
+                                onMenuTap: _openDrawer,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                      _buildDrawerItem(
+                        icon: Icons.verified_user_outlined,
+                        activeIcon: Icons.verified_user,
+                        title: 'Warranties',
+                        index: -1,
+                        customOnTap: () {
+                          Navigator.pop(context);
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => WarrantiesScreen(
+                                onMenuTap: _openDrawer,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                      _buildDrawerItem(
+                        icon: Icons.card_membership_outlined,
+                        activeIcon: Icons.card_membership,
+                        title: 'Subscriptions',
+                        index: -1,
+                        customOnTap: () {
+                          Navigator.pop(context);
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => SubscriptionsScreen(
                                 onMenuTap: _openDrawer,
                               ),
                             ),

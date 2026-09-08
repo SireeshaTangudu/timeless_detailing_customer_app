@@ -35,6 +35,7 @@ class Booking {
   final String? appointmentResourceName;
   final String? appointmentTypeName;
   final String? opportunityName;
+  final List<Map<String, dynamic>> timelessProjects;
 
   // Down Payment Invoice Specific Fields
   final bool isDownPaymentInvoice;
@@ -76,6 +77,7 @@ class Booking {
     this.appointmentResourceName,
     this.appointmentTypeName,
     this.opportunityName,
+    this.timelessProjects = const [],
     this.isDownPaymentInvoice = false,
     this.percentageAmountPaid = 0.0,
     this.amountPaid = 0.0,
@@ -149,6 +151,42 @@ class Booking {
       }
     }
 
+    // Extraction for product_id (Map or List object from Odoo API)
+    String? prodDisplayName;
+    String? prodName;
+    String? prodVariantName;
+    int? prodId;
+
+    final prodRaw = json['product_id'];
+    if (prodRaw is Map) {
+      if (prodRaw['id'] is int) prodId = prodRaw['id'] as int;
+      if (prodRaw['display_name'] != null) prodDisplayName = prodRaw['display_name'].toString();
+      if (prodRaw['name'] != null) prodName = prodRaw['name'].toString();
+
+      final tmplRaw = prodRaw['product_tmpl_id'];
+      if (tmplRaw is Map && tmplRaw['name'] != null && prodName == null) {
+        prodName = tmplRaw['name'].toString();
+      }
+
+      final variantsRaw = prodRaw['product_template_variant_value_ids'];
+      if (variantsRaw is List && variantsRaw.isNotEmpty) {
+        final vList = <String>[];
+        for (final v in variantsRaw) {
+          if (v is Map && v['name'] != null) {
+            vList.add(v['name'].toString());
+          } else if (v is List && v.length >= 2) {
+            vList.add(v[1].toString());
+          }
+        }
+        if (vList.isNotEmpty) {
+          prodVariantName = vList.join(', ');
+        }
+      }
+    } else if (prodRaw is List && prodRaw.length >= 2) {
+      if (prodRaw[0] is int) prodId = prodRaw[0] as int;
+      prodDisplayName = prodRaw[1].toString();
+    }
+
     // Extraction for appointment_type_id & appointment_resource_ids
     String? apptTypeName;
     final apptTypeRaw = json['appointment_type_id'];
@@ -169,8 +207,26 @@ class Booking {
       }
     }
 
+    // Dynamic service construction from API fields without hardcoded fallbacks
+    final String dynamicServiceName = prodDisplayName ??
+        prodName ??
+        apptResourceName ??
+        apptTypeName ??
+        (json['name'] is String && (json['name'] as String).isNotEmpty ? json['name'] as String : service.name);
+
+    final DetailService finalService = DetailService(
+      id: prodId?.toString() ?? (service.id.isNotEmpty ? service.id : (json['id']?.toString() ?? '')),
+      name: dynamicServiceName,
+      description: prodVariantName != null ? 'Variant: $prodVariantName' : service.description,
+      price: (json['amount_total'] as num?)?.toDouble() ?? service.price,
+      durationHours: (json['duration'] as num?)?.toDouble() ?? service.durationHours,
+      imageUrl: service.imageUrl,
+      category: apptTypeName ?? service.category,
+      whatsIncluded: service.whatsIncluded,
+    );
+
     // Vehicle extraction
-    String vehicleName = 'Client Vehicle';
+    String vehicleName = '';
     final make = json['booking_vehicle_make'] is String ? json['booking_vehicle_make'] as String : '';
     final model = json['booking_vehicle_model'] is String ? json['booking_vehicle_model'] as String : '';
     if (make.isNotEmpty || model.isNotEmpty) {
@@ -223,52 +279,89 @@ class Booking {
       oppName = oppRaw[1].toString();
     }
 
+    // Extract timeless_project_ids
+    List<Map<String, dynamic>> timelessProjectsList = [];
+    final rawProjects = json['timeless_project_ids'];
+    if (rawProjects is List) {
+      for (final p in rawProjects) {
+        if (p is Map) {
+          timelessProjectsList.add(Map<String, dynamic>.from(p));
+        }
+      }
+    } else if (rawProjects is Map) {
+      timelessProjectsList.add(Map<String, dynamic>.from(rawProjects));
+    }
+
     BookingStatus parseStatus(String? odooStatus, bool? active) {
+      // Rule 1: If active = false or cancelled -> Cancelled / Closed
       if (active == false || odooStatus == 'cancelled') {
         return BookingStatus.completed;
       }
-      if (odooStatus != null && odooStatus.isNotEmpty && odooStatus != 'false') {
-        switch (odooStatus) {
-          case 'draft':
-          case 'sent':
-          case 'sale':
-            return BookingStatus.confirmed;
-          case 'received':
-          case 'checked_in':
-            return BookingStatus.received;
-          case 'in_progress':
-          case 'detailing':
-            return BookingStatus.inProgress;
-          case 'ready':
-          case 'done':
-            return BookingStatus.ready;
-          case 'completed':
-          case 'done_picked_up':
-            return BookingStatus.completed;
-        }
-      }
-      // Odoo calendar.event does not return a state field.
-      // Classify by booking start date:
-      // Past start date -> Completed Orders
-      // Future start date -> Upcoming / Confirmed Bookings
-      if (bookingTime.isBefore(DateTime.now())) {
+
+      if (odooStatus == 'done_picked_up') {
         return BookingStatus.completed;
       }
-      return BookingStatus.confirmed;
+
+      final now = DateTime.now();
+
+      final bool hasSalesOrder = json['opportunity_id'] != null && json['opportunity_id'] != false;
+      final bool hasProjects = timelessProjectsList.isNotEmpty;
+      final bool hasSalesOrderOrProject = hasSalesOrder || hasProjects;
+
+      // Rule 2: If there is no Sales Order / no Project yet:
+      // start > now -> Upcoming (confirmed)
+      // start <= now -> Past / Pending (completed)
+      if (!hasSalesOrderOrProject) {
+        if (bookingTime.isAfter(now)) {
+          return BookingStatus.confirmed;
+        } else {
+          return BookingStatus.completed;
+        }
+      }
+
+      // Rule 3: If a Sales Order exists and one or more relevant Projects are linked:
+      // Check if ALL relevant Projects are completed / Done (fold == true or stage name done/completed):
+      final bool allProjectsDone = hasProjects &&
+          timelessProjectsList.every((proj) {
+            final stage = proj['stage_id'];
+            if (stage is Map) {
+              final isFolded = stage['fold'] == true;
+              final stageName = (stage['name'] ?? '').toString().toLowerCase();
+              return isFolded ||
+                  stageName.contains('done') ||
+                  stageName.contains('complet') ||
+                  stageName.contains('finish');
+            }
+            return false;
+          });
+
+      // Rule 4: If all relevant Projects are completed / Done -> Completed
+      if (hasProjects && allProjectsDone) {
+        return BookingStatus.completed;
+      }
+
+      // Rule 5: If any relevant Project is not completed:
+      // start > now -> Upcoming
+      // start <= now -> In Progress
+      if (bookingTime.isAfter(now)) {
+        return BookingStatus.confirmed;
+      } else {
+        return BookingStatus.inProgress;
+      }
     }
 
     final status = parseStatus(json['state']?.toString() ?? json['appointment_status']?.toString(), json['active'] as bool?);
 
     return Booking(
       id: json['id']?.toString() ?? '',
-      service: service,
+      service: finalService,
       vehicleName: vehicleName,
       vehicleLicensePlate: json['vehicle_plate'] is String ? json['vehicle_plate'] : '',
       bookingDateTime: bookingTime,
       stopDateTime: stopTime,
       status: status,
       currentStep: parseStep(status),
-      totalPrice: (json['amount_total'] as num?)?.toDouble() ?? service.price,
+      totalPrice: (json['amount_total'] as num?)?.toDouble() ?? finalService.price,
       notes: json['note'] is String ? json['note'] : (phone != null ? 'Phone: $phone' : ''),
       beforeImages: json['before_images'] is List 
           ? List<String>.from(json['before_images']) 
@@ -288,6 +381,7 @@ class Booking {
       appointmentResourceName: apptResourceName,
       appointmentTypeName: apptTypeName,
       opportunityName: oppName,
+      timelessProjects: timelessProjectsList,
     );
   }
 
@@ -301,29 +395,57 @@ class Booking {
 
     final String vMake = (summary['vehicle_make'] ?? snapshot['vehicle_make'] ?? '').toString();
     final String vModel = (summary['vehicle_model'] ?? snapshot['vehicle_model'] ?? '').toString();
-    final String vehicleName = '$vMake $vModel'.trim();
+    final String rawVName = '$vMake $vModel'.trim();
+    final String vehicleName = rawVName.isNotEmpty
+        ? rawVName
+        : (json['name'] != null ? json['name'].toString() : '');
     final String vReg = (summary['vehicle_registration'] ?? snapshot['vehicle_registration'] ?? '').toString();
 
-    final List serviceLines = (summary['service_lines'] is List)
+    final List serviceLines = (summary['service_lines'] is List && (summary['service_lines'] as List).isNotEmpty)
         ? (summary['service_lines'] as List)
-        : (snapshot['service_lines'] is List ? snapshot['service_lines'] as List : []);
+        : ((snapshot['service_lines'] is List && (snapshot['service_lines'] as List).isNotEmpty)
+            ? (snapshot['service_lines'] as List)
+            : (json['invoice_line_ids'] is List ? (json['invoice_line_ids'] as List) : []));
 
-    String serviceName = 'Detailing Service';
+    String serviceName = '';
     String? warrantyLabel;
 
-    double origTotal = (summary['original_quotation_total'] as num?)?.toDouble() ??
+    double origTotal = (summary['current_order_total'] as num?)?.toDouble() ??
+        (snapshot['current_order_total'] as num?)?.toDouble() ??
+        (summary['original_quotation_total'] as num?)?.toDouble() ??
         (snapshot['original_quotation_total'] as num?)?.toDouble() ??
         (json['amount_total'] as num?)?.toDouble() ??
         0.0;
 
-    if (serviceLines.isNotEmpty && serviceLines[0] is Map) {
-      serviceName = (serviceLines[0]['name'] ?? serviceName).toString();
-      final rawWarranty = serviceLines[0]['warranty_label']?.toString();
-      if (rawWarranty != null &&
-          rawWarranty.isNotEmpty &&
-          rawWarranty != 'null' &&
-          rawWarranty != 'false') {
-        warrantyLabel = rawWarranty;
+    final List<Map<String, dynamic>> parsedAddOns = [];
+
+    if (serviceLines.isNotEmpty) {
+      if (serviceLines[0] is Map) {
+        serviceName = (serviceLines[0]['name'] ?? serviceName).toString();
+      }
+      for (final s in serviceLines) {
+        if (s is Map) {
+          final rawWarranty = s['warranty_label']?.toString();
+          if (warrantyLabel == null &&
+              rawWarranty != null &&
+              rawWarranty.isNotEmpty &&
+              rawWarranty != 'null' &&
+              rawWarranty != 'false') {
+            warrantyLabel = rawWarranty;
+          }
+        }
+      }
+      if (serviceLines.length > 1) {
+        for (int i = 1; i < serviceLines.length; i++) {
+          if (serviceLines[i] is Map) {
+            final item = Map<String, dynamic>.from(serviceLines[i] as Map);
+            parsedAddOns.add({
+              'name': (item['name'] ?? '').toString(),
+              'price': (item['price_total'] as num?)?.toDouble() ?? 0.0,
+              'warranty_label': item['warranty_label'],
+            });
+          }
+        }
       }
     }
 
@@ -377,6 +499,7 @@ class Booking {
       amountPaidOn: invDateStr.isNotEmpty ? invDateStr : '',
       pendingAmount: remainAmt,
       carDropOffStatus: '',
+      addOns: parsedAddOns,
       invoiceId: rawInvId,
       invoiceAccessUrl: accUrl.isNotEmpty ? accUrl : null,
       invoiceAccessToken: accToken.isNotEmpty ? accToken : null,

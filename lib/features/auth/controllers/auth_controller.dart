@@ -105,14 +105,29 @@ class AuthController extends ChangeNotifier {
       final success = await _odooService.signup(name, email, phone, password);
       if (success) {
         // Automatically attempt login after registering
-        await login(email, password);
+        final loggedIn = await login(email, password);
+        if (loggedIn && phone.isNotEmpty) {
+          try {
+            final partnerIdStr =
+                _odooService.currentPartnerId?.toString() ?? 'current';
+            await _odooService.updateCustomerProfile(
+              customerId: partnerIdStr,
+              phone: phone,
+            );
+          } catch (e) {
+            debugPrint('Post-signup phone update warning: $e');
+          }
+        }
       } else {
         _errorMessage = 'Registration failed. Odoo server returned an error.';
         _isLoading = false;
         notifyListeners();
       }
     } catch (e) {
-      _errorMessage = 'Registration failed. Please try again.';
+      final cleanMsg = e.toString().replaceAll('Exception: ', '').trim();
+      _errorMessage = cleanMsg.isNotEmpty
+          ? cleanMsg
+          : 'Registration failed. Please try again.';
       _isLoading = false;
       notifyListeners();
     }

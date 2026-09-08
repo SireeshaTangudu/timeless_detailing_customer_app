@@ -49,76 +49,76 @@ class _BookingsHistoryScreenState extends State<BookingsHistoryScreen> {
     return Container(
       color: const Color(0xFFF7F5F0), // Warm light cream matching Figma
       child: SafeArea(
-          child: Column(
-            children: [
-              CustomAppBar(
-                title: 'My Orders and Bookings',
-                backIcon: Icons.arrow_back_sharp,
-                onBackPressed: () {
-                  if (Navigator.canPop(context)) {
-                    Navigator.pop(context);
-                  } else if (widget.onMenuTap != null) {
-                    widget.onMenuTap!();
-                  }
-                },
-              ),
-              Expanded(
-                child: RefreshIndicator(
-                  onRefresh: () => controller.loadBookings(),
-                  color: const Color(0xFFC4913F),
-                  child: SingleChildScrollView(
-                    physics: const AlwaysScrollableScrollPhysics(
-                      parent: BouncingScrollPhysics(),
-                    ),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 16,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Segmented Pill Tab Bar (Completed Orders / Upcoming Bookings)
-                        Row(
-                          children: [
-                            Expanded(child: _buildTabPill(0, 'Completed Orders')),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: _buildTabPill(1, 'Upcoming Bookings'),
-                            ),
-                          ],
+        child: Column(
+          children: [
+            CustomAppBar(
+              title: 'My Orders and Bookings',
+              backIcon: Icons.arrow_back_sharp,
+              onBackPressed: () {
+                if (Navigator.canPop(context)) {
+                  Navigator.pop(context);
+                } else if (widget.onMenuTap != null) {
+                  widget.onMenuTap!();
+                }
+              },
+            ),
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: () => controller.loadBookings(),
+                color: const Color(0xFFC4913F),
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(
+                    parent: BouncingScrollPhysics(),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 16,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Segmented Pill Tab Bar (Closed Bookings / Upcoming Bookings)
+                      Row(
+                        children: [
+                          Expanded(child: _buildTabPill(0, 'Closed Bookings')),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: _buildTabPill(1, 'Upcoming Bookings'),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // Orders / Bookings List View
+                      if (controller.isLoading)
+                        const ShimmerListLoader(padding: EdgeInsets.zero)
+                      else if (displayList.isEmpty)
+                        _buildEmptyState()
+                      else
+                        ListView.separated(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: displayList.length,
+                          separatorBuilder: (context, index) =>
+                              const SizedBox(height: 14),
+                          itemBuilder: (context, index) {
+                            final item = displayList[index];
+                            return _buildBookingRowCard(context, item);
+                          },
                         ),
 
-                        const SizedBox(height: 24),
-
-                        // Orders / Bookings List View
-                        if (controller.isLoading)
-                          const ShimmerListLoader(padding: EdgeInsets.zero)
-                        else if (displayList.isEmpty)
-                          _buildEmptyState()
-                        else
-                          ListView.separated(
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            itemCount: displayList.length,
-                            separatorBuilder: (context, index) =>
-                                const SizedBox(height: 14),
-                            itemBuilder: (context, index) {
-                              final item = displayList[index];
-                              return _buildBookingRowCard(context, item);
-                            },
-                          ),
-
-                        const SizedBox(height: 32),
-                      ],
-                    ),
+                      const SizedBox(height: 32),
+                    ],
                   ),
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
-      );
-    }
+      ),
+    );
+  }
 
   /// Segmented Tab Pill matching Figma
   Widget _buildTabPill(int index, String label) {
@@ -476,12 +476,10 @@ class _NewEstimateScreenState extends State<NewEstimateScreen> {
         body: Column(
           children: [
             CustomAppBar(
-              title: 'Your New Estimate',
+              title: 'Your Appointment Details',
               onBackPressed: () => Navigator.pop(context),
             ),
-            const Expanded(
-              child: FourRotatingDotsLoader(),
-            ),
+            const Expanded(child: FourRotatingDotsLoader()),
           ],
         ),
       );
@@ -525,7 +523,7 @@ class _NewEstimateScreenState extends State<NewEstimateScreen> {
       body: Column(
         children: [
           CustomAppBar(
-            title: 'Your New Estimate',
+            title: 'Your Appointment Details',
             onBackPressed: () => Navigator.pop(context),
           ),
           Expanded(
@@ -731,146 +729,33 @@ class _NewEstimateScreenState extends State<NewEstimateScreen> {
                               const SizedBox(height: 10),
 
                               // Payment Status Paid Green
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Payment Status',
-                                    style: GoogleFonts.montserrat(
-                                      fontSize: 13,
-                                      color: const Color(0xFF8C8273),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Text(
-                                      'Paid',
-                                      textAlign: TextAlign.end,
-                                      style: GoogleFonts.montserrat(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.bold,
-                                        color: const Color(0xFF2E7D32),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-
+                              // Row(
+                              //   mainAxisAlignment:
+                              //       MainAxisAlignment.spaceBetween,
+                              //   crossAxisAlignment: CrossAxisAlignment.start,
+                              //   children: [
+                              //     Text(
+                              //       'Payment Status',
+                              //       style: GoogleFonts.montserrat(
+                              //         fontSize: 13,
+                              //         color: const Color(0xFF8C8273),
+                              //       ),
+                              //     ),
+                              //     const SizedBox(width: 12),
+                              //     Expanded(
+                              //       child: Text(
+                              //         'Paid',
+                              //         textAlign: TextAlign.end,
+                              //         style: GoogleFonts.montserrat(
+                              //           fontSize: 13,
+                              //           fontWeight: FontWeight.bold,
+                              //           color: const Color(0xFF2E7D32),
+                              //         ),
+                              //       ),
+                              //     ),
+                              //   ],
+                              // ),
                               const SizedBox(height: 24),
-
-                              // Track Live Status Button (Endpoints 8 & 9 + Live Tracking Stepper)
-                              SizedBox(
-                                width: double.infinity,
-                                height: 48,
-                                child: ElevatedButton.icon(
-                                  onPressed: () {
-                                    final bookingToTrack =
-                                        b ??
-                                        Booking(
-                                          id: widget.bookingItem is Booking
-                                              ? (widget.bookingItem as Booking)
-                                                    .id
-                                              : '20',
-                                          service: DetailService(
-                                            id: '1',
-                                            name: serviceTitle,
-                                            description: '',
-                                            price: 0,
-                                            durationHours: 1,
-                                            imageUrl: '',
-                                            category: '',
-                                            whatsIncluded: [],
-                                          ),
-                                          vehicleName: selectedCar,
-                                          vehicleLicensePlate: '',
-                                          bookingDateTime: DateTime.now(),
-                                          status: BookingStatus.inProgress,
-                                          currentStep: 2,
-                                          totalPrice: 0,
-                                          notes: '',
-                                          beforeImages: [],
-                                          afterImages: [],
-                                          technicianName: 'Marcus Vance',
-                                          technicianAvatar: '',
-                                        );
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) =>
-                                            LiveTrackingScreen(
-                                              booking: bookingToTrack,
-                                            ),
-                                      ),
-                                    );
-                                  },
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFFC4913F),
-                                    foregroundColor: const Color(0xFF1C1C1E),
-                                    elevation: 0,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                  ),
-                                  icon: const Icon(
-                                    Icons.radar_outlined,
-                                    size: 20,
-                                    color: Color(0xFF1C1C1E),
-                                  ),
-                                  label: Text(
-                                    'Track Live Detailing Status',
-                                    style: GoogleFonts.outfit(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.bold,
-                                      color: const Color(0xFF1C1C1E),
-                                    ),
-                                  ),
-                                ),
-                              ),
-
-                              const SizedBox(height: 12),
-
-                              // Download Invoice Button
-                              SizedBox(
-                                width: double.infinity,
-                                height: 48,
-                                child: OutlinedButton.icon(
-                                  onPressed: () {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text(
-                                          'Downloading invoice receipt...',
-                                        ),
-                                        backgroundColor: Color(0xFF1D1813),
-                                      ),
-                                    );
-                                  },
-                                  style: OutlinedButton.styleFrom(
-                                    foregroundColor: const Color(0xFF1C1C1E),
-                                    side: const BorderSide(
-                                      color: Color(0xFFC4913F),
-                                      width: 1.2,
-                                    ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                  ),
-                                  icon: const Icon(
-                                    Icons.file_download_outlined,
-                                    size: 18,
-                                    color: Color(0xFFC4913F),
-                                  ),
-                                  label: Text(
-                                    'Download Invoice',
-                                    style: GoogleFonts.outfit(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.bold,
-                                      color: const Color(0xFF1C1C1E),
-                                    ),
-                                  ),
-                                ),
-                              ),
 
                               // Cancel Appointment Button (ENDPOINT 7: calendar.event/action_cancel_meeting)
                               if (b != null && b.canCancel) ...[

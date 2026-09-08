@@ -760,7 +760,9 @@ class _UpcomingAppointmentDetailsScreenState
       0.0,
       (sum, item) => sum + ((item['price'] as num?)?.toDouble() ?? 0.0),
     );
-    final double totalToPay = b.pendingAmount + addOnsTotal;
+    final double totalToPay = (b.isDownPaymentInvoice || widget.isDownPaymentInvoice)
+        ? b.pendingAmount
+        : (b.pendingAmount + addOnsTotal);
     final bool hasAddOns = b.addOns.isNotEmpty;
     final DateTime now = DateTime.now();
     final DateTime today = DateTime(now.year, now.month, now.day);

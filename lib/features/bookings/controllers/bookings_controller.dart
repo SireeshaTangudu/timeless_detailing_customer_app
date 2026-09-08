@@ -98,15 +98,9 @@ class BookingsController extends ChangeNotifier {
       }
       _bookings = fetchedBookings;
       
-      // Also fetch user invoices via account.move/web_search_read
+      // Also fetch user invoices via account.move/web_search_read for invoice features
       try {
         _userInvoices = await _odooService.getUserInvoices(partnerId: id);
-        for (final inv in _userInvoices) {
-          final invBooking = Booking.fromInvoiceJson(inv);
-          if (!_bookings.any((b) => b.invoiceId == invBooking.invoiceId || b.id == invBooking.id)) {
-            _bookings.add(invBooking);
-          }
-        }
       } catch (invErr) {
         debugPrint('Error loading user invoices in loadBookings: $invErr');
       }

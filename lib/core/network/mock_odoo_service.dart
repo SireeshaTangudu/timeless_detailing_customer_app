@@ -923,38 +923,75 @@ class MockOdooService implements BaseOdooService {
   Future<Map<String, dynamic>?> getInvoiceDetails(int invoiceId) async {
     return {
       'id': invoiceId,
-      'name': 'INV/2026/00028',
-      'invoice_date': '2026-09-01',
-      'invoice_date_due': '2026-09-01',
+      'name': 'INV/2026/00042',
+      'invoice_date': '2026-09-08',
+      'invoice_date_due': '2026-09-08',
       'state': 'posted',
       'payment_state': 'not_paid',
-      'amount_untaxed': 1170.0,
-      'amount_tax': 175.5,
-      'amount_total': 1345.5,
-      'amount_residual': 1345.5,
+      'amount_untaxed': 4614.0,
+      'amount_tax': 692.1,
+      'amount_total': 5306.1,
+      'amount_residual': 5306.1,
       'currency_id': 38,
       'timeless_is_down_payment_invoice': true,
-      'timeless_payment_summary': {
-        'is_deposit_invoice': true,
-        'original_quotation_total': 2242.5,
-        'current_order_total': 2242.5,
-        'vehicle_make': 'Volkswagen',
-        'vehicle_model': 'Polo TDI 2.0',
-        'vehicle_registration': 'Hatch Back',
+      'timeless_content_snapshot': {
+        'vehicle_make': 'toyato',
         'service_lines': [
           {
-            'name': 'Ceramic Coating',
-            'price_total': 2242.5,
+            'name': 'Ceramic Coating (Sedan)',
+            'price_total': 7877.5,
             'warranty_label': '6 Year Warranty',
           },
+          {
+            'name': '12 Wash',
+            'price_total': 966.0,
+            'warranty_label': null,
+          },
         ],
-        'tax_amount': 175.5,
+        'vehicle_model': 'hilux',
+        'is_deposit_invoice': true,
+        'current_order_total': 8843.5,
+        'vehicle_registration': 'kjhejgdjhgrhge',
+        'original_quotation_total': 7877.5,
+      },
+      'timeless_payment_summary': {
+        'is_deposit_invoice': true,
+        'original_quotation_total': 7877.5,
+        'current_order_total': 8843.5,
+        'vehicle_make': 'toyato',
+        'vehicle_model': 'hilux',
+        'vehicle_registration': 'kjhejgdjhgrhge',
+        'service_lines': [
+          {
+            'name': 'Ceramic Coating (Sedan)',
+            'price_total': 7877.5,
+            'warranty_label': '6 Year Warranty',
+          },
+          {
+            'name': '12 Wash',
+            'price_total': 966.0,
+            'warranty_label': null,
+          },
+        ],
+        'tax_amount': 692.1,
         'amount_paid': 0,
         'this_invoice_paid': 0.0,
-        'deposit_amount': 1345.5,
-        'remaining_amount': 897.0,
-        'deposit_percentage_label': '60%',
+        'deposit_amount': 5306.1,
+        'remaining_amount': 3537.4,
+        'deposit_percentage_label': '67.36%',
       },
+      'access_url': '/my/invoices/140',
+      'access_token': 'a85a56fe-5ed5-4b56-a2eb-9a06b6567355',
+      'invoice_line_ids': [
+        {
+          'id': 359,
+          'name': 'Down payment of 60.00%',
+          'quantity': 1.0,
+          'price_unit': 4614.0,
+          'price_subtotal': 4614.0,
+          'price_total': 5306.1,
+        },
+      ],
     };
   }
 
@@ -962,14 +999,113 @@ class MockOdooService implements BaseOdooService {
   Future<List<Map<String, dynamic>>> getUserInvoices({int? partnerId}) async {
     return [
       {
-        'id': 136,
-        'name': 'INV/2026/00028',
-        'invoice_date': '2026-09-01',
+        'id': 140,
+        'name': 'INV/2026/00042',
+        'invoice_date': '2026-09-08',
         'state': 'posted',
-        'amount_total': 1345.5,
-        'amount_residual': 1345.5,
+        'amount_total': 5306.1,
+        'amount_residual': 5306.1,
         'payment_state': 'not_paid',
         'timeless_is_down_payment_invoice': true,
+        'timeless_payment_summary': {
+          'is_deposit_invoice': true,
+          'original_quotation_total': 7877.5,
+          'current_order_total': 8843.5,
+          'vehicle_make': 'toyato',
+          'vehicle_model': 'hilux',
+          'vehicle_registration': 'kjhejgdjhgrhge',
+          'service_lines': [
+            {
+              'name': 'Ceramic Coating (Sedan)',
+              'price_total': 7877.5,
+              'warranty_label': '6 Year Warranty',
+            },
+            {
+              'name': '12 Wash',
+              'price_total': 966.0,
+              'warranty_label': null,
+            },
+          ],
+          'tax_amount': 692.1,
+          'amount_paid': 0,
+          'this_invoice_paid': 0.0,
+          'deposit_amount': 5306.1,
+          'remaining_amount': 3537.4,
+          'deposit_percentage_label': '67.36%',
+        },
+      },
+    ];
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> getWarranties({int? partnerId}) async {
+    return [
+      {
+        'id': 5,
+        'name': 'WAR/2026/0005',
+        'product_id': {
+          'id': 11,
+          'display_name': 'Paint Protection Film(PPF) (Partial Front)',
+        },
+        'vehicle_make': 'Toyota',
+        'vehicle_model': 'Hilux',
+        'vehicle_registration': 'REG123',
+        'warranty_start': '2026-09-07',
+        'warranty_end': '2036-09-07',
+        'status': 'active',
+        'sale_order_id': {
+          'id': 31,
+          'name': 'S00031',
+        },
+      },
+    ];
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> getSubscriptions({int? partnerId}) async {
+    return [
+      {
+        'id': 23,
+        'name': 'S00023',
+        'date_order': '2026-08-28 07:41:20',
+        'state': 'sale',
+        'is_subscription': true,
+        'subscription_state': '3_progress',
+        'plan_id': {
+          'id': 1,
+          'name': 'Monthly',
+          'display_name': 'Monthly',
+        },
+        'start_date': '2026-08-28',
+        'end_date': false,
+        'next_invoice_date': '2026-09-28',
+        'recurring_total': 600.0,
+        'amount_total': 52440.0,
+        'currency_id': {
+          'id': 38,
+          'name': 'ZAR',
+          'symbol': 'R',
+        },
+        'invoice_ids': [
+          {'id': 36, 'name': 'INV/2026/00018'},
+          {'id': 38, 'name': 'INV/2026/00019'},
+        ],
+        'subscription_id': false,
+        'order_line': [
+          {
+            'id': 53,
+            'product_id': {
+              'id': 19,
+              'display_name': 'Paint Protection Film(PPF) (Full Car)',
+            },
+            'name': 'Paint Protection Film(PPF) (Full Car)',
+            'product_uom_qty': 1.0,
+            'price_unit': 45000.0,
+            'price_subtotal': 45000.0,
+            'price_total': 51750.0,
+            'recurring_invoice': false,
+          },
+        ],
       },
     ];
   }
