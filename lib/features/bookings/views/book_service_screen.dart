@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'dart:convert';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
@@ -160,26 +161,75 @@ class _BookServiceScreenState extends State<BookServiceScreen> {
     );
   }
 
+  Future<bool> _isDuplicate(XFile newFile, List<XFile> existingFiles) async {
+    for (final existing in existingFiles) {
+      if (existing.path == newFile.path) return true;
+      try {
+        final len1 = await existing.length();
+        final len2 = await newFile.length();
+        if (len1 == len2) {
+          final bytes1 = await existing.readAsBytes();
+          final bytes2 = await newFile.readAsBytes();
+          if (listEquals(bytes1, bytes2)) {
+            return true;
+          }
+        }
+      } catch (_) {}
+    }
+    return false;
+  }
+
   Future<void> _pickImages(ImageSource source) async {
     try {
+      bool hasDuplicates = false;
       if (source == ImageSource.gallery) {
         final List<XFile> pickedFiles = await _picker.pickMultiImage(
           limit: 5 - _attachedImages.length,
         );
         if (pickedFiles.isNotEmpty) {
-          setState(() {
-            _attachedImages.addAll(
-              pickedFiles.take(5 - _attachedImages.length),
-            );
-          });
+          final List<XFile> uniqueNewFiles = [];
+          for (final file in pickedFiles) {
+            if (_attachedImages.length + uniqueNewFiles.length >= 5) break;
+            final isDupInAttached = await _isDuplicate(file, _attachedImages);
+            final isDupInNew = await _isDuplicate(file, uniqueNewFiles);
+            if (isDupInAttached || isDupInNew) {
+              hasDuplicates = true;
+            } else {
+              uniqueNewFiles.add(file);
+            }
+          }
+          if (uniqueNewFiles.isNotEmpty) {
+            setState(() {
+              _attachedImages.addAll(uniqueNewFiles);
+            });
+          }
         }
       } else {
         final XFile? photo = await _picker.pickImage(source: source);
         if (photo != null) {
-          setState(() {
-            _attachedImages.add(photo);
-          });
+          if (_attachedImages.length >= 5) return;
+          final isDup = await _isDuplicate(photo, _attachedImages);
+          if (isDup) {
+            hasDuplicates = true;
+          } else {
+            setState(() {
+              _attachedImages.add(photo);
+            });
+          }
         }
+      }
+
+      if (hasDuplicates && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Duplicate photo(s) ignored. This photo has already been attached.',
+              style: GoogleFonts.inter(color: Colors.white),
+            ),
+            backgroundColor: const Color(0xFF8E8E93),
+            duration: const Duration(seconds: 3),
+          ),
+        );
       }
     } catch (e) {
       debugPrint('Error picking image: $e');

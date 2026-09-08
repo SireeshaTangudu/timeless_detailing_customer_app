@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:timeless_detailing_customer_app/core/theme/app_theme.dart';
 
 class CustomTextField extends StatefulWidget {
@@ -14,6 +15,7 @@ class CustomTextField extends StatefulWidget {
   final VoidCallback? onTap;
 
   final ValueChanged<String>? onChanged;
+  final List<TextInputFormatter>? inputFormatters;
 
   const CustomTextField({
     super.key,
@@ -28,6 +30,7 @@ class CustomTextField extends StatefulWidget {
     this.readOnly = false,
     this.onTap,
     this.onChanged,
+    this.inputFormatters,
   });
 
   @override
@@ -48,6 +51,15 @@ class _CustomTextFieldState extends State<CustomTextField> {
       maxLines: widget.maxLines,
       readOnly: widget.readOnly,
       onTap: widget.onTap,
+      inputFormatters: widget.inputFormatters ??
+          [
+            FilteringTextInputFormatter.deny(
+              RegExp(
+                r'[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F700}-\u{1F77F}\u{1F800}-\u{1FAFF}\u{2600}-\u{27BF}\u{1F1E6}-\u{1F1FF}\u{200D}\u{FE0F}]',
+                unicode: true,
+              ),
+            ),
+          ],
       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
             color: AppTheme.textPrimary,
             fontSize: 15,

@@ -392,9 +392,25 @@ class _NewEstimateScreenState extends State<NewEstimateScreen> {
       builder: (ctx) => AlertDialog(
         backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(
-          'Cancel Appointment',
-          style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 18),
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: Text(
+                'Cancel Appointment',
+                style: GoogleFonts.outfit(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.close, color: Color(0xFF555555), size: 20),
+              onPressed: () => Navigator.pop(ctx, false),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+            ),
+          ],
         ),
         content: Text(
           'Are you sure you want to cancel your detailing appointment for ${booking.service.name}?',
@@ -404,16 +420,6 @@ class _NewEstimateScreenState extends State<NewEstimateScreen> {
           ),
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text(
-              'Keep Appointment',
-              style: GoogleFonts.montserrat(
-                color: const Color(0xFF8C8273),
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(

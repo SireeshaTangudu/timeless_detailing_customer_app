@@ -128,6 +128,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     bool obscureNew = true;
     bool obscureConfirm = true;
 
+    String? oldPwdError;
+    String? newPwdError;
+    String? confirmPwdError;
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -193,12 +197,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       controller: oldPasswordController,
                       obscureText: obscureOld,
                       style: GoogleFonts.inter(fontSize: 14, color: Colors.white),
+                      onChanged: (val) {
+                        if (oldPwdError != null) {
+                          setSheetState(() => oldPwdError = null);
+                        }
+                      },
                       decoration: InputDecoration(
                         filled: true,
                         fillColor: const Color(0xFF24242A),
                         hintText: 'Enter current password',
                         hintStyle: GoogleFonts.inter(color: Colors.grey, fontSize: 13),
                         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        errorText: oldPwdError,
+                        errorStyle: GoogleFonts.inter(color: const Color(0xFFEF5350), fontSize: 11),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
                           borderSide: BorderSide.none,
@@ -227,12 +238,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       controller: newPasswordController,
                       obscureText: obscureNew,
                       style: GoogleFonts.inter(fontSize: 14, color: Colors.white),
+                      onChanged: (val) {
+                        setSheetState(() {
+                          if (val.length >= 6) {
+                            newPwdError = null;
+                          }
+                          if (confirmPasswordController.text.isNotEmpty) {
+                            confirmPwdError = (confirmPasswordController.text != val)
+                                ? 'Passwords do not match'
+                                : null;
+                          }
+                        });
+                      },
                       decoration: InputDecoration(
                         filled: true,
                         fillColor: const Color(0xFF24242A),
                         hintText: 'Enter new password',
                         hintStyle: GoogleFonts.inter(color: Colors.grey, fontSize: 13),
                         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        errorText: newPwdError,
+                        errorStyle: GoogleFonts.inter(color: const Color(0xFFEF5350), fontSize: 11),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
                           borderSide: BorderSide.none,
@@ -261,12 +286,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       controller: confirmPasswordController,
                       obscureText: obscureConfirm,
                       style: GoogleFonts.inter(fontSize: 14, color: Colors.white),
+                      onChanged: (val) {
+                        setSheetState(() {
+                          if (val != newPasswordController.text) {
+                            confirmPwdError = 'Passwords do not match';
+                          } else {
+                            confirmPwdError = null;
+                          }
+                        });
+                      },
                       decoration: InputDecoration(
                         filled: true,
                         fillColor: const Color(0xFF24242A),
                         hintText: 'Confirm new password',
                         hintStyle: GoogleFonts.inter(color: Colors.grey, fontSize: 13),
                         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        errorText: confirmPwdError,
+                        errorStyle: GoogleFonts.inter(color: const Color(0xFFEF5350), fontSize: 11),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
                           borderSide: BorderSide.none,
@@ -293,23 +329,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 final newPwd = newPasswordController.text.trim();
                                 final confirmPwd = confirmPasswordController.text.trim();
 
-                                if (oldPwd.isEmpty || newPwd.isEmpty || confirmPwd.isEmpty) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('Please fill in all password fields.'),
-                                      backgroundColor: AppTheme.error,
-                                    ),
-                                  );
-                                  return;
-                                }
+                                setSheetState(() {
+                                  oldPwdError = oldPwd.isEmpty ? 'Current password is required' : null;
+                                  if (newPwd.isEmpty) {
+                                    newPwdError = 'New password is required';
+                                  } else if (newPwd.length < 6) {
+                                    newPwdError = 'Password must be at least 6 characters';
+                                  } else {
+                                    newPwdError = null;
+                                  }
+                                  if (confirmPwd.isEmpty) {
+                                    confirmPwdError = 'Please confirm new password';
+                                  } else if (newPwd != confirmPwd) {
+                                    confirmPwdError = 'Passwords do not match';
+                                  } else {
+                                    confirmPwdError = null;
+                                  }
+                                });
 
-                                if (newPwd != confirmPwd) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('New passwords do not match.'),
-                                      backgroundColor: AppTheme.error,
-                                    ),
-                                  );
+                                if (oldPwdError != null || newPwdError != null || confirmPwdError != null) {
                                   return;
                                 }
 

@@ -291,7 +291,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                 ? 'Get Started'
                                 : 'Next',
                             style: GoogleFonts.outfit(
-                              color: const Color(0xFF141416),
+                              color: const Color(0xFFFFFFFF),
                               fontWeight: FontWeight.bold,
                               fontSize: 14,
                             ),

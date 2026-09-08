@@ -66,142 +66,170 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 right: 24,
                 top: 24,
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Update Profile',
-                        style: AppTypography.canela(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: const Color(0xFF1C1C1E),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Update Profile',
+                          style: AppTypography.canela(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFF1C1C1E),
+                          ),
                         ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.close, color: Color(0xFF7A7A7E)),
-                        onPressed: () => Navigator.pop(context),
-                      ),
-                    ],
-                  ),
-                  const Divider(color: Color(0xFFEBE7DF)),
-                  const SizedBox(height: 12),
-                  Text(
-                    'Full Name',
-                    style: GoogleFonts.inter(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
+                        IconButton(
+                          icon: const Icon(Icons.close, color: Color(0xFF7A7A7E)),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                      ],
                     ),
-                  ),
-                  const SizedBox(height: 6),
-                  TextField(
-                    controller: nameController,
-                    decoration: InputDecoration(
-                      filled: true,
-                      fillColor: const Color(0xFFF8F6F2),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide.none,
+                    const Divider(color: Color(0xFFEBE7DF)),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Full Name',
+                      style: GoogleFonts.inter(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Phone Number',
-                    style: GoogleFonts.inter(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  TextField(
-                    controller: phoneController,
-                    decoration: InputDecoration(
-                      filled: true,
-                      fillColor: const Color(0xFFF8F6F2),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide.none,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Email ID',
-                    style: GoogleFonts.inter(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  TextField(
-                    controller: emailController,
-                    decoration: InputDecoration(
-                      filled: true,
-                      fillColor: const Color(0xFFF8F6F2),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide.none,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  SizedBox(
-                    height: 48,
-                    child: ElevatedButton(
-                      onPressed: isSaving
-                          ? null
-                          : () async {
-                              setSheetState(() => isSaving = true);
-                              final success = await auth.updateProfile(
-                                name: nameController.text.trim(),
-                                phone: phoneController.text.trim(),
-                                email: emailController.text.trim(),
-                              );
-
-                              if (!mounted) return;
-
-                              Navigator.pop(context);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    success
-                                        ? 'Profile updated successfully.'
-                                        : auth.errorMessage ??
-                                              'Failed to update profile.',
-                                    style: GoogleFonts.inter(
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                  backgroundColor: success
-                                      ? AppTheme.primary
-                                      : AppTheme.error,
-                                ),
-                              );
-                            },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primary,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: nameController,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.deny(
+                          RegExp(
+                            r'[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F700}-\u{1F77F}\u{1F800}-\u{1FAFF}\u{2600}-\u{27BF}\u{1F1E6}-\u{1F1FF}\u{200D}\u{FE0F}]',
+                            unicode: true,
+                          ),
+                        ),
+                      ],
+                      decoration: InputDecoration(
+                        filled: true,
+                        fillColor: const Color(0xFFF8F6F2),
+                        border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide.none,
                         ),
                       ),
-                      child: isSaving
-                          ? const FourRotatingDotsLoader(size: 20, color: Colors.white)
-                          : Text(
-                              'Save Changes',
-                              style: GoogleFonts.inter(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 16),
+                    Text(
+                      'Phone Number',
+                      style: GoogleFonts.inter(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: phoneController,
+                      keyboardType: TextInputType.phone,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(
+                          RegExp(r'[0-9+\s-]'),
+                        ),
+                      ],
+                      decoration: InputDecoration(
+                        filled: true,
+                        fillColor: const Color(0xFFF8F6F2),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Email ID',
+                      style: GoogleFonts.inter(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: emailController,
+                      keyboardType: TextInputType.emailAddress,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.deny(
+                          RegExp(
+                            r'[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F700}-\u{1F77F}\u{1F800}-\u{1FAFF}\u{2600}-\u{27BF}\u{1F1E6}-\u{1F1FF}\u{200D}\u{FE0F}\s]',
+                            unicode: true,
+                          ),
+                        ),
+                      ],
+                      decoration: InputDecoration(
+                        filled: true,
+                        fillColor: const Color(0xFFF8F6F2),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      height: 48,
+                      child: ElevatedButton(
+                        onPressed: isSaving
+                            ? null
+                            : () async {
+                                setSheetState(() => isSaving = true);
+                                final success = await auth.updateProfile(
+                                  name: nameController.text.trim(),
+                                  phone: phoneController.text.trim(),
+                                  email: emailController.text.trim(),
+                                );
+
+                                if (!mounted) return;
+
+                                Navigator.pop(context);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      success
+                                          ? 'Profile updated successfully.'
+                                          : auth.errorMessage ??
+                                                'Failed to update profile.',
+                                      style: GoogleFonts.inter(
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                    backgroundColor: success
+                                        ? AppTheme.primary
+                                        : AppTheme.error,
+                                  ),
+                                );
+                              },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppTheme.primary,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        child: isSaving
+                            ? const FourRotatingDotsLoader(
+                                size: 20,
+                                color: Colors.white,
+                              )
+                            : Text(
+                                'Save Changes',
+                                style: GoogleFonts.inter(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             );
           },
@@ -226,6 +254,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (!mounted) return;
 
       final auth = Provider.of<AuthController>(context, listen: false);
+
+      final currentBase64 =
+          auth.profileImageBase64?.replaceAll(RegExp(r'\s+'), '');
+      final newBase64 = base64Encode(bytes).replaceAll(RegExp(r'\s+'), '');
+
+      if (currentBase64 != null && currentBase64 == newBase64) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'This photo is already set as your profile picture.',
+              style: GoogleFonts.inter(color: Colors.white),
+            ),
+            backgroundColor: const Color(0xFF8E8E93),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+        return;
+      }
+
       final success = await auth.uploadProfileImage(bytes);
 
       if (!mounted) return;

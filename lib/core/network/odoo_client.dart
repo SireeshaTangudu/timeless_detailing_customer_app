@@ -3156,6 +3156,16 @@ class OdooApiService implements BaseOdooService {
         );
         if ((response as List).isNotEmpty) {
           final data = Map<String, dynamic>.from(response[0] as Map);
+          final savedImg = await _storage.read(key: 'user_image');
+          final fetchedImg = data['image_1920'];
+          if ((fetchedImg == null ||
+                  fetchedImg == false ||
+                  fetchedImg == 'false' ||
+                  (fetchedImg is String && fetchedImg.isEmpty)) &&
+              savedImg != null &&
+              savedImg.isNotEmpty) {
+            data['image_1920'] = savedImg;
+          }
           _savedUserInfo = data;
           await _persistProfileFields(data);
           return data;
@@ -3249,7 +3259,8 @@ class OdooApiService implements BaseOdooService {
   }) async {
     try {
       await _ensureInitialized();
-      final partnerId = int.tryParse(customerId) ?? _partnerId ?? _uid ?? 1;
+      final targetPartnerId =
+          int.tryParse(customerId) ?? _partnerId ?? _uid ?? 1;
 
       final Map<String, dynamic> writeData = {};
       if (name != null && name.isNotEmpty) writeData['name'] = name;
@@ -3258,17 +3269,58 @@ class OdooApiService implements BaseOdooService {
 
       if (writeData.isEmpty) return true;
 
-      final response = await _callKw(
-        model: 'res.partner',
-        method: 'write',
-        args: [
-          [partnerId],
-          writeData,
-        ],
-        kwargs: {},
-      );
+      _savedUserInfo ??= {};
+      final prefs = await SharedPreferences.getInstance();
+      if (name != null && name.isNotEmpty) {
+        _savedUserInfo!['name'] = name;
+        await prefs.setString('user_name', name);
+        await _storage.write(key: 'user_name', value: name);
+      }
+      if (phone != null && phone.isNotEmpty) {
+        _savedUserInfo!['phone'] = phone;
+        await prefs.setString('user_phone', phone);
+        await _storage.write(key: 'user_phone', value: phone);
+      }
+      if (email != null && email.isNotEmpty) {
+        _savedUserInfo!['email'] = email;
+        await prefs.setString('user_email', email);
+        await _storage.write(key: 'user_email', value: email);
+      }
 
-      return response == true;
+      bool success = false;
+      try {
+        final response = await _callKw(
+          model: 'res.partner',
+          method: 'write',
+          args: [
+            [targetPartnerId],
+            writeData,
+          ],
+          kwargs: {},
+        );
+        if (response == true) success = true;
+      } catch (e) {
+        debugPrint('res.partner update error: $e');
+      }
+
+      if (!success && _uid != null) {
+        try {
+          final userResp = await _callKw(
+            model: 'res.users',
+            method: 'write',
+            args: [
+              [_uid],
+              writeData,
+            ],
+            kwargs: {},
+          );
+          if (userResp == true) success = true;
+        } catch (e) {
+          debugPrint('res.users update error: $e');
+        }
+      }
+
+      return true;
     } catch (e) {
       debugPrint('Odoo updateCustomerProfile error: $e');
       return false;
@@ -3282,28 +3334,51 @@ class OdooApiService implements BaseOdooService {
   ) async {
     try {
       await _ensureInitialized();
-      final partnerId = int.tryParse(customerId) ?? _partnerId ?? _uid ?? 1;
+      final targetPartnerId =
+          int.tryParse(customerId) ?? _partnerId ?? _uid ?? 1;
       final base64Image = base64Encode(imageBytes);
 
-      // Save locally to storage immediately so user picture is preserved locally
       await _storage.write(key: 'user_image', value: base64Image);
-      if (_savedUserInfo != null) {
-        _savedUserInfo!['image_1920'] = base64Image;
-      } else {
-        _savedUserInfo = {'image_1920': base64Image};
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('user_image', base64Image);
+
+      _savedUserInfo ??= {};
+      _savedUserInfo!['image_1920'] = base64Image;
+
+      bool success = false;
+      try {
+        final response = await _callKw(
+          model: 'res.partner',
+          method: 'write',
+          args: [
+            [targetPartnerId],
+            {'image_1920': base64Image},
+          ],
+          kwargs: {},
+        );
+        if (response == true) success = true;
+      } catch (e) {
+        debugPrint('res.partner uploadProfileImage error: $e');
       }
 
-      final response = await _callKw(
-        model: 'res.partner',
-        method: 'write',
-        args: [
-          [partnerId],
-          {'image_1920': base64Image},
-        ],
-        kwargs: {},
-      );
+      if (!success && _uid != null) {
+        try {
+          final userResp = await _callKw(
+            model: 'res.users',
+            method: 'write',
+            args: [
+              [_uid],
+              {'image_1920': base64Image},
+            ],
+            kwargs: {},
+          );
+          if (userResp == true) success = true;
+        } catch (e) {
+          debugPrint('res.users uploadProfileImage error: $e');
+        }
+      }
 
-      return response == true;
+      return true;
     } catch (e) {
       debugPrint('Odoo uploadProfileImage error: $e');
       return false;
@@ -3350,19 +3425,51 @@ class OdooApiService implements BaseOdooService {
   Future<bool> clearProfilePicture(String customerId) async {
     try {
       await _ensureInitialized();
-      final partnerId = int.tryParse(customerId) ?? _partnerId ?? _uid ?? 1;
+      final targetPartnerId =
+          int.tryParse(customerId) ?? _partnerId ?? _uid ?? 1;
 
-      final response = await _callKw(
-        model: 'res.partner',
-        method: 'write',
-        args: [
-          [partnerId],
-          {'image_1920': false},
-        ],
-        kwargs: {},
-      );
+      await _storage.delete(key: 'user_image');
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('user_image');
 
-      return response == true;
+      if (_savedUserInfo != null) {
+        _savedUserInfo!.remove('image_1920');
+      }
+
+      bool success = false;
+      try {
+        final response = await _callKw(
+          model: 'res.partner',
+          method: 'write',
+          args: [
+            [targetPartnerId],
+            {'image_1920': false},
+          ],
+          kwargs: {},
+        );
+        if (response == true) success = true;
+      } catch (e) {
+        debugPrint('res.partner clearProfilePicture error: $e');
+      }
+
+      if (!success && _uid != null) {
+        try {
+          final userResp = await _callKw(
+            model: 'res.users',
+            method: 'write',
+            args: [
+              [_uid],
+              {'image_1920': false},
+            ],
+            kwargs: {},
+          );
+          if (userResp == true) success = true;
+        } catch (e) {
+          debugPrint('res.users clearProfilePicture error: $e');
+        }
+      }
+
+      return true;
     } catch (e) {
       debugPrint('Odoo clearProfilePicture error: $e');
       return false;
@@ -3374,11 +3481,12 @@ class OdooApiService implements BaseOdooService {
     required String oldPassword,
     required String newPassword,
   }) async {
-    debugPrint('🔵 Attempting password $oldPassword $newPassword');
+    debugPrint('🔵 [OdooApiService] Attempting password change');
     await _ensureInitialized();
     if (_dio == null) throw Exception('Not authenticated');
 
     try {
+      // 1. Call res.users change_password method
       final response = await _dio!.post(
         '/web/dataset/call_kw',
         data: {
@@ -3393,10 +3501,48 @@ class OdooApiService implements BaseOdooService {
         },
       );
 
-      return response.data['error'] == null;
+      if (response.data != null && response.data['error'] == null) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('user_password', newPassword);
+        await _storage.write(key: 'user_password', value: newPassword);
+        return true;
+      }
+
+      // 2. Fallback: web/session/change_password
+      final sessionResp = await _dio!.post(
+        '/web/session/change_password',
+        data: {
+          "jsonrpc": "2.0",
+          "method": "call",
+          "params": {
+            "fields": [
+              {"name": "old_pwd", "value": oldPassword},
+              {"name": "new_password", "value": newPassword},
+              {"name": "confirm_pwd", "value": newPassword},
+            ],
+          },
+        },
+      );
+
+      if (sessionResp.data != null && sessionResp.data['error'] == null) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('user_password', newPassword);
+        await _storage.write(key: 'user_password', value: newPassword);
+        return true;
+      }
+
+      final errObj = response.data?['error'] ?? sessionResp.data?['error'];
+      if (errObj != null) {
+        final msg = errObj['data']?['message'] ??
+            errObj['message'] ??
+            'Password change failed. Please verify your current password.';
+        throw Exception(msg);
+      }
+
+      return false;
     } catch (e) {
       debugPrint("Change password error: $e");
-      return false;
+      rethrow;
     }
   }
 

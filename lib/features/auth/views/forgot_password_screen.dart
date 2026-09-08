@@ -117,12 +117,24 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                       const SizedBox(height: 32),
 
                       // Registered Email ID Field Label
-                      Text(
-                        'Registered Email ID',
-                        style: GoogleFonts.inter(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: const Color(0xFF1C1C1E),
+                      Text.rich(
+                        TextSpan(
+                          text: 'Registered Email ID',
+                          style: GoogleFonts.inter(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFF1C1C1E),
+                          ),
+                          children: [
+                            TextSpan(
+                              text: ' *',
+                              style: GoogleFonts.inter(
+                                color: const Color(0xFFE53935),
+                                fontWeight: FontWeight.w600,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                       const SizedBox(height: 8),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:timeless_detailing_customer_app/core/theme/app_theme.dart';
@@ -76,15 +77,29 @@ class _SignupScreenState extends State<SignupScreen> {
     }
   }
 
-  Widget _buildFieldLabel(String labelText) {
+  Widget _buildFieldLabel(String labelText, {bool isRequired = true}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 6.0),
-      child: Text(
-        labelText,
-        style: GoogleFonts.inter(
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
-          color: const Color(0xFF1C1C1E),
+      child: Text.rich(
+        TextSpan(
+          text: labelText,
+          style: GoogleFonts.inter(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: const Color(0xFF1C1C1E),
+          ),
+          children: isRequired
+              ? [
+                  TextSpan(
+                    text: ' *',
+                    style: GoogleFonts.inter(
+                      color: const Color(0xFFE53935),
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
+                  ),
+                ]
+              : [],
         ),
       ),
     );
@@ -156,6 +171,14 @@ class _SignupScreenState extends State<SignupScreen> {
                         fontSize: 14,
                         color: const Color(0xFF1C1C1E),
                       ),
+                      inputFormatters: [
+                        FilteringTextInputFormatter.deny(
+                          RegExp(
+                            r'[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F700}-\u{1F77F}\u{1F800}-\u{1FAFF}\u{2600}-\u{27BF}\u{1F1E6}-\u{1F1FF}\u{200D}\u{FE0F}]',
+                            unicode: true,
+                          ),
+                        ),
+                      ],
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
                           return 'Full name is required';
@@ -177,6 +200,14 @@ class _SignupScreenState extends State<SignupScreen> {
                         fontSize: 14,
                         color: const Color(0xFF1C1C1E),
                       ),
+                      inputFormatters: [
+                        FilteringTextInputFormatter.deny(
+                          RegExp(
+                            r'[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F700}-\u{1F77F}\u{1F800}-\u{1FAFF}\u{2600}-\u{27BF}\u{1F1E6}-\u{1F1FF}\u{200D}\u{FE0F}\s]',
+                            unicode: true,
+                          ),
+                        ),
+                      ],
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
                           return 'Email ID is required';
@@ -203,6 +234,11 @@ class _SignupScreenState extends State<SignupScreen> {
                         fontSize: 14,
                         color: const Color(0xFF1C1C1E),
                       ),
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(
+                          RegExp(r'[0-9+\s-]'),
+                        ),
+                      ],
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
                           return 'Phone number is required';
@@ -224,6 +260,14 @@ class _SignupScreenState extends State<SignupScreen> {
                         fontSize: 14,
                         color: const Color(0xFF1C1C1E),
                       ),
+                      inputFormatters: [
+                        FilteringTextInputFormatter.deny(
+                          RegExp(
+                            r'[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F700}-\u{1F77F}\u{1F800}-\u{1FAFF}\u{2600}-\u{27BF}\u{1F1E6}-\u{1F1FF}\u{200D}\u{FE0F}]',
+                            unicode: true,
+                          ),
+                        ),
+                      ],
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return 'Password is required';
@@ -262,6 +306,14 @@ class _SignupScreenState extends State<SignupScreen> {
                         fontSize: 14,
                         color: const Color(0xFF1C1C1E),
                       ),
+                      inputFormatters: [
+                        FilteringTextInputFormatter.deny(
+                          RegExp(
+                            r'[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F700}-\u{1F77F}\u{1F800}-\u{1FAFF}\u{2600}-\u{27BF}\u{1F1E6}-\u{1F1FF}\u{200D}\u{FE0F}]',
+                            unicode: true,
+                          ),
+                        ),
+                      ],
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return 'Please confirm your password';
