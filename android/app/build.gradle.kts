@@ -42,7 +42,7 @@ android {
 
     defaultConfig {
         // Default application ID and app name
-        applicationId = "com.timelessdetail.customer"
+        applicationId = "com.example.timeless_detailing_customer_app"
         resValue("string", "app_name", "Timeless Detail")
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
@@ -55,7 +55,7 @@ android {
     productFlavors {
         create("uat") {
             dimension = "default"
-            applicationId = "com.timelessdetail.customer"
+            applicationId = "com.example.timeless_detailing_customer_app"
             resValue("string", "app_name", "Timeless Detailing UAT")
         }
         create("prod") {
