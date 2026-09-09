@@ -44,8 +44,11 @@ class Booking {
   final String amountPaidOn;
   final double pendingAmount;
   final double thisInvoiceAmount;
+  final double amountUntaxed;
+  final double taxAmount;
   final String carDropOffStatus;
   final List<Map<String, dynamic>> addOns;
+  final List<Map<String, dynamic>> allServiceLines;
   final int? invoiceId;
   final String? invoiceAccessUrl;
   final String? invoiceAccessToken;
@@ -83,10 +86,13 @@ class Booking {
     this.percentageAmountPaid = 0.0,
     this.amountPaid = 0.0,
     this.thisInvoiceAmount = 0.0,
+    this.amountUntaxed = 0.0,
+    this.taxAmount = 0.0,
     this.amountPaidOn = '',
     this.pendingAmount = 0.0,
     this.carDropOffStatus = '',
     this.addOns = const [],
+    this.allServiceLines = const [],
     this.invoiceId,
     this.invoiceAccessUrl,
     this.invoiceAccessToken,
@@ -439,33 +445,54 @@ class Booking {
         (json['amount_total'] as num?)?.toDouble() ??
         0.0;
 
+    final double untaxedAmt = (summary['amount_untaxed'] as num?)?.toDouble() ??
+        (snapshot['amount_untaxed'] as num?)?.toDouble() ??
+        (json['amount_untaxed'] as num?)?.toDouble() ??
+        0.0;
+
+    final double taxAmt = (summary['tax_amount'] as num?)?.toDouble() ??
+        (summary['amount_tax'] as num?)?.toDouble() ??
+        (snapshot['tax_amount'] as num?)?.toDouble() ??
+        (snapshot['amount_tax'] as num?)?.toDouble() ??
+        (json['amount_tax'] as num?)?.toDouble() ??
+        0.0;
+
+    final List<Map<String, dynamic>> parsedServiceLines = [];
     final List<Map<String, dynamic>> parsedAddOns = [];
 
     if (serviceLines.isNotEmpty) {
-      if (serviceLines[0] is Map) {
-        serviceName = (serviceLines[0]['name'] ?? serviceName).toString();
-      }
       for (final s in serviceLines) {
         if (s is Map) {
-          final rawWarranty = s['warranty_label']?.toString();
-          if (warrantyLabel == null &&
-              rawWarranty != null &&
-              rawWarranty.isNotEmpty &&
-              rawWarranty != 'null' &&
-              rawWarranty != 'false') {
-            warrantyLabel = rawWarranty;
+          final String sName = (s['name'] ?? '').toString();
+          final double sPrice = (s['price_total'] as num?)?.toDouble() ??
+              (s['price_subtotal'] as num?)?.toDouble() ??
+              (s['price_unit'] as num?)?.toDouble() ??
+              0.0;
+          final String? rawW = s['warranty_label']?.toString();
+          final String? sWarranty = (rawW != null &&
+                  rawW.isNotEmpty &&
+                  rawW != 'null' &&
+                  rawW != 'false')
+              ? rawW
+              : null;
+
+          parsedServiceLines.add({
+            'name': sName,
+            'price': sPrice,
+            'warranty_label': sWarranty,
+          });
+
+          if (warrantyLabel == null && sWarranty != null) {
+            warrantyLabel = sWarranty;
           }
         }
       }
-      if (serviceLines.length > 1) {
-        for (int i = 1; i < serviceLines.length; i++) {
-          if (serviceLines[i] is Map) {
-            final item = Map<String, dynamic>.from(serviceLines[i] as Map);
-            parsedAddOns.add({
-              'name': (item['name'] ?? '').toString(),
-              'price': (item['price_total'] as num?)?.toDouble() ?? 0.0,
-              'warranty_label': item['warranty_label'],
-            });
+
+      if (parsedServiceLines.isNotEmpty) {
+        serviceName = parsedServiceLines[0]['name'] ?? '';
+        if (parsedServiceLines.length > 1) {
+          for (int i = 1; i < parsedServiceLines.length; i++) {
+            parsedAddOns.add(parsedServiceLines[i]);
           }
         }
       }
@@ -504,13 +531,17 @@ class Booking {
     final String accUrl = (json['access_url'] ?? '').toString();
     final String accToken = (json['access_token'] is String) ? json['access_token'] as String : '';
 
+    final double primaryServicePrice = (parsedServiceLines.isNotEmpty && parsedServiceLines[0]['price'] > 0)
+        ? (parsedServiceLines[0]['price'] as double)
+        : origTotal;
+
     return Booking(
       id: json['id']?.toString() ?? '',
       service: DetailService(
         id: 'inv_${json['id']}',
         name: serviceName,
         description: '',
-        price: origTotal,
+        price: primaryServicePrice,
         durationHours: 2.0,
         imageUrl: '',
         category: 'Detailing',
@@ -533,10 +564,13 @@ class Booking {
       percentageAmountPaid: pctVal,
       amountPaid: isDepositInvoice ? depositAmt : (totalPaidSoFar > 0 ? totalPaidSoFar : depositAmt),
       thisInvoiceAmount: thisInvAmt,
+      amountUntaxed: untaxedAmt,
+      taxAmount: taxAmt,
       amountPaidOn: invDateStr.isNotEmpty ? invDateStr : '',
       pendingAmount: remainAmt,
       carDropOffStatus: '',
       addOns: parsedAddOns,
+      allServiceLines: parsedServiceLines,
       invoiceId: rawInvId,
       invoiceAccessUrl: accUrl.isNotEmpty ? accUrl : null,
       invoiceAccessToken: accToken.isNotEmpty ? accToken : null,

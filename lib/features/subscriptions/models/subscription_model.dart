@@ -94,10 +94,17 @@ class SubscriptionModel {
       for (final line in rawLines) {
         if (line is Map) {
           final lineMap = Map<String, dynamic>.from(line);
-          if ((lineMap['name'] == null || lineMap['name'].toString().isEmpty) && lineMap['product_id'] is Map) {
-            lineMap['name'] = lineMap['product_id']['display_name'] ?? lineMap['product_id']['name'] ?? '';
+          final projId = lineMap['project_id'];
+          final prodId = lineMap['product_id'];
+          final nameStr = lineMap['name']?.toString().toLowerCase() ?? '';
+          final bool isDownPayment = nameStr.contains('down payment');
+
+          if (projId != null && projId != false && prodId != null && prodId != false && !isDownPayment) {
+            if ((lineMap['name'] == null || lineMap['name'].toString().isEmpty) && lineMap['product_id'] is Map) {
+              lineMap['name'] = lineMap['product_id']['display_name'] ?? lineMap['product_id']['name'] ?? '';
+            }
+            linesList.add(lineMap);
           }
-          linesList.add(lineMap);
         }
       }
     }

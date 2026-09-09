@@ -261,17 +261,28 @@ class EstimationModel {
         : int.tryParse(json['id']?.toString() ?? '');
     final notifType = json['notification_type']?.toString();
 
-    // Parse order_line items dynamically
+    // Parse order_line items dynamically (filtering out entries where project_id is false or down payment entries)
     List<EstimationLineItemModel> lines = [];
     final rawOrderLines = json['order_line'] ?? json['order_lines_detail'];
     if (rawOrderLines is List) {
       for (final item in rawOrderLines) {
+        Map<String, dynamic>? itemMap;
         if (item is Map<String, dynamic>) {
-          lines.add(EstimationLineItemModel.fromJson(item));
+          itemMap = item;
         } else if (item is Map) {
-          lines.add(
-            EstimationLineItemModel.fromJson(Map<String, dynamic>.from(item)),
-          );
+          itemMap = Map<String, dynamic>.from(item);
+        }
+        if (itemMap != null) {
+          final projId = itemMap['project_id'];
+          final prodId = itemMap['product_id'];
+          final nameStr = itemMap['name']?.toString().toLowerCase() ?? '';
+          final bool hasValidProject = projId != null && projId != false;
+          final bool hasValidProduct = prodId != null && prodId != false;
+          final bool isDownPaymentLine = nameStr.contains('down payment');
+
+          if (hasValidProject && hasValidProduct && !isDownPaymentLine) {
+            lines.add(EstimationLineItemModel.fromJson(itemMap));
+          }
         }
       }
     }
@@ -479,12 +490,23 @@ class EstimationModel {
     final rawOrderLines = json['order_line'] ?? json['order_lines_detail'];
     if (rawOrderLines is List) {
       for (final item in rawOrderLines) {
+        Map<String, dynamic>? itemMap;
         if (item is Map<String, dynamic>) {
-          lines.add(EstimationLineItemModel.fromJson(item));
+          itemMap = item;
         } else if (item is Map) {
-          lines.add(
-            EstimationLineItemModel.fromJson(Map<String, dynamic>.from(item)),
-          );
+          itemMap = Map<String, dynamic>.from(item);
+        }
+        if (itemMap != null) {
+          final projId = itemMap['project_id'];
+          final prodId = itemMap['product_id'];
+          final nameStr = itemMap['name']?.toString().toLowerCase() ?? '';
+          final bool hasValidProject = projId != null && projId != false;
+          final bool hasValidProduct = prodId != null && prodId != false;
+          final bool isDownPaymentLine = nameStr.contains('down payment');
+
+          if (hasValidProject && hasValidProduct && !isDownPaymentLine) {
+            lines.add(EstimationLineItemModel.fromJson(itemMap));
+          }
         }
       }
     }

@@ -757,14 +757,6 @@ class _UpcomingAppointmentDetailsScreenState
     String fullDateStr,
     String slotTimeStr,
   ) {
-    final double addOnsTotal = b.addOns.fold(
-      0.0,
-      (sum, item) => sum + ((item['price'] as num?)?.toDouble() ?? 0.0),
-    );
-    final double currentInvoiceAmount = b.thisInvoiceAmount > 0
-        ? b.thisInvoiceAmount
-        : (b.isDownPaymentInvoice ? b.amountPaid : b.pendingAmount);
-    final double totalToPay = currentInvoiceAmount + addOnsTotal;
     final bool hasAddOns = b.addOns.isNotEmpty;
     final DateTime now = DateTime.now();
     final DateTime today = DateTime(now.year, now.month, now.day);
@@ -868,7 +860,78 @@ class _UpcomingAppointmentDetailsScreenState
                   const SizedBox(height: 12),
                   _buildLightDetailRow('Registration Number', vReg),
                   const SizedBox(height: 12),
-                  _buildLightDetailRow('Service', b.service.name),
+                  if (b.allServiceLines.length > 1) ...[
+                    Text(
+                      'Services Included (${b.allServiceLines.length})',
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFF7A7063),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    for (final sLine in b.allServiceLines) ...[
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 6),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Expanded(
+                              child: Row(
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      sLine['name']?.toString() ?? '',
+                                      style: GoogleFonts.outfit(
+                                        fontSize: 13.5,
+                                        fontWeight: FontWeight.w600,
+                                        color: const Color(0xFF1C1C1E),
+                                      ),
+                                    ),
+                                  ),
+                                  if (sLine['warranty_label'] != null &&
+                                      sLine['warranty_label'].toString().isNotEmpty) ...[
+                                    const SizedBox(width: 6),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF4CAF50)
+                                            .withValues(alpha: 0.12),
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: Text(
+                                        sLine['warranty_label'].toString(),
+                                        style: GoogleFonts.inter(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                          color: const Color(0xFF2E7D32),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
+                            if ((sLine['price'] as num?)?.toDouble() != null &&
+                                (sLine['price'] as num) > 0)
+                              Text(
+                                CurrencyService.instance.format(
+                                    (sLine['price'] as num).toDouble()),
+                                style: GoogleFonts.outfit(
+                                  fontSize: 13.5,
+                                  fontWeight: FontWeight.bold,
+                                  color: const Color(0xFF1C1C1E),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ] else ...[
+                    _buildLightDetailRow('Service', b.service.name),
+                  ],
                   const SizedBox(height: 14),
 
                   CustomPaint(
@@ -948,10 +1011,24 @@ class _UpcomingAppointmentDetailsScreenState
           child: Column(
             children: [
               _buildLightDetailRow(
-                'Estimated Cost',
+                'Original Order Total',
                 CurrencyService.instance.format(b.totalPrice),
               ),
               const SizedBox(height: 12),
+              if (b.amountUntaxed > 0) ...[
+                _buildLightDetailRow(
+                  'Subtotal (Excl. Tax)',
+                  CurrencyService.instance.format(b.amountUntaxed),
+                ),
+                const SizedBox(height: 12),
+              ],
+              if (b.taxAmount > 0) ...[
+                _buildLightDetailRow(
+                  'Tax / VAT',
+                  CurrencyService.instance.format(b.taxAmount),
+                ),
+                const SizedBox(height: 12),
+              ],
               if (b.isDownPaymentInvoice) ...[
                 if (b.percentageAmountPaid > 0) ...[
                   _buildLightDetailRow(
@@ -999,41 +1076,15 @@ class _UpcomingAppointmentDetailsScreenState
                 ),
               ],
 
-              if (hasAddOns) ...[
+              if (hasAddOns && b.allServiceLines.length <= 1) ...[
                 const SizedBox(height: 12),
                 for (final item in b.addOns) ...[
                   _buildLightDetailRow(
-                    item['name']?.toString() ?? 'Add on',
-                    CurrencyService.instance.format((item['price'] as num?)?.toDouble() ?? 100.0),
+                    item['name']?.toString() ?? 'Additional Service',
+                    CurrencyService.instance.format((item['price'] as num?)?.toDouble() ?? 0.0),
                   ),
                   const SizedBox(height: 12),
                 ],
-                CustomPaint(
-                  size: const Size(double.infinity, 1),
-                  painter: DashedLinePainter(color: const Color(0xFFE5DFD5)),
-                ),
-                const SizedBox(height: 14),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Total Amount to be Paid',
-                      style: GoogleFonts.outfit(
-                        fontSize: 13.5,
-                        fontWeight: FontWeight.bold,
-                        color: const Color(0xFF1C1C1E),
-                      ),
-                    ),
-                    Text(
-                      CurrencyService.instance.format(totalToPay),
-                      style: GoogleFonts.outfit(
-                        fontSize: 15,
-                        fontWeight: FontWeight.bold,
-                        color: const Color(0xFF1C1C1E),
-                      ),
-                    ),
-                  ],
-                ),
               ],
             ],
           ),
