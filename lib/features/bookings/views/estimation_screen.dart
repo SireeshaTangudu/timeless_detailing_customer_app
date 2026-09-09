@@ -724,6 +724,42 @@ class _EstimationScreenState extends State<EstimationScreen> {
                     letterSpacing: -0.5,
                   ),
                 ),
+                if (data.isSubscription ||
+                    data.subscriptionPlanName != null) ...[
+                  const SizedBox(height: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFC4913F).withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: const Color(0xFFC4913F).withValues(alpha: 0.5),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.autorenew_rounded,
+                          color: Color(0xFFC4913F),
+                          size: 14,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Recurring Subscription (${data.subscriptionPlanName ?? 'Monthly'})',
+                          style: GoogleFonts.montserrat(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFFC4913F),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -760,8 +796,6 @@ class _EstimationScreenState extends State<EstimationScreen> {
                   const SizedBox(height: 12),
                   _buildLightDetailRow('VIN', data.vehicleVin!),
                 ],
-                // const SizedBox(height: 12),
-                // _buildLightDetailRow('Car Type', data.vehicleType),
                 const SizedBox(height: 12),
                 _buildLightDetailRow('Service', data.serviceName),
 
@@ -777,7 +811,7 @@ class _EstimationScreenState extends State<EstimationScreen> {
 
                 _buildLightDetailRow('Service Date', data.serviceDate),
                 const SizedBox(height: 12),
-                _buildLightDetailRow('Slot', data.serviceTime),
+                _buildLightDetailRow('Created on', data.serviceTime),
                 if (data.validityDate != null &&
                     data.validityDate!.isNotEmpty) ...[
                   const SizedBox(height: 12),
@@ -829,13 +863,45 @@ class _EstimationScreenState extends State<EstimationScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Expanded(
-                                child: Text(
-                                  item.productName,
-                                  style: GoogleFonts.outfit(
-                                    fontSize: 13.5,
-                                    fontWeight: FontWeight.w600,
-                                    color: const Color(0xFF1D1813),
-                                  ),
+                                child: Row(
+                                  children: [
+                                    Flexible(
+                                      child: Text(
+                                        item.productName,
+                                        style: GoogleFonts.outfit(
+                                          fontSize: 13.5,
+                                          fontWeight: FontWeight.w600,
+                                          color: const Color(0xFF1D1813),
+                                        ),
+                                      ),
+                                    ),
+                                    if (item.isRecurringInvoice ||
+                                        data.isSubscription) ...[
+                                      const SizedBox(width: 6),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 6,
+                                          vertical: 2,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: const Color(
+                                            0xFFC4913F,
+                                          ).withValues(alpha: 0.12),
+                                          borderRadius: BorderRadius.circular(
+                                            4,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          'Recurring',
+                                          style: GoogleFonts.inter(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.bold,
+                                            color: const Color(0xFF8C6221),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ],
                                 ),
                               ),
                               const SizedBox(width: 8),
@@ -877,13 +943,33 @@ class _EstimationScreenState extends State<EstimationScreen> {
                   ),
                 ],
 
-                if (data.amountUntaxed != null || data.amountTax != null) ...[
+                if (data.amountUntaxed != null ||
+                    data.amountTax != null ||
+                    data.isSubscription) ...[
                   const SizedBox(height: 14),
                   CustomPaint(
                     size: const Size(double.infinity, 1),
                     painter: DashedLinePainter(color: const Color(0xFFE5DFD5)),
                   ),
                   const SizedBox(height: 14),
+                  if (data.isSubscription) ...[
+                    if (data.subscriptionPlanName != null &&
+                        data.subscriptionPlanName!.isNotEmpty) ...[
+                      _buildLightDetailRow(
+                        'Subscription Plan',
+                        data.subscriptionPlanName!,
+                      ),
+                      const SizedBox(height: 8),
+                    ],
+                    if (data.recurringTotal != null &&
+                        data.recurringTotal! > 0) ...[
+                      _buildLightDetailRow(
+                        'Recurring Total',
+                        '${data.currencySymbol} ${data.recurringTotal!.toStringAsFixed(2)}',
+                      ),
+                      const SizedBox(height: 8),
+                    ],
+                  ],
                   if (data.amountUntaxed != null) ...[
                     _buildLightDetailRow(
                       'Subtotal (Untaxed)',

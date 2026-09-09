@@ -43,6 +43,7 @@ class EstimationLineItemModel {
   final double discount;
   final double priceSubtotal;
   final double priceTotal;
+  final bool isRecurringInvoice;
 
   const EstimationLineItemModel({
     required this.id,
@@ -54,6 +55,7 @@ class EstimationLineItemModel {
     required this.discount,
     required this.priceSubtotal,
     required this.priceTotal,
+    this.isRecurringInvoice = false,
   });
 
   factory EstimationLineItemModel.fromJson(Map<String, dynamic> json) {
@@ -77,6 +79,7 @@ class EstimationLineItemModel {
       discount: (json['discount'] as num?)?.toDouble() ?? 0.0,
       priceSubtotal: (json['price_subtotal'] as num?)?.toDouble() ?? 0.0,
       priceTotal: (json['price_total'] as num?)?.toDouble() ?? 0.0,
+      isRecurringInvoice: json['recurring_invoice'] == true,
     );
   }
 
@@ -91,6 +94,7 @@ class EstimationLineItemModel {
       'discount': discount,
       'price_subtotal': priceSubtotal,
       'price_total': priceTotal,
+      'recurring_invoice': isRecurringInvoice,
     };
   }
 }
@@ -118,6 +122,10 @@ class EstimationModel {
   final List<EstimationLineItemModel> lineItems;
   final List<EstimationStepModel> nextSteps;
   final List<Map<String, dynamic>> vehicleHistoryOrders;
+  final bool isSubscription;
+  final String? subscriptionPlanName;
+  final double? recurringTotal;
+  final String? subscriptionState;
 
   const EstimationModel({
     required this.id,
@@ -141,6 +149,10 @@ class EstimationModel {
     this.lineItems = const [],
     required this.nextSteps,
     this.vehicleHistoryOrders = const [],
+    this.isSubscription = false,
+    this.subscriptionPlanName,
+    this.recurringTotal,
+    this.subscriptionState,
   });
 
   bool get isQuotationSent =>
@@ -273,14 +285,12 @@ class EstimationModel {
           itemMap = Map<String, dynamic>.from(item);
         }
         if (itemMap != null) {
-          final projId = itemMap['project_id'];
           final prodId = itemMap['product_id'];
           final nameStr = itemMap['name']?.toString().toLowerCase() ?? '';
-          final bool hasValidProject = projId != null && projId != false;
           final bool hasValidProduct = prodId != null && prodId != false;
           final bool isDownPaymentLine = nameStr.contains('down payment');
 
-          if (hasValidProject && hasValidProduct && !isDownPaymentLine) {
+          if (hasValidProduct && !isDownPaymentLine) {
             lines.add(EstimationLineItemModel.fromJson(itemMap));
           }
         }
@@ -305,21 +315,33 @@ class EstimationModel {
     String? vehicleReg = json['vehicle_registration']?.toString();
     String? vehicleVin;
 
-    if (json['vehicle_id'] is Map) {
+    final rootMake = json['vehicle_make']?.toString() ?? '';
+    final rootModel = json['vehicle_model']?.toString() ?? '';
+
+    if (rootMake.isNotEmpty || rootModel.isNotEmpty) {
+      vehicleNameStr = '$rootMake $rootModel'.trim();
+    }
+
+    if (vehicleNameStr.isEmpty && json['vehicle_id'] is Map) {
       final vMap = json['vehicle_id'] as Map;
       final make = vMap['make']?.toString() ?? '';
       final model = vMap['model']?.toString() ?? '';
-      vehicleNameStr = '$make $model'.trim();
-      vehicleVin = vMap['vin']?.toString();
-      if (vehicleReg == null || vehicleReg.isEmpty) {
-        vehicleReg = vMap['registration']?.toString();
+      if (make.isNotEmpty || model.isNotEmpty) {
+        vehicleNameStr = '$make $model'.trim();
       }
     }
 
-    if (vehicleNameStr.isEmpty) {
-      final make = json['vehicle_make']?.toString() ?? '';
-      final model = json['vehicle_model']?.toString() ?? '';
-      vehicleNameStr = '$make $model'.trim();
+    if ((vehicleReg == null || vehicleReg.isEmpty) && json['vehicle_id'] is Map) {
+      final vMap = json['vehicle_id'] as Map;
+      final reg = vMap['registration']?.toString();
+      if (reg != null && reg.isNotEmpty) {
+        vehicleReg = reg;
+      }
+    }
+
+    if (json['vehicle_id'] is Map) {
+      final vMap = json['vehicle_id'] as Map;
+      vehicleVin = vMap['vin']?.toString();
     }
 
     if (vehicleNameStr.isEmpty) {
@@ -363,6 +385,18 @@ class EstimationModel {
         }
       }
     }
+
+    final bool isSub = json['is_subscription'] == true;
+    String? planName;
+    if (json['plan_id'] is Map) {
+      planName = json['plan_id']['name']?.toString();
+    } else if (json['plan_id'] is List && (json['plan_id'] as List).length >= 2) {
+      planName = (json['plan_id'] as List)[1].toString();
+    }
+    final double? recTotal = (json['recurring_total'] as num?)?.toDouble();
+    final String? subState = (json['subscription_state'] != null && json['subscription_state'] != false)
+        ? json['subscription_state'].toString()
+        : null;
 
     return EstimationModel(
       id: nameStr,
@@ -418,6 +452,10 @@ class EstimationModel {
         ),
       ],
       vehicleHistoryOrders: parsedHistory,
+      isSubscription: isSub,
+      subscriptionPlanName: planName,
+      recurringTotal: recTotal,
+      subscriptionState: subState,
     );
   }
 
@@ -497,14 +535,12 @@ class EstimationModel {
           itemMap = Map<String, dynamic>.from(item);
         }
         if (itemMap != null) {
-          final projId = itemMap['project_id'];
           final prodId = itemMap['product_id'];
           final nameStr = itemMap['name']?.toString().toLowerCase() ?? '';
-          final bool hasValidProject = projId != null && projId != false;
           final bool hasValidProduct = prodId != null && prodId != false;
           final bool isDownPaymentLine = nameStr.contains('down payment');
 
-          if (hasValidProject && hasValidProduct && !isDownPaymentLine) {
+          if (hasValidProduct && !isDownPaymentLine) {
             lines.add(EstimationLineItemModel.fromJson(itemMap));
           }
         }
