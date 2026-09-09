@@ -111,9 +111,12 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     final auth = Provider.of<AuthController>(context);
 
-    return Stack(
-      children: [
-        Scaffold(
+    return GestureDetector(
+      onTap: () => FocusScope.of(context).unfocus(),
+      behavior: HitTestBehavior.opaque,
+      child: Stack(
+        children: [
+          Scaffold(
           backgroundColor: Colors.white,
           body: SafeArea(
             child: Column(
@@ -230,6 +233,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           TextFormField(
                             controller: _emailController,
                             keyboardType: TextInputType.emailAddress,
+                            onTapOutside: (event) => FocusScope.of(context).unfocus(),
                             style: GoogleFonts.inter(
                               fontSize: 14,
                               color: const Color(0xFF1C1C1E),
@@ -297,6 +301,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           TextFormField(
                             controller: _passwordController,
                             obscureText: _obscurePassword,
+                            onTapOutside: (event) => FocusScope.of(context).unfocus(),
                             style: GoogleFonts.inter(
                               fontSize: 14,
                               color: const Color(0xFF1C1C1E),
@@ -440,6 +445,7 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
       ],
+    ),
     );
   }
 }

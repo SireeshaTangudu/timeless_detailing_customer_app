@@ -467,8 +467,11 @@ class _BookServiceScreenState extends State<BookServiceScreen> {
   Widget build(BuildContext context) {
     final bookingsController = Provider.of<BookingsController>(context);
 
-    return Stack(
-      children: [
+    return GestureDetector(
+      onTap: () => FocusScope.of(context).unfocus(),
+      behavior: HitTestBehavior.opaque,
+      child: Stack(
+        children: [
         Scaffold(
           backgroundColor: const Color(0xFFF9F7F4),
           body: Column(
@@ -995,6 +998,7 @@ class _BookServiceScreenState extends State<BookServiceScreen> {
             ),
           ),
       ],
-    );
+    ),
+  );
   }
 }

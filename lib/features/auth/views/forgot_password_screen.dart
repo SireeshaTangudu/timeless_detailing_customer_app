@@ -96,14 +96,17 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: Column(
-        children: [
-          const CustomAppBar(
-            title: 'Forgot Password',
-            subtitle: 'Enter your email to receive reset instructions',
-          ),
+    return GestureDetector(
+      onTap: () => FocusScope.of(context).unfocus(),
+      behavior: HitTestBehavior.opaque,
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        body: Column(
+          children: [
+            const CustomAppBar(
+              title: 'Forgot Password',
+              subtitle: 'Enter your email to receive reset instructions',
+            ),
 
             // Form Body Content
             Expanded(
@@ -143,6 +146,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                       TextFormField(
                         controller: _emailController,
                         keyboardType: TextInputType.emailAddress,
+                        onTapOutside: (event) => FocusScope.of(context).unfocus(),
                         style: GoogleFonts.inter(
                           fontSize: 14,
                           color: const Color(0xFF1C1C1E),
@@ -252,6 +256,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             ),
           ],
         ),
+      ),
     );
   }
 }

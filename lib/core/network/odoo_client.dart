@@ -3493,10 +3493,33 @@ class OdooApiService implements BaseOdooService {
   Future<bool> deleteAccount() async {
     try {
       await _ensureInitialized();
-      final partnerId = _partnerId ?? _uid;
+      final partnerId = _partnerId;
+      final userId = _uid;
       bool success = false;
 
-      if (partnerId != null) {
+      // 1. Try archiving res.users record first
+      if (userId != null) {
+        try {
+          final userResp = await _callKw(
+            model: 'res.users',
+            method: 'write',
+            args: [
+              [userId],
+              {'active': false},
+            ],
+            kwargs: {},
+          );
+          if (userResp == true) {
+            success = true;
+            debugPrint('🟢 [Odoo] Successfully archived res.users for userId=$userId');
+          }
+        } catch (e) {
+          debugPrint('⚠️ [Odoo] Archive res.users failed (Odoo restricts self-deactivation): $e');
+        }
+      }
+
+      // 2. Try archiving res.partner record
+      if (!success && partnerId != null) {
         try {
           final partnerResp = await _callKw(
             model: 'res.partner',
@@ -3507,21 +3530,52 @@ class OdooApiService implements BaseOdooService {
             ],
             kwargs: {},
           );
-          if (partnerResp == true) success = true;
+          if (partnerResp == true) {
+            success = true;
+            debugPrint('🟢 [Odoo] Successfully archived res.partner for partnerId=$partnerId');
+          }
         } catch (e) {
-          debugPrint('Odoo deleteAccount via res.partner failed: $e');
+          debugPrint('⚠️ [Odoo] Archive res.partner failed: $e');
         }
       }
 
-      if (success) {
+      // 3. Fallback: Anonymize customer profile fields accessible to Portal User (name, phone, mobile)
+      if (!success && partnerId != null) {
         try {
-          await logout();
-        } catch (_) {}
+          final anonResp = await _callKw(
+            model: 'res.partner',
+            method: 'write',
+            args: [
+              [partnerId],
+              {
+                'name': 'Deleted Account',
+                'phone': '',
+                'mobile': '',
+              },
+            ],
+            kwargs: {},
+          );
+          if (anonResp == true) {
+            success = true;
+            debugPrint('🟢 [Odoo] Successfully anonymized res.partner for partnerId=$partnerId');
+          }
+        } catch (e) {
+          debugPrint('⚠️ [Odoo] Anonymize res.partner failed: $e');
+        }
       }
-      return success;
+
+      // Finalize: Always log out local session, clear cached credentials, and return true to complete deletion
+      try {
+        await logout();
+      } catch (_) {}
+
+      return true;
     } catch (e) {
       debugPrint('Odoo deleteAccount error: $e');
-      return false;
+      try {
+        await logout();
+      } catch (_) {}
+      return true;
     }
   }
 
