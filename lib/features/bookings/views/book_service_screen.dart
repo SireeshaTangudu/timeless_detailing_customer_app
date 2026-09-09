@@ -34,7 +34,15 @@ class _BookServiceScreenState extends State<BookServiceScreen> {
   final _collectorNameController = TextEditingController();
   final _collectorLicenseController = TextEditingController();
 
-  DateTime _selectedDate = DateTime.now().add(const Duration(days: 1));
+  static DateTime _getNextWeekday(DateTime date) {
+    DateTime result = date;
+    while (result.weekday == DateTime.saturday || result.weekday == DateTime.sunday) {
+      result = result.add(const Duration(days: 1));
+    }
+    return result;
+  }
+
+  late DateTime _selectedDate = _getNextWeekday(DateTime.now().add(const Duration(days: 1)));
   String _selectedTimeSlot = '9:00 AM';
 
   final ImagePicker _picker = ImagePicker();
@@ -556,6 +564,11 @@ class _BookServiceScreenState extends State<BookServiceScreen> {
                             lastDate: DateTime.now().add(
                               const Duration(days: 60),
                             ),
+                            selectableDayPredicate: (DateTime day) {
+                              // Disable Saturday (6) and Sunday (7)
+                              return day.weekday != DateTime.saturday &&
+                                  day.weekday != DateTime.sunday;
+                            },
                             builder: (context, child) {
                               return Theme(
                                 data: Theme.of(context).copyWith(

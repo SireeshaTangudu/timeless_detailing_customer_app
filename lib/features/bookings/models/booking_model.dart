@@ -328,47 +328,47 @@ class Booking {
 
       final bool hasSalesOrder = json['opportunity_id'] != null && json['opportunity_id'] != false;
       final bool hasProjects = timelessProjectsList.isNotEmpty;
-      final bool hasSalesOrderOrProject = hasSalesOrder || hasProjects;
 
       // Rule 2: If there is no Sales Order / no Project yet:
-      // start > now -> Upcoming (confirmed)
-      // start <= now -> Past / Pending (completed)
-      if (!hasSalesOrderOrProject) {
+      // start > now -> Upcoming
+      // start <= now -> Past / Pending
+      if (!hasSalesOrder || !hasProjects) {
         if (bookingTime.isAfter(now)) {
-          return BookingStatus.confirmed;
+          return BookingStatus.confirmed; // Upcoming
         } else {
-          return BookingStatus.completed;
+          return BookingStatus.completed; // Past / Pending
         }
       }
 
       // Rule 3: If a Sales Order exists and one or more relevant Projects are linked:
-      // Check if ALL relevant Projects are completed / Done (fold == true or stage name done/completed):
-      final bool allProjectsDone = hasProjects &&
-          timelessProjectsList.every((proj) {
-            final stage = proj['stage_id'];
-            if (stage is Map) {
-              final isFolded = stage['fold'] == true;
-              final stageName = (stage['name'] ?? '').toString().toLowerCase();
-              return isFolded ||
-                  stageName.contains('done') ||
-                  stageName.contains('complet') ||
-                  stageName.contains('finish');
-            }
-            return false;
-          });
+      // Important for multiple projects:
+      // If one Sales Order has multiple Projects, the booking should only be considered Completed
+      // when all relevant Projects associated with that booking/Sales Order are completed.
+      final bool allProjectsDone = timelessProjectsList.every((proj) {
+        final stage = proj['stage_id'];
+        if (stage is Map) {
+          final isFolded = stage['fold'] == true;
+          final stageName = (stage['name'] ?? '').toString().toLowerCase();
+          return isFolded ||
+              stageName.contains('done') ||
+              stageName.contains('complet') ||
+              stageName.contains('finish');
+        }
+        return false;
+      });
 
-      // Rule 4: If all relevant Projects are completed / Done -> Completed
-      if (hasProjects && allProjectsDone) {
+      // If all relevant Projects are completed / Done -> Completed
+      if (allProjectsDone) {
         return BookingStatus.completed;
       }
 
-      // Rule 5: If any relevant Project is not completed:
+      // If any relevant Project is not completed:
       // start > now -> Upcoming
       // start <= now -> In Progress
       if (bookingTime.isAfter(now)) {
-        return BookingStatus.confirmed;
+        return BookingStatus.confirmed; // Upcoming
       } else {
-        return BookingStatus.inProgress;
+        return BookingStatus.inProgress; // In Progress
       }
     }
 
