@@ -323,7 +323,9 @@ class _BookServiceScreenState extends State<BookServiceScreen> {
         );
       }
     } catch (e) {
-      debugPrint('⚠️ [BookServiceScreen] Error parsing time slot "$_selectedTimeSlot": $e');
+      debugPrint(
+        '⚠️ [BookServiceScreen] Error parsing time slot "$_selectedTimeSlot": $e',
+      );
     }
 
     final finalDateTime = DateTime(
@@ -414,9 +416,13 @@ class _BookServiceScreenState extends State<BookServiceScreen> {
       startDateTime: finalDateTime,
       stopDateTime: finalDateTime.add(
         Duration(
-          minutes: ((widget.initialService.durationHours > 0 && widget.initialService.durationHours != 3.0
-                  ? widget.initialService.durationHours
-                  : 1.0) * 60).round(),
+          minutes:
+              ((widget.initialService.durationHours > 0 &&
+                              widget.initialService.durationHours != 3.0
+                          ? widget.initialService.durationHours
+                          : 1.0) *
+                      60)
+                  .round(),
         ),
       ),
       vehicleMake: vehicleMake,
@@ -468,8 +474,7 @@ class _BookServiceScreenState extends State<BookServiceScreen> {
           body: Column(
             children: [
               CustomAppBar(
-                title:
-                    'Book slot for ${widget.initialService.name.toLowerCase()}',
+                title: 'Book slot for ${widget.initialService.name}',
                 onBackPressed: () => Navigator.pop(context),
               ),
               Expanded(
@@ -625,14 +630,17 @@ class _BookServiceScreenState extends State<BookServiceScreen> {
                             );
                           }
 
-                          if (slotsResult != null && slotsResult.slots.isEmpty) {
+                          if (slotsResult != null &&
+                              slotsResult.slots.isEmpty) {
                             return Container(
                               width: double.infinity,
                               padding: const EdgeInsets.all(16),
                               decoration: BoxDecoration(
                                 color: const Color(0xFFFFF8E1),
                                 borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: const Color(0xFFFFE082)),
+                                border: Border.all(
+                                  color: const Color(0xFFFFE082),
+                                ),
                               ),
                               child: Row(
                                 children: [
@@ -644,7 +652,8 @@ class _BookServiceScreenState extends State<BookServiceScreen> {
                                   const SizedBox(width: 12),
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Text(
                                           'No Available Slots',
@@ -895,8 +904,9 @@ class _BookServiceScreenState extends State<BookServiceScreen> {
                         },
                       ),
                       Visibility(
-                        visible:
-                            _collectorNameController.text.trim().isNotEmpty,
+                        visible: _collectorNameController.text
+                            .trim()
+                            .isNotEmpty,
                         maintainState: true,
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,

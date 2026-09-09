@@ -760,9 +760,10 @@ class _UpcomingAppointmentDetailsScreenState
       0.0,
       (sum, item) => sum + ((item['price'] as num?)?.toDouble() ?? 0.0),
     );
-    final double totalToPay = (b.isDownPaymentInvoice || widget.isDownPaymentInvoice)
-        ? b.pendingAmount
-        : (b.pendingAmount + addOnsTotal);
+    final double currentInvoiceAmount = b.thisInvoiceAmount > 0
+        ? b.thisInvoiceAmount
+        : (b.isDownPaymentInvoice ? b.amountPaid : b.pendingAmount);
+    final double totalToPay = currentInvoiceAmount + addOnsTotal;
     final bool hasAddOns = b.addOns.isNotEmpty;
     final DateTime now = DateTime.now();
     final DateTime today = DateTime(now.year, now.month, now.day);
@@ -814,7 +815,7 @@ class _UpcomingAppointmentDetailsScreenState
         color: Colors.white,
       );
       buttonAction = () => _openGarageContact(context);
-    } else if (isDownPayment && isPaid) {
+    } else if (!isDownPayment || isPaid) {
       actionButtonText = 'Pay Balance';
       buttonColor = const Color(0xFFC4913F);
       buttonIcon = const SizedBox.shrink();
@@ -950,28 +951,52 @@ class _UpcomingAppointmentDetailsScreenState
                 'R ${b.totalPrice.toStringAsFixed(2)}',
               ),
               const SizedBox(height: 12),
-              if (b.percentageAmountPaid > 0) ...[
+              if (b.isDownPaymentInvoice) ...[
+                if (b.percentageAmountPaid > 0) ...[
+                  _buildLightDetailRow(
+                    'Deposit Required (%)',
+                    '${b.percentageAmountPaid.toStringAsFixed(0)}%',
+                  ),
+                  const SizedBox(height: 12),
+                ],
                 _buildLightDetailRow(
-                  'Deposit Required (%)',
-                  '${b.percentageAmountPaid.toStringAsFixed(0)}%',
+                  isPaid ? 'Deposit Amount Paid' : 'Amount Need To Pay',
+                  'R ${(b.thisInvoiceAmount > 0 ? b.thisInvoiceAmount : b.amountPaid).toStringAsFixed(2)}',
                 ),
                 const SizedBox(height: 12),
-              ],
-              if (b.amountPaid > 0) ...[
+                if (isPaid && b.amountPaidOn.isNotEmpty) ...[
+                  _buildLightDetailRow('Amount Paid On', b.amountPaidOn),
+                  const SizedBox(height: 12),
+                ],
                 _buildLightDetailRow(
-                  'Amount Paid',
-                  'R ${b.amountPaid.toStringAsFixed(2)}',
+                  'Pending Amount',
+                  'R ${b.pendingAmount.toStringAsFixed(2)}',
+                ),
+              ] else ...[
+                // Final Invoice
+                if (b.amountPaid > 0) ...[
+                  _buildLightDetailRow(
+                    b.percentageAmountPaid > 0
+                        ? 'Deposit Paid (${b.percentageAmountPaid.toStringAsFixed(0)}%)'
+                        : 'Deposit Paid',
+                    'R ${b.amountPaid.toStringAsFixed(2)}',
+                  ),
+                  const SizedBox(height: 12),
+                ],
+                _buildLightDetailRow(
+                  isPaid ? 'Final Amount Paid' : 'Amount Need To Pay',
+                  'R ${(b.thisInvoiceAmount > 0 ? b.thisInvoiceAmount : b.pendingAmount).toStringAsFixed(2)}',
                 ),
                 const SizedBox(height: 12),
+                if (isPaid && b.amountPaidOn.isNotEmpty) ...[
+                  _buildLightDetailRow('Amount Paid On', b.amountPaidOn),
+                  const SizedBox(height: 12),
+                ],
+                _buildLightDetailRow(
+                  'Pending Amount',
+                  'R ${b.pendingAmount.toStringAsFixed(2)}',
+                ),
               ],
-              if (b.amountPaidOn.isNotEmpty) ...[
-                _buildLightDetailRow('Amount Paid On', b.amountPaidOn),
-                const SizedBox(height: 12),
-              ],
-              _buildLightDetailRow(
-                'Pending Amount',
-                'R ${b.pendingAmount.toStringAsFixed(2)}',
-              ),
 
               if (hasAddOns) ...[
                 const SizedBox(height: 12),

@@ -113,9 +113,13 @@ class _EstimationScreenState extends State<EstimationScreen> {
                 TextField(
                   controller: reasonController,
                   maxLines: 3,
-                  style: GoogleFonts.montserrat(color: Colors.white, fontSize: 13),
+                  style: GoogleFonts.montserrat(
+                    color: Colors.white,
+                    fontSize: 13,
+                  ),
                   decoration: InputDecoration(
-                    hintText: 'Enter reason (e.g. Price too high, plans changed...)',
+                    hintText:
+                        'Enter reason (e.g. Price too high, plans changed...)',
                     hintStyle: GoogleFonts.montserrat(
                       color: const Color(0xFF7A7063),
                       fontSize: 12.5,
@@ -139,7 +143,9 @@ class _EstimationScreenState extends State<EstimationScreen> {
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
                       borderSide: BorderSide(
-                        color: errorText != null ? const Color(0xFFE57373) : const Color(0xFF4A3E30),
+                        color: errorText != null
+                            ? const Color(0xFFE57373)
+                            : const Color(0xFF4A3E30),
                       ),
                     ),
                   ),
@@ -165,7 +171,8 @@ class _EstimationScreenState extends State<EstimationScreen> {
                         final reason = reasonController.text.trim();
                         if (reason.isEmpty) {
                           setDialogState(() {
-                            errorText = 'Reason is required to decline quotation';
+                            errorText =
+                                'Reason is required to decline quotation';
                           });
                           return;
                         }
@@ -179,7 +186,8 @@ class _EstimationScreenState extends State<EstimationScreen> {
                           parentContext,
                           listen: false,
                         );
-                        final orderId = data.odooSaleOrderId ??
+                        final orderId =
+                            data.odooSaleOrderId ??
                             int.tryParse(
                               data.id.replaceAll(RegExp(r'[^\d]'), ''),
                             );
@@ -201,7 +209,9 @@ class _EstimationScreenState extends State<EstimationScreen> {
                         } else if (parentContext.mounted) {
                           ScaffoldMessenger.of(parentContext).showSnackBar(
                             const SnackBar(
-                              content: Text('Failed to decline quotation. Please try again.'),
+                              content: Text(
+                                'Failed to decline quotation. Please try again.',
+                              ),
                               backgroundColor: Color(0xFFC62828),
                             ),
                           );
@@ -225,9 +235,7 @@ class _EstimationScreenState extends State<EstimationScreen> {
                       )
                     : Text(
                         'Submit Decline',
-                        style: GoogleFonts.outfit(
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: GoogleFonts.outfit(fontWeight: FontWeight.bold),
                       ),
               ),
             ],
@@ -406,9 +414,13 @@ class _EstimationScreenState extends State<EstimationScreen> {
                                     if (mounted) {
                                       setState(() => _status = 'declined');
                                       Navigator.pop(modalContext);
-                                      ScaffoldMessenger.of(context).showSnackBar(
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
                                         const SnackBar(
-                                          content: Text('Quotation declined successfully.'),
+                                          content: Text(
+                                            'Quotation declined successfully.',
+                                          ),
                                           backgroundColor: Color(0xFFB71C1C),
                                         ),
                                       );
@@ -469,7 +481,8 @@ class _EstimationScreenState extends State<EstimationScreen> {
                                 try {
                                   final sigB64 = await signatureKey.currentState
                                       ?.toBase64Png();
-                                  final orderId = data.odooSaleOrderId ??
+                                  final orderId =
+                                      data.odooSaleOrderId ??
                                       int.tryParse(
                                         data.id.replaceAll(
                                           RegExp(r'[^\d]'),
@@ -477,7 +490,9 @@ class _EstimationScreenState extends State<EstimationScreen> {
                                         ),
                                       );
                                   if (orderId == null || orderId <= 0) {
-                                    throw Exception('Dynamic quotation ID missing or invalid.');
+                                    throw Exception(
+                                      'Dynamic quotation ID missing or invalid.',
+                                    );
                                   }
                                   isSuccess = await odooService.acceptQuotation(
                                     orderId: orderId,
@@ -485,7 +500,10 @@ class _EstimationScreenState extends State<EstimationScreen> {
                                     signatureBase64: sigB64,
                                   );
                                   if (context.mounted && isSuccess) {
-                                    Provider.of<BookingsController>(context, listen: false).loadBookings();
+                                    Provider.of<BookingsController>(
+                                      context,
+                                      listen: false,
+                                    ).loadBookings();
                                   }
                                 } catch (e) {
                                   debugPrint('Error accepting quotation: $e');
@@ -551,9 +569,7 @@ class _EstimationScreenState extends State<EstimationScreen> {
     } else {
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(
-          builder: (context) => const MainNavigationScaffold(),
-        ),
+        MaterialPageRoute(builder: (context) => const MainNavigationScaffold()),
         (route) => false,
       );
     }
@@ -577,61 +593,64 @@ class _EstimationScreenState extends State<EstimationScreen> {
               title: 'Your Estimate',
               onBackPressed: () => _handleBack(context),
             ),
-          Expanded(
-            child: SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Main Estimation Ticket Card
-                  _buildEstimateTicketCard(context, data),
+            Expanded(
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 16,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Main Estimation Ticket Card
+                    _buildEstimateTicketCard(context, data),
 
-                  const SizedBox(height: 16),
+                    const SizedBox(height: 16),
 
-                  // Disclaimer notice
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    child: Text(
-                      data.disclaimerText,
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.montserrat(
-                        fontSize: 11.5,
-                        color: const Color(0xFF7E7667),
-                        height: 1.45,
-                        fontWeight: FontWeight.w400,
+                    // Disclaimer notice
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: Text(
+                        data.disclaimerText,
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.montserrat(
+                          fontSize: 11.5,
+                          color: const Color(0xFF7E7667),
+                          height: 1.45,
+                          fontWeight: FontWeight.w400,
+                        ),
                       ),
                     ),
-                  ),
 
-                  const SizedBox(height: 28),
+                    const SizedBox(height: 28),
 
-                  // Section Title: What will happen next
-                  Text(
-                    'What will happen next',
-                    style: GoogleFonts.outfit(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: const Color(0xFF1C1C1E),
-                      letterSpacing: -0.2,
+                    // Section Title: What will happen next
+                    Text(
+                      'What will happen next',
+                      style: GoogleFonts.outfit(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF1C1C1E),
+                        letterSpacing: -0.2,
+                      ),
                     ),
-                  ),
 
-                  const SizedBox(height: 14),
+                    const SizedBox(height: 14),
 
-                  // Next steps timeline container
-                  _buildNextStepsCard(context, data),
+                    // Next steps timeline container
+                    _buildNextStepsCard(context, data),
 
-                  const SizedBox(height: 32),
-                ],
+                    const SizedBox(height: 32),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   /// Two-tone ticket card
   Widget _buildEstimateTicketCard(BuildContext context, EstimationModel data) {
@@ -729,16 +748,20 @@ class _EstimationScreenState extends State<EstimationScreen> {
                 _buildLightDetailRow('Quotation Ref', data.id),
                 const SizedBox(height: 12),
                 _buildLightDetailRow('Selected Car', data.vehicleName),
-                if (data.vehicleRegistration != null && data.vehicleRegistration!.isNotEmpty) ...[
+                if (data.vehicleRegistration != null &&
+                    data.vehicleRegistration!.isNotEmpty) ...[
                   const SizedBox(height: 12),
-                  _buildLightDetailRow('Registration', data.vehicleRegistration!),
+                  _buildLightDetailRow(
+                    'Registration',
+                    data.vehicleRegistration!,
+                  ),
                 ],
                 if (data.vehicleVin != null && data.vehicleVin!.isNotEmpty) ...[
                   const SizedBox(height: 12),
                   _buildLightDetailRow('VIN', data.vehicleVin!),
                 ],
-                const SizedBox(height: 12),
-                _buildLightDetailRow('Car Type', data.vehicleType),
+                // const SizedBox(height: 12),
+                // _buildLightDetailRow('Car Type', data.vehicleType),
                 const SizedBox(height: 12),
                 _buildLightDetailRow('Service', data.serviceName),
 
@@ -755,7 +778,8 @@ class _EstimationScreenState extends State<EstimationScreen> {
                 _buildLightDetailRow('Service Date', data.serviceDate),
                 const SizedBox(height: 12),
                 _buildLightDetailRow('Slot', data.serviceTime),
-                if (data.validityDate != null && data.validityDate!.isNotEmpty) ...[
+                if (data.validityDate != null &&
+                    data.validityDate!.isNotEmpty) ...[
                   const SizedBox(height: 12),
                   _buildLightDetailRow('Valid Until', data.validityDate!),
                 ],
@@ -788,67 +812,69 @@ class _EstimationScreenState extends State<EstimationScreen> {
                     ],
                   ),
                   const SizedBox(height: 10),
-                  ...data.lineItems.map((item) => Container(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF9F7F4),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: const Color(0xFFEBE7DF)),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              child: Text(
-                                item.productName,
+                  ...data.lineItems.map(
+                    (item) => Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF9F7F4),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: const Color(0xFFEBE7DF)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  item.productName,
+                                  style: GoogleFonts.outfit(
+                                    fontSize: 13.5,
+                                    fontWeight: FontWeight.w600,
+                                    color: const Color(0xFF1D1813),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                '${data.currencySymbol} ${item.priceTotal.toStringAsFixed(2)}',
                                 style: GoogleFonts.outfit(
                                   fontSize: 13.5,
-                                  fontWeight: FontWeight.w600,
-                                  color: const Color(0xFF1D1813),
+                                  fontWeight: FontWeight.bold,
+                                  color: const Color(0xFFC4913F),
                                 ),
                               ),
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              '${data.currencySymbol} ${item.priceTotal.toStringAsFixed(2)}',
-                              style: GoogleFonts.outfit(
-                                fontSize: 13.5,
-                                fontWeight: FontWeight.bold,
-                                color: const Color(0xFFC4913F),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 6),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'Qty: ${item.quantity.toInt()} × ${data.currencySymbol} ${item.priceUnit.toStringAsFixed(2)}',
-                              style: GoogleFonts.montserrat(
-                                fontSize: 11.5,
-                                color: const Color(0xFF7A7063),
-                              ),
-                            ),
-                            if (item.discount > 0)
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
                               Text(
-                                'Discount: ${item.discount}%',
+                                'Qty: ${item.quantity.toInt()} × ${data.currencySymbol} ${item.priceUnit.toStringAsFixed(2)}',
                                 style: GoogleFonts.montserrat(
                                   fontSize: 11.5,
-                                  color: const Color(0xFF2E7D32),
-                                  fontWeight: FontWeight.w600,
+                                  color: const Color(0xFF7A7063),
                                 ),
                               ),
-                          ],
-                        ),
-                      ],
+                              if (item.discount > 0)
+                                Text(
+                                  'Discount: ${item.discount}%',
+                                  style: GoogleFonts.montserrat(
+                                    fontSize: 11.5,
+                                    color: const Color(0xFF2E7D32),
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
-                  )),
+                  ),
                 ],
 
                 if (data.amountUntaxed != null || data.amountTax != null) ...[

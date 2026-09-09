@@ -43,6 +43,7 @@ class Booking {
   final double amountPaid;
   final String amountPaidOn;
   final double pendingAmount;
+  final double thisInvoiceAmount;
   final String carDropOffStatus;
   final List<Map<String, dynamic>> addOns;
   final int? invoiceId;
@@ -81,6 +82,7 @@ class Booking {
     this.isDownPaymentInvoice = false,
     this.percentageAmountPaid = 0.0,
     this.amountPaid = 0.0,
+    this.thisInvoiceAmount = 0.0,
     this.amountPaidOn = '',
     this.pendingAmount = 0.0,
     this.carDropOffStatus = '',
@@ -227,12 +229,32 @@ class Booking {
 
     // Vehicle extraction
     String vehicleName = '';
-    final make = json['booking_vehicle_make'] is String ? json['booking_vehicle_make'] as String : '';
-    final model = json['booking_vehicle_model'] is String ? json['booking_vehicle_model'] as String : '';
-    if (make.isNotEmpty || model.isNotEmpty) {
-      vehicleName = '$make $model'.trim();
-    } else if (json['vehicle_name'] is String && (json['vehicle_name'] as String).isNotEmpty) {
-      vehicleName = json['vehicle_name'];
+    String? vehicleReg = json['vehicle_registration']?.toString() ?? (json['vehicle_plate'] is String ? json['vehicle_plate'] as String : null);
+    String make = json['booking_vehicle_make']?.toString() ?? json['vehicle_make']?.toString() ?? '';
+    String model = json['booking_vehicle_model']?.toString() ?? json['vehicle_model']?.toString() ?? '';
+
+    if (json['vehicle_id'] is Map) {
+      final vMap = json['vehicle_id'] as Map;
+      final vMake = vMap['make']?.toString() ?? '';
+      final vModel = vMap['model']?.toString() ?? '';
+      if (vMake.isNotEmpty) make = vMake;
+      if (vModel.isNotEmpty) model = vModel;
+      vehicleName = '$vMake $vModel'.trim();
+      if (vehicleReg == null || vehicleReg.isEmpty) {
+        vehicleReg = vMap['registration']?.toString();
+      }
+    }
+
+    if (vehicleName.isEmpty) {
+      if (make.isNotEmpty || model.isNotEmpty) {
+        vehicleName = '$make $model'.trim();
+      } else if (json['vehicle_name'] is String && (json['vehicle_name'] as String).isNotEmpty) {
+        vehicleName = json['vehicle_name'] as String;
+      }
+    }
+
+    if (vehicleReg == null || vehicleReg.isEmpty) {
+      vehicleReg = json['vehicle_registration']?.toString() ?? (json['vehicle_plate'] is String ? json['vehicle_plate'] as String : '');
     }
 
     // Date extraction (calendar.event uses 'start' & 'stop')
@@ -449,13 +471,27 @@ class Booking {
       }
     }
 
+    final bool isDepositInvoice = json['timeless_is_down_payment_invoice'] == true || summary['is_deposit_invoice'] == true;
+
     final double depositAmt = (summary['deposit_amount'] as num?)?.toDouble() ??
+        (isDepositInvoice ? (json['amount_total'] as num?)?.toDouble() ?? 0.0 : 0.0);
+
+    final double totalPaidSoFar = (summary['amount_paid'] as num?)?.toDouble() ?? 0.0;
+
+    final double thisInvAmt = (summary['this_invoice_amount'] as num?)?.toDouble() ??
         (json['amount_total'] as num?)?.toDouble() ??
         0.0;
 
-    final double remainAmt = (summary['remaining_amount'] as num?)?.toDouble() ??
-        (json['amount_residual'] as num?)?.toDouble() ??
-        (origTotal > 0 ? (origTotal - depositAmt) : 0.0);
+    final double thisInvResidual = (json['amount_residual'] as num?)?.toDouble() ?? thisInvAmt;
+
+    double remainAmt;
+    if (isDepositInvoice) {
+      remainAmt = (summary['remaining_amount'] as num?)?.toDouble() ??
+          (origTotal > 0 ? (origTotal - depositAmt) : 0.0);
+    } else {
+      final double outstanding = (summary['outstanding_balance'] as num?)?.toDouble() ?? thisInvResidual;
+      remainAmt = (outstanding - thisInvResidual).clamp(0.0, double.infinity);
+    }
 
     final String pctLabel = (summary['deposit_percentage_label'] ?? '').toString();
     final double pctVal = double.tryParse(pctLabel.replaceAll(RegExp(r'[^\d.]'), '')) ?? 0.0;
@@ -493,9 +529,10 @@ class Booking {
       technicianAvatar: '',
       bookingVehicleMake: vMake.isNotEmpty ? vMake : null,
       bookingVehicleModel: vModel.isNotEmpty ? vModel : null,
-      isDownPaymentInvoice: json['timeless_is_down_payment_invoice'] == true || summary['is_deposit_invoice'] == true,
+      isDownPaymentInvoice: isDepositInvoice,
       percentageAmountPaid: pctVal,
-      amountPaid: depositAmt,
+      amountPaid: isDepositInvoice ? depositAmt : (totalPaidSoFar > 0 ? totalPaidSoFar : depositAmt),
+      thisInvoiceAmount: thisInvAmt,
       amountPaidOn: invDateStr.isNotEmpty ? invDateStr : '',
       pendingAmount: remainAmt,
       carDropOffStatus: '',

@@ -67,7 +67,9 @@ class EstimationLineItemModel {
     return EstimationLineItemModel(
       id: json['id'] is int ? json['id'] as int : 0,
       productId: pId,
-      productName: pName.isNotEmpty ? pName : (nameStr.isNotEmpty ? nameStr : 'Detailing Service'),
+      productName: pName.isNotEmpty
+          ? pName
+          : (nameStr.isNotEmpty ? nameStr : 'Detailing Service'),
       description: nameStr,
       quantity: (json['product_uom_qty'] as num?)?.toDouble() ?? 1.0,
       priceUnit: (json['price_unit'] as num?)?.toDouble() ?? 0.0,
@@ -110,9 +112,11 @@ class EstimationModel {
   final String? validityDate;
   final String disclaimerText;
   final String state; // 'draft', 'sent', 'sale', 'cancel'
-  final String? notificationType; // 'appointment_booked', 'quotation_sent', etc.
+  final String?
+  notificationType; // 'appointment_booked', 'quotation_sent', etc.
   final List<EstimationLineItemModel> lineItems;
   final List<EstimationStepModel> nextSteps;
+  final List<Map<String, dynamic>> vehicleHistoryOrders;
 
   const EstimationModel({
     required this.id,
@@ -135,10 +139,13 @@ class EstimationModel {
     this.notificationType,
     this.lineItems = const [],
     required this.nextSteps,
+    this.vehicleHistoryOrders = const [],
   });
 
   bool get isQuotationSent =>
-      state == 'sent' || state == 'sale' || notificationType == 'quotation_sent';
+      state == 'sent' ||
+      state == 'sale' ||
+      notificationType == 'quotation_sent';
 
   /// Default estimation model structure when API data is absent
   factory EstimationModel.defaultStatic() {
@@ -173,14 +180,8 @@ class EstimationModel {
           stepNumber: 3,
           title: 'New quote with the updated amount post inspection',
         ),
-        EstimationStepModel(
-          stepNumber: 4,
-          title: 'Accept the quote',
-        ),
-        EstimationStepModel(
-          stepNumber: 5,
-          title: 'Get your car serviced!',
-        ),
+        EstimationStepModel(stepNumber: 4, title: 'Accept the quote'),
+        EstimationStepModel(stepNumber: 5, title: 'Get your car serviced!'),
       ],
     );
   }
@@ -232,14 +233,8 @@ class EstimationModel {
           stepNumber: 3,
           title: 'New quote with the updated amount post inspection',
         ),
-        EstimationStepModel(
-          stepNumber: 4,
-          title: 'Accept the quote',
-        ),
-        EstimationStepModel(
-          stepNumber: 5,
-          title: 'Get your car serviced!',
-        ),
+        EstimationStepModel(stepNumber: 4, title: 'Accept the quote'),
+        EstimationStepModel(stepNumber: 5, title: 'Get your car serviced!'),
       ],
     );
   }
@@ -257,7 +252,9 @@ class EstimationModel {
         : null;
 
     final orderState = json['state']?.toString() ?? 'sent';
-    final nameStr = json['name']?.toString() ?? (json['id'] != null ? 'SO-00${json['id']}' : 'SO-001');
+    final nameStr =
+        json['name']?.toString() ??
+        (json['id'] != null ? 'SO-00${json['id']}' : 'SO-001');
     final int? saleOrderId = json['id'] is int
         ? json['id'] as int
         : int.tryParse(json['id']?.toString() ?? '');
@@ -271,14 +268,19 @@ class EstimationModel {
         if (item is Map<String, dynamic>) {
           lines.add(EstimationLineItemModel.fromJson(item));
         } else if (item is Map) {
-          lines.add(EstimationLineItemModel.fromJson(Map<String, dynamic>.from(item)));
+          lines.add(
+            EstimationLineItemModel.fromJson(Map<String, dynamic>.from(item)),
+          );
         }
       }
     }
 
     String serviceNameStr = '';
     if (lines.isNotEmpty) {
-      serviceNameStr = lines.map((l) => l.productName).where((n) => n.isNotEmpty).join(', ');
+      serviceNameStr = lines
+          .map((l) => l.productName)
+          .where((n) => n.isNotEmpty)
+          .join(', ');
       if (serviceNameStr.isEmpty) serviceNameStr = lines.first.description;
     } else if (json['service_name'] != null) {
       serviceNameStr = json['service_name'].toString();
@@ -288,7 +290,7 @@ class EstimationModel {
     }
 
     String vehicleNameStr = '';
-    String? vehicleReg;
+    String? vehicleReg = json['vehicle_registration']?.toString();
     String? vehicleVin;
 
     if (json['vehicle_id'] is Map) {
@@ -296,8 +298,10 @@ class EstimationModel {
       final make = vMap['make']?.toString() ?? '';
       final model = vMap['model']?.toString() ?? '';
       vehicleNameStr = '$make $model'.trim();
-      vehicleReg = vMap['registration']?.toString();
       vehicleVin = vMap['vin']?.toString();
+      if (vehicleReg == null || vehicleReg.isEmpty) {
+        vehicleReg = vMap['registration']?.toString();
+      }
     }
 
     if (vehicleNameStr.isEmpty) {
@@ -306,18 +310,17 @@ class EstimationModel {
       vehicleNameStr = '$make $model'.trim();
     }
 
-    if (vehicleReg == null || vehicleReg.isEmpty) {
-      vehicleReg = json['vehicle_registration']?.toString();
-    }
-
     if (vehicleNameStr.isEmpty) {
       vehicleNameStr = 'Client Vehicle';
     }
 
     String dateStr = 'Today';
     String timeStr = '12:00 PM';
-    if (json['date_order'] != null && json['date_order'].toString().isNotEmpty) {
-      final dt = DateTime.tryParse(json['date_order'].toString().replaceAll(' ', 'T'));
+    if (json['date_order'] != null &&
+        json['date_order'].toString().isNotEmpty) {
+      final dt = DateTime.tryParse(
+        json['date_order'].toString().replaceAll(' ', 'T'),
+      );
       if (dt != null) {
         final localDt = dt.add(const Duration(hours: 2));
         dateStr = '${localDt.day} ${_monthName(localDt.month)} ${localDt.year}';
@@ -329,12 +332,23 @@ class EstimationModel {
     }
 
     String? validityStr;
-    if (json['validity_date'] != null && json['validity_date'].toString().isNotEmpty) {
+    if (json['validity_date'] != null &&
+        json['validity_date'].toString().isNotEmpty) {
       final dtVal = DateTime.tryParse(json['validity_date'].toString());
       if (dtVal != null) {
         validityStr = '${dtVal.day} ${_monthName(dtVal.month)} ${dtVal.year}';
       } else {
         validityStr = json['validity_date'].toString();
+      }
+    }
+
+    List<Map<String, dynamic>> parsedHistory = [];
+    final rawHistory = json['vehicle_history_order_ids'];
+    if (rawHistory is List) {
+      for (final item in rawHistory) {
+        if (item is Map) {
+          parsedHistory.add(Map<String, dynamic>.from(item));
+        }
       }
     }
 
@@ -348,8 +362,11 @@ class EstimationModel {
       amountTax: taxVal,
       currencySymbol: 'R',
       vehicleName: vehicleNameStr,
-      vehicleType: json['vehicle_type']?.toString() ??
-          (vehicleReg != null && vehicleReg.isNotEmpty ? 'Reg: $vehicleReg' : 'Vehicle'),
+      vehicleType:
+          json['vehicle_type']?.toString() ??
+          (vehicleReg != null && vehicleReg.isNotEmpty
+              ? 'Reg: $vehicleReg'
+              : 'Vehicle'),
       vehicleRegistration: vehicleReg,
       vehicleVin: vehicleVin,
       serviceDate: dateStr,
@@ -358,7 +375,9 @@ class EstimationModel {
       disclaimerText:
           'Please review the breakdown above and click Accept & Sign below to confirm your estimate.',
       state: orderState,
-      notificationType: notifType ?? (orderState == 'draft' ? 'appointment_booked' : 'quotation_sent'),
+      notificationType:
+          notifType ??
+          (orderState == 'draft' ? 'appointment_booked' : 'quotation_sent'),
       lineItems: lines,
       nextSteps: [
         const EstimationStepModel(
@@ -386,17 +405,24 @@ class EstimationModel {
           title: 'Get your car serviced!',
         ),
       ],
+      vehicleHistoryOrders: parsedHistory,
     );
   }
 
   /// Factory specifically constructed from Odoo / Push notification JSON payload
   factory EstimationModel.fromNotificationJson(Map<String, dynamic> json) {
-    final notifType = (json['notification_type'] ?? json['type'] ?? '').toString().toLowerCase();
-    final resModel = (json['res_model'] ?? json['model'] ?? '').toString().toLowerCase();
+    final notifType = (json['notification_type'] ?? json['type'] ?? '')
+        .toString()
+        .toLowerCase();
+    final resModel = (json['res_model'] ?? json['model'] ?? '')
+        .toString()
+        .toLowerCase();
     final rawSaleOrderId = json['sale_order_id'];
 
     int? saleOrderId;
-    if (rawSaleOrderId is List && rawSaleOrderId.isNotEmpty && rawSaleOrderId.first is int) {
+    if (rawSaleOrderId is List &&
+        rawSaleOrderId.isNotEmpty &&
+        rawSaleOrderId.first is int) {
       saleOrderId = rawSaleOrderId.first as int;
     } else if (rawSaleOrderId is int) {
       saleOrderId = rawSaleOrderId;
@@ -404,20 +430,25 @@ class EstimationModel {
       saleOrderId = int.tryParse(rawSaleOrderId);
     }
 
-    final bool isQuotationSent = notifType == 'quotation_sent' ||
+    final bool isQuotationSent =
+        notifType == 'quotation_sent' ||
         resModel == 'sale.order' ||
         (saleOrderId != null && saleOrderId > 0);
 
-    final String notifMsg = json['message']?.toString() ?? json['body']?.toString() ?? '';
+    final String notifMsg =
+        json['message']?.toString() ?? json['body']?.toString() ?? '';
 
     String serviceNameStr = 'Vehicle Detailing Service';
-    String serviceDateStr = json['service_date']?.toString() ?? 'Scheduled Slot';
+    String serviceDateStr =
+        json['service_date']?.toString() ?? 'Scheduled Slot';
     String serviceTimeStr = json['service_time']?.toString() ?? '12:00 PM';
 
     if (notifMsg.contains('for ') && notifMsg.contains(' is confirmed for ')) {
       final parts = notifMsg.split(' is confirmed for ');
       if (parts.length == 2) {
-        final servicePart = parts[0].replaceAll('Your appointment for ', '').trim();
+        final servicePart = parts[0]
+            .replaceAll('Your appointment for ', '')
+            .trim();
         if (servicePart.isNotEmpty) serviceNameStr = servicePart;
 
         final dateTimePart = parts[1].replaceAll('.', '').trim();
@@ -450,7 +481,9 @@ class EstimationModel {
         if (item is Map<String, dynamic>) {
           lines.add(EstimationLineItemModel.fromJson(item));
         } else if (item is Map) {
-          lines.add(EstimationLineItemModel.fromJson(Map<String, dynamic>.from(item)));
+          lines.add(
+            EstimationLineItemModel.fromJson(Map<String, dynamic>.from(item)),
+          );
         }
       }
     }
@@ -462,7 +495,10 @@ class EstimationModel {
       serviceDescription: isQuotationSent
           ? 'Final quotation sent by Timeless Detailing Technician'
           : 'Estimated cost for your ${serviceNameStr.toLowerCase()} service',
-      estimatedAmount: (json['amount_total'] ?? json['estimated_amount'] as num?)?.toDouble() ?? 2800.0,
+      estimatedAmount:
+          (json['amount_total'] ?? json['estimated_amount'] as num?)
+              ?.toDouble() ??
+          2800.0,
       amountUntaxed: (json['amount_untaxed'] as num?)?.toDouble(),
       amountTax: (json['amount_tax'] as num?)?.toDouble(),
       currencySymbol: 'R',
@@ -472,7 +508,9 @@ class EstimationModel {
       serviceTime: serviceTimeStr,
       disclaimerText: disclaimer,
       state: isQuotationSent ? 'sent' : 'draft',
-      notificationType: isQuotationSent ? 'quotation_sent' : 'appointment_booked',
+      notificationType: isQuotationSent
+          ? 'quotation_sent'
+          : 'appointment_booked',
       lineItems: lines,
       nextSteps: [
         const EstimationStepModel(
@@ -508,13 +546,17 @@ class EstimationModel {
     if (json.containsKey('order_line') || json.containsKey('amount_total')) {
       return EstimationModel.fromOdooJson(json);
     }
-    if (json.containsKey('notification_type') || json.containsKey('res_model')) {
+    if (json.containsKey('notification_type') ||
+        json.containsKey('res_model')) {
       return EstimationModel.fromNotificationJson(json);
     }
     var stepsList = <EstimationStepModel>[];
     if (json['next_steps'] is List) {
       stepsList = (json['next_steps'] as List)
-          .map((item) => EstimationStepModel.fromJson(item as Map<String, dynamic>))
+          .map(
+            (item) =>
+                EstimationStepModel.fromJson(item as Map<String, dynamic>),
+          )
           .toList();
     } else {
       stepsList = EstimationModel.defaultStatic().nextSteps;
@@ -523,14 +565,18 @@ class EstimationModel {
     List<EstimationLineItemModel> lines = [];
     if (json['line_items'] is List) {
       lines = (json['line_items'] as List)
-          .map((item) => EstimationLineItemModel.fromJson(item as Map<String, dynamic>))
+          .map(
+            (item) =>
+                EstimationLineItemModel.fromJson(item as Map<String, dynamic>),
+          )
           .toList();
     }
 
     return EstimationModel(
       id: json['id']?.toString() ?? 'EST-000',
       serviceName: json['service_name'] as String? ?? 'Interior Detailing',
-      serviceDescription: json['service_description'] as String? ??
+      serviceDescription:
+          json['service_description'] as String? ??
           'Estimated cost for your interior detailing service',
       estimatedAmount: (json['estimated_amount'] as num?)?.toDouble() ?? 2800.0,
       amountUntaxed: (json['amount_untaxed'] as num?)?.toDouble(),
@@ -543,7 +589,8 @@ class EstimationModel {
       serviceDate: json['service_date'] as String? ?? '12th August',
       serviceTime: json['service_time'] as String? ?? '12:00 PM',
       validityDate: json['validity_date'] as String?,
-      disclaimerText: json['disclaimer_text'] as String? ??
+      disclaimerText:
+          json['disclaimer_text'] as String? ??
           'The above mentioned amount is the base price. We will share the final pricing after completing our inspection on 12th August at 12:00 PM.',
       state: json['state']?.toString() ?? 'sent',
       notificationType: json['notification_type']?.toString(),
@@ -594,10 +641,9 @@ class EstimationModel {
       'September',
       'October',
       'November',
-      'December'
+      'December',
     ];
     if (month >= 1 && month <= 12) return months[month - 1];
     return 'August';
   }
 }
-

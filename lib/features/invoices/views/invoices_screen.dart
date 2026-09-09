@@ -296,7 +296,7 @@ class _InvoicesScreenState extends State<InvoicesScreen> {
                             ),
                           ),
                         Text(
-                          'Total Amount',
+                          isPaid ? 'Total Amount' : 'Amount Need To Pay',
                           style: GoogleFonts.montserrat(
                             fontSize: 12,
                             color: const Color(0xFF8C8273),
