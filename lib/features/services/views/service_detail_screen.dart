@@ -8,6 +8,7 @@ import 'package:timeless_detailing_customer_app/features/bookings/views/book_ser
 
 import 'package:provider/provider.dart';
 import 'package:timeless_detailing_customer_app/features/services/controllers/services_controller.dart';
+import 'package:timeless_detailing_customer_app/core/services/currency_service.dart';
 
 class ServiceDetailScreen extends StatefulWidget {
   final DetailService service;
@@ -141,7 +142,7 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
                           ),
                           const SizedBox(width: 10),
                           Text(
-                            '\$${service.price.toStringAsFixed(2)}',
+                            CurrencyService.instance.format(service.price),
                             style: GoogleFonts.outfit(
                               fontSize: 26,
                               fontWeight: FontWeight.bold,
@@ -235,7 +236,7 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
       ),
       bottomNavigationBar: CustomFooter(
         title: 'Est. ${service.durationHours} Hours',
-        subtitle: '\$${service.price.toStringAsFixed(2)}',
+        subtitle: CurrencyService.instance.format(service.price),
         buttonText: 'BOOK THIS SERVICE',
         onPressed: () {
           final templateId = service.odooProductId ?? int.tryParse(service.id) ?? 4;

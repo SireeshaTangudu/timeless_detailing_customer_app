@@ -11,6 +11,7 @@ import '../../services/models/service_model.dart';
 import 'package:timeless_detailing_customer_app/core/widgets/custom_shimmer_loading.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/views/upcoming_appointment_details_screen.dart';
 import '../../../core/widgets/custom_loader.dart';
+import 'package:timeless_detailing_customer_app/core/services/currency_service.dart';
 
 class BookingsHistoryScreen extends StatefulWidget {
   final VoidCallback? onMenuTap;
@@ -176,7 +177,7 @@ class _BookingsHistoryScreenState extends State<BookingsHistoryScreen> {
         ? DateFormat('d MMMM, yyyy').format(item.bookingDateTime)
         : item['date'];
     final String priceStr = item is Booking
-        ? 'R ${item.totalPrice.toStringAsFixed(0)}'
+        ? CurrencyService.instance.format(item.totalPrice, decimalDigits: 0)
         : item['price'];
     final String? vehicleStr = item is Booking ? item.vehicleName : null;
     final String? apptType = item is Booking ? item.appointmentTypeName : null;
@@ -493,8 +494,8 @@ class _NewEstimateScreenState extends State<NewEstimateScreen> {
         ? b.service.name
         : (widget.bookingItem?['title'] ?? 'Car Detailing');
     final String priceStr = b != null
-        ? 'R ${b.totalPrice.toStringAsFixed(0)}'
-        : (widget.bookingItem?['price'] ?? 'R 0');
+        ? CurrencyService.instance.format(b.totalPrice, decimalDigits: 0)
+        : (widget.bookingItem?['price'] ?? '${CurrencyService.instance.defaultSymbol} 0');
     final String selectedCar = b != null
         ? (b.vehicleName.isNotEmpty ? b.vehicleName : 'Client Vehicle')
         : (widget.bookingItem?['car'] ?? 'Client Vehicle');

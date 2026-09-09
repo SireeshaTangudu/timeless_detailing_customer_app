@@ -17,6 +17,7 @@ import 'package:timeless_detailing_customer_app/features/bookings/models/booking
 import 'package:timeless_detailing_customer_app/features/bookings/models/bookable_slot_model.dart';
 import 'package:timeless_detailing_customer_app/features/tracking/models/project_model.dart';
 import 'package:timeless_detailing_customer_app/core/services/firebase_notification_service.dart';
+import 'package:timeless_detailing_customer_app/core/services/currency_service.dart';
 
 abstract class BaseOdooService {
   String get baseUrl;
@@ -396,6 +397,16 @@ class OdooApiService implements BaseOdooService {
         print('Odoo authentication successful! UID=${result['uid']}');
         _uid = result['uid'];
         _sessionId = result['session_id'];
+
+        // Extract currency settings from login response
+        if (result['currencies'] != null && result['currencies'] is Map) {
+          try {
+            final currenciesMap = Map<String, dynamic>.from(result['currencies'] as Map);
+            await CurrencyService.instance.updateFromLoginResponse(currenciesMap);
+          } catch (e) {
+            debugPrint('Error parsing currencies from login response: $e');
+          }
+        }
 
         if (result['partner_id'] != null) {
           if (result['partner_id'] is int) {
@@ -3794,16 +3805,26 @@ class OdooApiService implements BaseOdooService {
             'payment_state': {},
             'timeless_is_down_payment_invoice': {},
           },
-          'order': 'invoice_date desc',
+          'order': 'invoice_date desc, id desc',
         },
       );
       final List records = (response is Map && response['records'] is List)
           ? response['records'] as List
           : [];
+      final list = records.map((r) => Map<String, dynamic>.from(r as Map)).toList();
+      list.sort((a, b) {
+        final idA = (a['id'] is int) ? a['id'] as int : (int.tryParse(a['id']?.toString() ?? '') ?? 0);
+        final idB = (b['id'] is int) ? b['id'] as int : (int.tryParse(b['id']?.toString() ?? '') ?? 0);
+        if (idA != idB) return idB.compareTo(idA);
+
+        final dateA = a['invoice_date']?.toString() ?? '';
+        final dateB = b['invoice_date']?.toString() ?? '';
+        return dateB.compareTo(dateA);
+      });
       debugPrint(
-        '🟢 [OdooApiService] getUserInvoices returned ${records.length} records',
+        '🟢 [OdooApiService] getUserInvoices returned ${list.length} records',
       );
-      return records.map((r) => Map<String, dynamic>.from(r as Map)).toList();
+      return list;
     } catch (e) {
       debugPrint('🔴 [OdooApiService] getUserInvoices error: $e');
       return [];

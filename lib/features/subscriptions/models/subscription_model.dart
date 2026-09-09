@@ -1,3 +1,5 @@
+import 'package:timeless_detailing_customer_app/core/services/currency_service.dart';
+
 class SubscriptionModel {
   final int id;
   final String name;
@@ -55,7 +57,7 @@ class SubscriptionModel {
       pName = 'Plan ${json['name']}';
     }
 
-    String cSym = 'R';
+    String cSym = CurrencyService.instance.getSymbol(currencyId: json['currency_id']);
     final currRaw = json['currency_id'];
     if (currRaw is Map) {
       final sym = currRaw['symbol']?.toString();

@@ -1,4 +1,5 @@
 import 'package:timeless_detailing_customer_app/features/bookings/models/booking_model.dart';
+import 'package:timeless_detailing_customer_app/core/services/currency_service.dart';
 
 class EstimationStepModel {
   final int stepNumber;
@@ -581,7 +582,8 @@ class EstimationModel {
       estimatedAmount: (json['estimated_amount'] as num?)?.toDouble() ?? 2800.0,
       amountUntaxed: (json['amount_untaxed'] as num?)?.toDouble(),
       amountTax: (json['amount_tax'] as num?)?.toDouble(),
-      currencySymbol: json['currency_symbol'] as String? ?? 'R',
+      currencySymbol: json['currency_symbol'] as String? ??
+          CurrencyService.instance.getSymbol(currencyId: json['currency_id']),
       vehicleName: json['vehicle_name'] as String? ?? 'Volkswagen Polo TDI 2.0',
       vehicleType: json['vehicle_type'] as String? ?? 'Hatch Back',
       vehicleRegistration: json['vehicle_registration'] as String?,

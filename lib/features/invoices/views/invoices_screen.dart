@@ -8,6 +8,7 @@ import 'package:timeless_detailing_customer_app/features/bookings/models/booking
 import 'package:timeless_detailing_customer_app/features/dashboard/views/main_navigation_scaffold.dart';
 import 'package:timeless_detailing_customer_app/core/widgets/custom_shimmer_loading.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/views/upcoming_appointment_details_screen.dart';
+import 'package:timeless_detailing_customer_app/core/services/currency_service.dart';
 
 class InvoicesScreen extends StatefulWidget {
   final VoidCallback? onMenuTap;
@@ -60,7 +61,16 @@ class _InvoicesScreenState extends State<InvoicesScreen> {
   @override
   Widget build(BuildContext context) {
     final controller = Provider.of<BookingsController>(context);
-    final invoices = controller.userInvoices;
+    final invoices = List<Map<String, dynamic>>.from(controller.userInvoices);
+    invoices.sort((a, b) {
+      final idA = (a['id'] is int) ? a['id'] as int : (int.tryParse(a['id']?.toString() ?? '') ?? 0);
+      final idB = (b['id'] is int) ? b['id'] as int : (int.tryParse(b['id']?.toString() ?? '') ?? 0);
+      if (idA != idB) return idB.compareTo(idA);
+
+      final dateA = a['invoice_date']?.toString() ?? '';
+      final dateB = b['invoice_date']?.toString() ?? '';
+      return dateB.compareTo(dateA);
+    });
     final bool isBusy = _isLoading || controller.isLoading;
 
     return PopScope(
@@ -305,7 +315,7 @@ class _InvoicesScreenState extends State<InvoicesScreen> {
                       ],
                     ),
                     Text(
-                      'R ${total.toStringAsFixed(2)}',
+                      CurrencyService.instance.format(total, currencyId: invMap['currency_id']),
                       style: GoogleFonts.outfit(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,

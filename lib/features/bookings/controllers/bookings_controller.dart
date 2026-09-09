@@ -101,6 +101,7 @@ class BookingsController extends ChangeNotifier {
       // Also fetch user invoices via account.move/web_search_read for invoice features
       try {
         _userInvoices = await _odooService.getUserInvoices(partnerId: id);
+        _sortInvoices();
       } catch (invErr) {
         debugPrint('Error loading user invoices in loadBookings: $invErr');
       }
@@ -119,11 +120,24 @@ class BookingsController extends ChangeNotifier {
   List<Map<String, dynamic>> _userInvoices = [];
   List<Map<String, dynamic>> get userInvoices => _userInvoices;
 
+  void _sortInvoices() {
+    _userInvoices.sort((a, b) {
+      final idA = (a['id'] is int) ? a['id'] as int : (int.tryParse(a['id']?.toString() ?? '') ?? 0);
+      final idB = (b['id'] is int) ? b['id'] as int : (int.tryParse(b['id']?.toString() ?? '') ?? 0);
+      if (idA != idB) return idB.compareTo(idA);
+
+      final dateA = a['invoice_date']?.toString() ?? '';
+      final dateB = b['invoice_date']?.toString() ?? '';
+      return dateB.compareTo(dateA);
+    });
+  }
+
   Future<List<Map<String, dynamic>>> loadInvoices({int? partnerId}) async {
     final id = partnerId ?? _odooService.currentPartnerId ?? _odooService.currentUid;
     if (id == null) return [];
     try {
       _userInvoices = await _odooService.getUserInvoices(partnerId: id);
+      _sortInvoices();
       notifyListeners();
       return _userInvoices;
     } catch (e) {

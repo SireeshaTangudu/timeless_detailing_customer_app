@@ -16,6 +16,7 @@ import 'package:timeless_detailing_customer_app/core/widgets/custom_shimmer_load
 import 'package:timeless_detailing_customer_app/features/dashboard/views/main_navigation_scaffold.dart';
 import 'package:timeless_detailing_customer_app/features/invoices/views/invoices_screen.dart';
 import 'package:timeless_detailing_customer_app/core/config/app_config.dart';
+import 'package:timeless_detailing_customer_app/core/services/currency_service.dart';
 
 import 'package:url_launcher/url_launcher.dart';
 
@@ -362,7 +363,7 @@ class _UpcomingAppointmentDetailsScreenState
   Widget build(BuildContext context) {
     final b = _detailedBooking ?? widget.booking;
     final String serviceTitle = b.service.name;
-    final String priceStr = 'R ${b.totalPrice.toStringAsFixed(0)}';
+    final String priceStr = CurrencyService.instance.format(b.totalPrice, decimalDigits: 0);
     final String selectedCar = b.vehicleName;
     final String carType = b.vehicleModel;
     final String dateDayStr = DateFormat('d MMMM').format(b.bookingDateTime);
@@ -948,7 +949,7 @@ class _UpcomingAppointmentDetailsScreenState
             children: [
               _buildLightDetailRow(
                 'Estimated Cost',
-                'R ${b.totalPrice.toStringAsFixed(2)}',
+                CurrencyService.instance.format(b.totalPrice),
               ),
               const SizedBox(height: 12),
               if (b.isDownPaymentInvoice) ...[
@@ -961,7 +962,7 @@ class _UpcomingAppointmentDetailsScreenState
                 ],
                 _buildLightDetailRow(
                   isPaid ? 'Deposit Amount Paid' : 'Amount Need To Pay',
-                  'R ${(b.thisInvoiceAmount > 0 ? b.thisInvoiceAmount : b.amountPaid).toStringAsFixed(2)}',
+                  CurrencyService.instance.format(b.thisInvoiceAmount > 0 ? b.thisInvoiceAmount : b.amountPaid),
                 ),
                 const SizedBox(height: 12),
                 if (isPaid && b.amountPaidOn.isNotEmpty) ...[
@@ -970,7 +971,7 @@ class _UpcomingAppointmentDetailsScreenState
                 ],
                 _buildLightDetailRow(
                   'Pending Amount',
-                  'R ${b.pendingAmount.toStringAsFixed(2)}',
+                  CurrencyService.instance.format(b.pendingAmount),
                 ),
               ] else ...[
                 // Final Invoice
@@ -979,13 +980,13 @@ class _UpcomingAppointmentDetailsScreenState
                     b.percentageAmountPaid > 0
                         ? 'Deposit Paid (${b.percentageAmountPaid.toStringAsFixed(0)}%)'
                         : 'Deposit Paid',
-                    'R ${b.amountPaid.toStringAsFixed(2)}',
+                    CurrencyService.instance.format(b.amountPaid),
                   ),
                   const SizedBox(height: 12),
                 ],
                 _buildLightDetailRow(
                   isPaid ? 'Final Amount Paid' : 'Amount Need To Pay',
-                  'R ${(b.thisInvoiceAmount > 0 ? b.thisInvoiceAmount : b.pendingAmount).toStringAsFixed(2)}',
+                  CurrencyService.instance.format(b.thisInvoiceAmount > 0 ? b.thisInvoiceAmount : b.pendingAmount),
                 ),
                 const SizedBox(height: 12),
                 if (isPaid && b.amountPaidOn.isNotEmpty) ...[
@@ -994,7 +995,7 @@ class _UpcomingAppointmentDetailsScreenState
                 ],
                 _buildLightDetailRow(
                   'Pending Amount',
-                  'R ${b.pendingAmount.toStringAsFixed(2)}',
+                  CurrencyService.instance.format(b.pendingAmount),
                 ),
               ],
 
@@ -1003,7 +1004,7 @@ class _UpcomingAppointmentDetailsScreenState
                 for (final item in b.addOns) ...[
                   _buildLightDetailRow(
                     item['name']?.toString() ?? 'Add on',
-                    'R ${((item['price'] as num?)?.toDouble() ?? 100.0).toStringAsFixed(2)}',
+                    CurrencyService.instance.format((item['price'] as num?)?.toDouble() ?? 100.0),
                   ),
                   const SizedBox(height: 12),
                 ],
@@ -1024,7 +1025,7 @@ class _UpcomingAppointmentDetailsScreenState
                       ),
                     ),
                     Text(
-                      'R ${totalToPay.toStringAsFixed(2)}',
+                      CurrencyService.instance.format(totalToPay),
                       style: GoogleFonts.outfit(
                         fontSize: 15,
                         fontWeight: FontWeight.bold,

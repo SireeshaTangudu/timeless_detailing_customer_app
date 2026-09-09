@@ -11,6 +11,7 @@ import 'package:timeless_detailing_customer_app/features/services/views/interior
 import 'package:timeless_detailing_customer_app/features/services/controllers/services_controller.dart';
 import 'package:timeless_detailing_customer_app/core/widgets/custom_app_bar.dart';
 import 'package:timeless_detailing_customer_app/core/utils/app_animations.dart';
+import 'package:timeless_detailing_customer_app/core/services/currency_service.dart';
 
 class CarFocusPoint {
   final String id;
@@ -362,7 +363,7 @@ class _ServiceInteractiveDetailScreenState
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
           leading: Text(
             displayPrice > 0
-                ? 'Prices starting from \$${displayPrice.toStringAsFixed(0)}'
+                ? 'Prices starting from ${CurrencyService.instance.format(displayPrice, decimalDigits: 0)}'
                 : 'Price on enquiry',
             style: GoogleFonts.outfit(
               fontSize: 12.5,
@@ -572,7 +573,7 @@ class _ServiceInteractiveDetailScreenState
                             if (other.price > 0) ...[
                               const SizedBox(height: 4),
                               Text(
-                                '\$${other.price.toStringAsFixed(0)}',
+                                CurrencyService.instance.format(other.price, decimalDigits: 0),
                                 style: GoogleFonts.outfit(
                                   fontSize: 14,
                                   fontWeight: FontWeight.bold,

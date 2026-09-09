@@ -713,7 +713,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       const SizedBox(height: 48),
 
-                      // Action Cards Grid (My Orders & Bookings and My Cars as in Figma)
+                      // Action Cards Grid (My Orders & Bookings, My Warranties, My Subscriptions)
                       Row(
                         children: [
                           // Card 1: My Orders & Bookings
@@ -800,81 +800,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                           const SizedBox(width: 16),
 
-                          // Card 2: My Cars
-                          Expanded(
-                            child: GestureDetector(
-                              onTap: _showUpdateProfileSheet,
-                              child: Container(
-                                height: 160,
-                                padding: const EdgeInsets.all(16),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(16),
-                                  border: Border.all(
-                                    color: const Color(0xFFEBE7DF),
-                                    width: 1,
-                                  ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withValues(
-                                        alpha: 0.03,
-                                      ),
-                                      blurRadius: 10,
-                                      offset: const Offset(0, 4),
-                                    ),
-                                  ],
-                                ),
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Container(
-                                      width: 52,
-                                      height: 52,
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        color: const Color(0xFFFBF9F5),
-                                        border: Border.all(
-                                          color: AppTheme.primary.withValues(
-                                            alpha: 0.3,
-                                          ),
-                                          width: 1,
-                                        ),
-                                      ),
-                                      child: Image.asset(
-                                        'assets/profile/my_cars.png',
-                                        width: 28,
-                                        height: 28,
-                                        errorBuilder:
-                                            (context, error, stackTrace) =>
-                                                Icon(
-                                                  Icons.directions_car_outlined,
-                                                  size: 26,
-                                                  color: AppTheme.primary,
-                                                ),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 16),
-                                    Text(
-                                      'My Cars',
-                                      style: AppTypography.canela(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.bold,
-                                        color: const Color(0xFF1C1C1E),
-                                      ),
-                                      textAlign: TextAlign.center,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      // Action Cards Row 2: My Warranties & My Subscriptions
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          // Card 3: My Warranties
+                          // Card 2: My Warranties
                           Expanded(
                             child: GestureDetector(
                               onTap: () {
@@ -943,9 +869,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               ),
                             ),
                           ),
-                          const SizedBox(width: 16),
-
-                          // Card 4: My Subscriptions
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          // Card 3: My Subscriptions
                           Expanded(
                             child: GestureDetector(
                               onTap: () {
@@ -1014,6 +943,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               ),
                             ),
                           ),
+                          const SizedBox(width: 16),
+                          const Expanded(child: SizedBox()),
                         ],
                       ),
                       const SizedBox(height: 24),

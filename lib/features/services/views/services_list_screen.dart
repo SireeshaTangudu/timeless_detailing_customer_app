@@ -11,6 +11,7 @@ import 'package:timeless_detailing_customer_app/core/widgets/custom_shimmer_load
 import 'package:timeless_detailing_customer_app/core/widgets/custom_loader.dart';
 import 'package:timeless_detailing_customer_app/core/widgets/custom_app_bar.dart';
 import 'package:timeless_detailing_customer_app/core/utils/app_animations.dart';
+import 'package:timeless_detailing_customer_app/core/services/currency_service.dart';
 
 class ServicesListScreen extends StatefulWidget {
   final VoidCallback? onMenuTap;
@@ -356,7 +357,7 @@ class _ServicesListScreenState extends State<ServicesListScreen> {
                   if (service.price > 0) ...[
                     const SizedBox(height: 4),
                     Text(
-                      '\$${service.price.toStringAsFixed(0)}',
+                      CurrencyService.instance.format(service.price, decimalDigits: 0),
                       style: GoogleFonts.outfit(
                         fontSize: 14,
                         fontWeight: FontWeight.bold,

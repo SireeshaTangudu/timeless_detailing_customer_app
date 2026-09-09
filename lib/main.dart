@@ -18,6 +18,7 @@ import 'package:timeless_detailing_customer_app/core/theme/theme_controller.dart
 
 import 'package:timeless_detailing_customer_app/core/services/network_connectivity_service.dart';
 import 'package:timeless_detailing_customer_app/core/services/firebase_notification_service.dart';
+import 'package:timeless_detailing_customer_app/core/services/currency_service.dart';
 
 class MyHttpOverrides extends HttpOverrides {
   @override
@@ -45,6 +46,7 @@ void main() async {
 Future<void> bootstrap() async {
   WidgetsFlutterBinding.ensureInitialized();
   HttpOverrides.global = MyHttpOverrides();
+  await CurrencyService.instance.init();
 
   // =========================================================================
   // ODOO INTEGRATION CONFIGURATION FROM APPCONFIG

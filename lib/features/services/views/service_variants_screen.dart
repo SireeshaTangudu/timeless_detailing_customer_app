@@ -8,6 +8,7 @@ import 'package:timeless_detailing_customer_app/features/services/models/service
 import 'package:timeless_detailing_customer_app/features/services/views/service_interactive_detail_screen.dart';
 import 'package:timeless_detailing_customer_app/core/widgets/custom_app_bar.dart';
 import 'package:timeless_detailing_customer_app/core/widgets/custom_loader.dart';
+import 'package:timeless_detailing_customer_app/core/services/currency_service.dart';
 
 class ServiceVariantsScreen extends StatefulWidget {
   final DetailService parentService;
@@ -157,7 +158,7 @@ class _ServiceVariantsScreenState extends State<ServiceVariantsScreen> {
             if (subService.price > 0) ...[
               const SizedBox(height: 4),
               Text(
-                '\$${subService.price.toStringAsFixed(0)}',
+                CurrencyService.instance.format(subService.price, decimalDigits: 0),
                 style: GoogleFonts.outfit(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
