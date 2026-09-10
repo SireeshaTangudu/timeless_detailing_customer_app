@@ -14,6 +14,7 @@ import 'package:timeless_detailing_customer_app/features/tracking/controllers/tr
 import 'package:timeless_detailing_customer_app/features/tracking/controllers/projects_controller.dart';
 import 'package:timeless_detailing_customer_app/features/warranties/controllers/warranties_controller.dart';
 import 'package:timeless_detailing_customer_app/features/subscriptions/controllers/subscriptions_controller.dart';
+import 'package:timeless_detailing_customer_app/features/quotations/controllers/quotations_controller.dart';
 import 'package:timeless_detailing_customer_app/core/theme/theme_controller.dart';
 
 import 'package:timeless_detailing_customer_app/core/services/network_connectivity_service.dart';
@@ -101,6 +102,9 @@ Future<void> bootstrap() async {
         ),
         ChangeNotifierProvider(
           create: (context) => SubscriptionsController(odooService),
+        ),
+        ChangeNotifierProvider(
+          create: (context) => QuotationsController(odooService),
         ),
         ChangeNotifierProxyProvider2<
           BaseOdooService,

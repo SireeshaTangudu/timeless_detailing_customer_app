@@ -113,6 +113,7 @@ abstract class BaseOdooService {
   Future<List<Map<String, dynamic>>> getUserInvoices({int? partnerId});
   Future<List<Map<String, dynamic>>> getWarranties({int? partnerId});
   Future<List<Map<String, dynamic>>> getSubscriptions({int? partnerId});
+  Future<List<Map<String, dynamic>>> getQuotations({int? partnerId});
   Future<List<Cookie>> getCookies();
 }
 
@@ -3968,6 +3969,67 @@ class OdooApiService implements BaseOdooService {
       return records.map((r) => Map<String, dynamic>.from(r as Map)).toList();
     } catch (e) {
       debugPrint('🔴 [OdooApiService] getSubscriptions error: $e');
+      return [];
+    }
+  }
+
+  /// Get User Quotations (`sale.order/web_search_read`)
+  @override
+  Future<List<Map<String, dynamic>>> getQuotations({int? partnerId}) async {
+    try {
+      final pid = partnerId ?? _partnerId ?? _uid;
+      final response = await _callKw(
+        model: 'sale.order',
+        method: 'web_search_read',
+        args: [],
+        kwargs: {
+          'domain': pid != null
+              ? [
+                  ['partner_id', '=', pid],
+                  ['state', 'in', ['sent', 'sale', 'cancel']],
+                ]
+              : [
+                  ['state', 'in', ['sent', 'sale', 'cancel']],
+                ],
+          'specification': {
+            'id': {},
+            'name': {},
+            'date_order': {},
+            'validity_date': {},
+            'amount_untaxed': {},
+            'amount_tax': {},
+            'amount_total': {},
+            'currency_id': {},
+            'state': {},
+            'is_subscription': {},
+            'subscription_state': {},
+            'plan_id': {
+              'fields': {
+                'id': {},
+                'name': {},
+              },
+            },
+            'next_invoice_date': {},
+            'recurring_total': {},
+            'partner_id': {
+              'fields': {
+                'id': {},
+                'name': {},
+              },
+            },
+          },
+          'order': 'date_order desc',
+        },
+      );
+      final List records = (response is Map && response['records'] is List)
+          ? response['records'] as List
+          : (response is List ? response : []);
+      debugPrint(
+        '🟢 [OdooApiService] getQuotations returned ${records.length} records',
+      );
+      return records.map((r) => Map<String, dynamic>.from(r as Map)).toList();
+    } catch (e) {
+      debugPrint('🔴 [OdooApiService] getQuotations error: $e');
       return [];
     }
   }

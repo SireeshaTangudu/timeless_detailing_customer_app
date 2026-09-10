@@ -1111,6 +1111,80 @@ class MockOdooService implements BaseOdooService {
   }
 
   @override
+  Future<List<Map<String, dynamic>>> getQuotations({int? partnerId}) async {
+    return [
+      {
+        'id': 82,
+        'name': 'S00082',
+        'date_order': '2026-09-09 11:08:10',
+        'validity_date': '2026-10-09',
+        'amount_untaxed': 600.0,
+        'amount_tax': 90.0,
+        'amount_total': 690.0,
+        'currency_id': 38,
+        'state': 'sale',
+        'is_subscription': true,
+        'subscription_state': '3_progress',
+        'plan_id': {'id': 1, 'name': 'Monthly'},
+        'next_invoice_date': '2026-10-09',
+        'recurring_total': 600.0,
+        'partner_id': {'id': 59, 'name': 'prasadA'},
+      },
+      {
+        'id': 84,
+        'name': 'S00084',
+        'date_order': '2026-09-09 11:08:02',
+        'validity_date': '2026-10-09',
+        'amount_untaxed': 14400.0,
+        'amount_tax': 2160.0,
+        'amount_total': 16560.0,
+        'currency_id': 38,
+        'state': 'sent',
+        'is_subscription': true,
+        'subscription_state': '1_draft',
+        'plan_id': {'id': 2, 'name': 'Yearly'},
+        'next_invoice_date': false,
+        'recurring_total': 14400.0,
+        'partner_id': {'id': 59, 'name': 'prasadA'},
+      },
+      {
+        'id': 79,
+        'name': 'S00079',
+        'date_order': '2026-09-09 09:51:13',
+        'validity_date': '2026-10-09',
+        'amount_untaxed': 9350.0,
+        'amount_tax': 1402.5,
+        'amount_total': 10752.5,
+        'currency_id': 38,
+        'state': 'sale',
+        'is_subscription': false,
+        'subscription_state': false,
+        'plan_id': false,
+        'next_invoice_date': false,
+        'recurring_total': 0.0,
+        'partner_id': {'id': 59, 'name': 'prasadA'},
+      },
+      {
+        'id': 68,
+        'name': 'S00068',
+        'date_order': '2026-09-09 06:53:23',
+        'validity_date': '2026-10-09',
+        'amount_untaxed': 5750.0,
+        'amount_tax': 862.5,
+        'amount_total': 6612.5,
+        'currency_id': 38,
+        'state': 'sent',
+        'is_subscription': false,
+        'subscription_state': false,
+        'plan_id': false,
+        'next_invoice_date': false,
+        'recurring_total': 0.0,
+        'partner_id': {'id': 59, 'name': 'prasadA'},
+      },
+    ];
+  }
+
+  @override
   Future<List<Cookie>> getCookies() async {
     return [];
   }

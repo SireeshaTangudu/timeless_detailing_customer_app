@@ -19,6 +19,7 @@ import 'package:timeless_detailing_customer_app/features/invoices/views/invoices
 import 'package:timeless_detailing_customer_app/features/tracking/views/projects_list_screen.dart';
 import 'package:timeless_detailing_customer_app/features/warranties/views/warranties_screen.dart';
 import 'package:timeless_detailing_customer_app/features/subscriptions/views/subscriptions_screen.dart';
+import 'package:timeless_detailing_customer_app/features/quotations/views/quotations_screen.dart';
 
 class MainNavigationScaffold extends StatefulWidget {
   const MainNavigationScaffold({super.key});
@@ -278,6 +279,23 @@ class _MainNavigationScaffoldState extends State<MainNavigationScaffold>
                             context,
                             MaterialPageRoute(
                               builder: (context) => SubscriptionsScreen(
+                                onMenuTap: _openDrawer,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                      _buildDrawerItem(
+                        icon: Icons.request_quote_outlined,
+                        activeIcon: Icons.request_quote,
+                        title: 'Quotations',
+                        index: -1,
+                        customOnTap: () {
+                          Navigator.pop(context);
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => QuotationsScreen(
                                 onMenuTap: _openDrawer,
                               ),
                             ),
