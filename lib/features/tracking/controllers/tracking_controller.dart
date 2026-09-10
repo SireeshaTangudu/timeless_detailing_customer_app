@@ -80,6 +80,7 @@ class TrackingController extends ChangeNotifier {
           nextStatus = BookingStatus.completed;
           break;
         case BookingStatus.completed:
+        case BookingStatus.cancelled:
           nextStatus = BookingStatus.confirmed; // reset cycle for loop testing
           break;
       }

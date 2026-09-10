@@ -252,12 +252,15 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
                       int? extractId(dynamic raw) {
                         if (raw is int && raw > 0) return raw;
                         if (raw is String) return int.tryParse(raw);
-                        if (raw is List && raw.isNotEmpty && raw.first is int)
+                        if (raw is List && raw.isNotEmpty && raw.first is int) {
                           return raw.first as int;
-                        if (raw is Map && raw['id'] is int)
+                        }
+                        if (raw is Map && raw['id'] is int) {
                           return raw['id'] as int;
-                        if (raw is Map && raw['id'] is String)
+                        }
+                        if (raw is Map && raw['id'] is String) {
                           return int.tryParse(raw['id'] as String);
+                        }
                         return null;
                       }
 
@@ -277,13 +280,25 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
                           titleStr.contains('live track') ||
                           titleStr.contains('progress');
 
+                      final bool isWarrantyNotif =
+                          notifType.startsWith('warranty_') ||
+                          resModel == 'sale.warranty' ||
+                          titleStr.contains('warranty') ||
+                          bodyStr.contains('warranty');
+
+                      final bool isSubscriptionNotif =
+                          notifType.startsWith('subscription_') ||
+                          titleStr.contains('subscription') ||
+                          bodyStr.contains('subscription');
+
                       final bool isQuotationSent =
-                          notifType == 'quotation_sent' ||
-                          resModel == 'sale.order' ||
-                          (saleOrderId != null && saleOrderId > 0) ||
-                          titleStr.contains('quotation') ||
-                          titleStr.contains('estimation') ||
-                          titleStr.contains('quote');
+                          (notifType == 'quotation_sent' ||
+                              titleStr.contains('quotation') ||
+                              titleStr.contains('estimation') ||
+                              titleStr.contains('quote') ||
+                              ((resModel == 'sale.order' || (saleOrderId != null && saleOrderId > 0)) &&
+                                  !isSubscriptionNotif &&
+                                  !isWarrantyNotif));
 
                       final bool isDownPaymentOrInvoice =
                           notifType.contains('down') ||
@@ -295,7 +310,13 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
                       String buttonText = 'VIEW DETAILS';
                       IconData buttonIcon = Icons.arrow_forward_rounded;
 
-                      if (isProjectOrTaskUpdate) {
+                      if (isWarrantyNotif) {
+                        buttonText = 'VIEW WARRANTIES';
+                        buttonIcon = Icons.verified_outlined;
+                      } else if (isSubscriptionNotif) {
+                        buttonText = 'VIEW SUBSCRIPTIONS';
+                        buttonIcon = Icons.card_membership_outlined;
+                      } else if (isProjectOrTaskUpdate) {
                         buttonText = 'VIEW TRACKING PROGRESS';
                         buttonIcon = Icons.track_changes_outlined;
                       } else if (isQuotationSent) {

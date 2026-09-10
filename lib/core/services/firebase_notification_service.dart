@@ -219,7 +219,7 @@ class FirebaseNotificationService {
       return;
     }
 
-    // 2. Subscription Notifications (subscription_started, subscription_closed)
+    // 2. Subscription Notifications (subscription_started, subscription_closed, subscription_expiring, subscription_expired)
     final bool isSubscriptionNotif = notifType.startsWith('subscription_') ||
         titleStr.contains('subscription') ||
         bodyStr.contains('subscription');

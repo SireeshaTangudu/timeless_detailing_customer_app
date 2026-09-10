@@ -5,7 +5,6 @@ import 'package:provider/provider.dart';
 import 'package:timeless_detailing_customer_app/core/network/odoo_client.dart';
 import 'package:timeless_detailing_customer_app/core/widgets/custom_app_bar.dart';
 import 'package:timeless_detailing_customer_app/core/widgets/custom_shimmer_loading.dart';
-import 'package:timeless_detailing_customer_app/core/widgets/custom_loader.dart';
 import 'package:timeless_detailing_customer_app/features/notifications/views/notification_detail_screen.dart';
 
 class NotificationsScreen extends StatefulWidget {

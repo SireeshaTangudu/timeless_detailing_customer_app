@@ -1709,6 +1709,22 @@ class OdooApiService implements BaseOdooService {
             'name': {},
             'start': {},
             'stop': {},
+            'product_id': {
+              'fields': {
+                'id': {},
+                'name': {},
+                'display_name': {},
+                'lst_price': {},
+                'currency_id': {
+                  'fields': {
+                    'id': {},
+                    'name': {},
+                    'symbol': {},
+                  },
+                },
+                'timeless_hide_price': {},
+              },
+            },
             'booking_phone': {},
             'booking_vehicle_make': {},
             'booking_vehicle_model': {},
@@ -1743,6 +1759,9 @@ class OdooApiService implements BaseOdooService {
         method: 'web_search_read',
         args: [],
         kwargs: {
+          'context': {
+            'active_test': false,
+          },
           'domain': [
             ['appointment_booker_id', '=', partnerId],
             ['appointment_type_id', '!=', false],
@@ -1754,24 +1773,12 @@ class OdooApiService implements BaseOdooService {
             'stop': {},
             'duration': {},
             'active': {},
+            'appointment_status': {},
             'appointment_type_id': {
               'fields': {'id': {}, 'name': {}},
             },
             'appointment_resource_ids': {
               'fields': {'id': {}, 'name': {}},
-            },
-            'product_id': {
-              'fields': {
-                'id': {},
-                'name': {},
-                'display_name': {},
-                'product_tmpl_id': {
-                  'fields': {'id': {}, 'name': {}},
-                },
-                'product_template_variant_value_ids': {
-                  'fields': {'id': {}, 'name': {}},
-                },
-              },
             },
             'booking_phone': {},
             'booking_vehicle_make': {},
@@ -1781,6 +1788,22 @@ class OdooApiService implements BaseOdooService {
             'booking_collector_license': {},
             'opportunity_id': {
               'fields': {'id': {}, 'name': {}},
+            },
+            'product_id': {
+              'fields': {
+                'id': {},
+                'name': {},
+                'display_name': {},
+                'lst_price': {},
+                'currency_id': {
+                  'fields': {
+                    'id': {},
+                    'name': {},
+                    'symbol': {},
+                  },
+                },
+                'timeless_hide_price': {},
+              },
             },
             'timeless_project_ids': {
               'fields': {
@@ -1796,7 +1819,7 @@ class OdooApiService implements BaseOdooService {
               },
             },
           },
-          'order': 'start desc',
+          'order': 'id desc',
         },
       );
 
@@ -1831,6 +1854,7 @@ class OdooApiService implements BaseOdooService {
             'stop': {},
             'duration': {},
             'active': {},
+            'appointment_status': {},
             'appointment_type_id': {
               'fields': {'id': {}, 'name': {}},
             },
@@ -1855,12 +1879,15 @@ class OdooApiService implements BaseOdooService {
                 'id': {},
                 'name': {},
                 'display_name': {},
-                'product_tmpl_id': {
-                  'fields': {'id': {}, 'name': {}},
+                'lst_price': {},
+                'currency_id': {
+                  'fields': {
+                    'id': {},
+                    'name': {},
+                    'symbol': {},
+                  },
                 },
-                'product_template_variant_value_ids': {
-                  'fields': {'id': {}, 'name': {}},
-                },
+                'timeless_hide_price': {},
               },
             },
             'booking_phone': {},

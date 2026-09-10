@@ -107,8 +107,11 @@ class CurrencyService {
         targetId = int.tryParse(currencyId);
       } else if (currencyId is List && currencyId.isNotEmpty) {
         targetId = int.tryParse(currencyId[0].toString());
-      } else if (currencyId is Map && currencyId['id'] != null) {
-        targetId = int.tryParse(currencyId['id'].toString());
+      } else if (currencyId is Map) {
+        if (currencyId['symbol'] != null && currencyId['symbol'].toString().isNotEmpty) {
+          return currencyId['symbol'].toString();
+        }
+        targetId = int.tryParse(currencyId['id']?.toString() ?? '');
       }
 
       if (targetId != null && _currenciesMap.containsKey(targetId)) {

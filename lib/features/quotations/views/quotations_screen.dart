@@ -82,7 +82,13 @@ class _QuotationsScreenState extends State<QuotationsScreen> {
       return list.where((q) => q.state.toLowerCase() == 'sale').toList();
     }
     if (_selectedFilter == 'Cancelled') {
-      return list.where((q) => q.state.toLowerCase() == 'cancel').toList();
+      return list
+          .where(
+            (q) =>
+                q.state.toLowerCase() == 'cancel' ||
+                q.state.toLowerCase() == 'cancelled',
+          )
+          .toList();
     }
     return list;
   }

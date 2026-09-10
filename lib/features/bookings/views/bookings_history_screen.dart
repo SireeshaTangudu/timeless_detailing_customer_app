@@ -39,10 +39,10 @@ class _BookingsHistoryScreenState extends State<BookingsHistoryScreen> {
 
     // Filter bookings based on selected tab
     final completedList = controller.bookings
-        .where((b) => b.status == BookingStatus.completed)
+        .where((b) => b.status == BookingStatus.completed || b.status == BookingStatus.cancelled)
         .toList();
     final upcomingList = controller.bookings
-        .where((b) => b.status != BookingStatus.completed)
+        .where((b) => b.status != BookingStatus.completed && b.status != BookingStatus.cancelled)
         .toList();
 
     final displayList = _selectedTabIndex == 0 ? completedList : upcomingList;

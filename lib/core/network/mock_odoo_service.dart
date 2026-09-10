@@ -367,6 +367,9 @@ class MockOdooService implements BaseOdooService {
         case BookingStatus.completed:
           step = 4;
           break;
+        case BookingStatus.cancelled:
+          step = -1;
+          break;
       }
 
       // Simulate adding finished pics when ready

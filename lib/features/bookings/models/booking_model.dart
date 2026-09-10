@@ -6,6 +6,7 @@ enum BookingStatus {
   inProgress,   // In the detailing bay (washing, polishing, coating)
   ready,        // Detailing completed, ready for client pickup
   completed,    // Car picked up, invoice paid
+  cancelled,    // Appointment cancelled
 }
 
 class Booking {
@@ -25,7 +26,11 @@ class Booking {
   final String technicianAvatar;
   final int? odooSaleOrderId; // Maps to Odoo's sale.order or calendar.event id
 
-  // Endpoint 5 specific Odoo field keys
+  // Endpoint 5 & 6 specific Odoo field keys
+  final int? productId;
+  final double? productPrice;
+  final String? currencySymbol;
+  final bool timelessHidePrice;
   final String? bookingPhone;
   final String? bookingVehicleMake;
   final String? bookingVehicleModel;
@@ -72,6 +77,10 @@ class Booking {
     required this.technicianName,
     required this.technicianAvatar,
     this.odooSaleOrderId,
+    this.productId,
+    this.productPrice,
+    this.currencySymbol,
+    this.timelessHidePrice = false,
     this.bookingPhone,
     this.bookingVehicleMake,
     this.bookingVehicleModel,
@@ -117,6 +126,8 @@ class Booking {
         return 'Ready for Pickup';
       case BookingStatus.completed:
         return 'Completed';
+      case BookingStatus.cancelled:
+        return 'Cancelled';
     }
   }
 
@@ -133,6 +144,8 @@ class Booking {
         return 0.9;
       case BookingStatus.completed:
         return 1.0;
+      case BookingStatus.cancelled:
+        return 0.0;
     }
   }
 
@@ -156,6 +169,8 @@ class Booking {
           return 3;
         case BookingStatus.completed:
           return 4;
+        case BookingStatus.cancelled:
+          return -1;
       }
     }
 
@@ -164,12 +179,22 @@ class Booking {
     String? prodName;
     String? prodVariantName;
     int? prodId;
+    double? prodPrice;
+    String? prodCurrSymbol;
+    bool? prodHidePrice;
 
     final prodRaw = json['product_id'];
     if (prodRaw is Map) {
       if (prodRaw['id'] is int) prodId = prodRaw['id'] as int;
       if (prodRaw['display_name'] != null) prodDisplayName = prodRaw['display_name'].toString();
       if (prodRaw['name'] != null) prodName = prodRaw['name'].toString();
+      if (prodRaw['lst_price'] is num) prodPrice = (prodRaw['lst_price'] as num).toDouble();
+      if (prodRaw['timeless_hide_price'] == true) prodHidePrice = true;
+
+      final currRaw = prodRaw['currency_id'];
+      if (currRaw is Map && currRaw['symbol'] != null) {
+        prodCurrSymbol = currRaw['symbol'].toString();
+      }
 
       final tmplRaw = prodRaw['product_tmpl_id'];
       if (tmplRaw is Map && tmplRaw['name'] != null && prodName == null) {
@@ -215,6 +240,14 @@ class Booking {
       }
     }
 
+    // Price calculation from product_id lst_price, amount_total, or service fallback
+    final double? rawAmountTotal = (json['amount_total'] as num?)?.toDouble();
+    final double calculatedPrice = (rawAmountTotal != null && rawAmountTotal > 0)
+        ? rawAmountTotal
+        : (prodPrice != null && prodPrice > 0
+            ? prodPrice
+            : service.price);
+
     // Dynamic service construction from API fields without hardcoded fallbacks
     final String dynamicServiceName = prodDisplayName ??
         prodName ??
@@ -226,11 +259,12 @@ class Booking {
       id: prodId?.toString() ?? (service.id.isNotEmpty ? service.id : (json['id']?.toString() ?? '')),
       name: dynamicServiceName,
       description: prodVariantName != null ? 'Variant: $prodVariantName' : service.description,
-      price: (json['amount_total'] as num?)?.toDouble() ?? service.price,
+      price: calculatedPrice,
       durationHours: (json['duration'] as num?)?.toDouble() ?? service.durationHours,
       imageUrl: service.imageUrl,
       category: apptTypeName ?? service.category,
       whatsIncluded: service.whatsIncluded,
+      odooProductId: prodId ?? service.odooProductId,
     );
 
     // Vehicle extraction
@@ -321,64 +355,69 @@ class Booking {
     }
 
     BookingStatus parseStatus(String? odooStatus, bool? active) {
-      // Rule 1: If active = false or cancelled -> Cancelled / Closed
-      if (active == false || odooStatus == 'cancelled') {
-        return BookingStatus.completed;
+      final statusStr = odooStatus?.toLowerCase().trim();
+
+      // Rule 1: Cancelled / No-show / Inactive
+      if (active == false ||
+          statusStr == 'cancelled' ||
+          statusStr == 'cancel' ||
+          statusStr == 'declined' ||
+          statusStr == 'no_show' ||
+          statusStr == 'noshow') {
+        return BookingStatus.cancelled;
       }
 
-      if (odooStatus == 'done_picked_up') {
-        return BookingStatus.completed;
-      }
-
-      final now = DateTime.now();
-
-      final bool hasSalesOrder = json['opportunity_id'] != null && json['opportunity_id'] != false;
       final bool hasProjects = timelessProjectsList.isNotEmpty;
 
-      // Rule 2: If there is no Sales Order / no Project yet:
-      // start > now -> Upcoming
-      // start <= now -> Past / Pending
-      if (!hasSalesOrder || !hasProjects) {
-        if (bookingTime.isAfter(now)) {
-          return BookingStatus.confirmed; // Upcoming
+      // Rule 2: Completed (job done) — ONLY when timeless_project_ids is non-empty and EVERY project has stage_id.fold == true
+      if (hasProjects) {
+        final bool allProjectsFolded = timelessProjectsList.every((proj) {
+          final stage = proj['stage_id'];
+          if (stage is Map) {
+            final isFolded = stage['fold'] == true;
+            final stageName = (stage['name'] ?? '').toString().toLowerCase();
+            return isFolded ||
+                stageName.contains('done') ||
+                stageName.contains('complet') ||
+                stageName.contains('finish');
+          }
+          return false;
+        });
+
+        if (allProjectsFolded) {
+          return BookingStatus.completed;
+        }
+      }
+
+      // Rule 3: In Progress / Upcoming for active non-cancelled & non-completed bookings
+      final now = DateTime.now();
+      final bool isAttended = statusStr == 'attended' || statusStr == 'checked_in';
+      final bool isPastOrNow = !bookingTime.isAfter(now);
+
+      // Vehicles attended / checked-in are in-progress until all projects folded
+      if (isAttended) {
+        return BookingStatus.inProgress;
+      }
+
+      if (hasProjects) {
+        // Projects exist, but not all folded
+        if (isPastOrNow) {
+          return BookingStatus.inProgress;
         } else {
-          return BookingStatus.completed; // Past / Pending
+          return BookingStatus.confirmed; // Upcoming
         }
       }
 
-      // Rule 3: If a Sales Order exists and one or more relevant Projects are linked:
-      // Important for multiple projects:
-      // If one Sales Order has multiple Projects, the booking should only be considered Completed
-      // when all relevant Projects associated with that booking/Sales Order are completed.
-      final bool allProjectsDone = timelessProjectsList.every((proj) {
-        final stage = proj['stage_id'];
-        if (stage is Map) {
-          final isFolded = stage['fold'] == true;
-          final stageName = (stage['name'] ?? '').toString().toLowerCase();
-          return isFolded ||
-              stageName.contains('done') ||
-              stageName.contains('complet') ||
-              stageName.contains('finish');
-        }
-        return false;
-      });
-
-      // If all relevant Projects are completed / Done -> Completed
-      if (allProjectsDone) {
-        return BookingStatus.completed;
-      }
-
-      // If any relevant Project is not completed:
-      // start > now -> Upcoming
-      // start <= now -> In Progress
-      if (bookingTime.isAfter(now)) {
-        return BookingStatus.confirmed; // Upcoming
+      // No projects yet (typical right after slot book)
+      // appointment_status in request, booked (and active == true)
+      if (isPastOrNow) {
+        return BookingStatus.inProgress; // Past start -> In progress (overdue / checked in)
       } else {
-        return BookingStatus.inProgress; // In Progress
+        return BookingStatus.confirmed; // Future start -> Upcoming
       }
     }
 
-    final status = parseStatus(json['state']?.toString() ?? json['appointment_status']?.toString(), json['active'] as bool?);
+    final status = parseStatus(json['appointment_status']?.toString() ?? json['state']?.toString(), json['active'] as bool?);
 
     return Booking(
       id: json['id']?.toString() ?? '',
@@ -389,7 +428,7 @@ class Booking {
       stopDateTime: stopTime,
       status: status,
       currentStep: parseStep(status),
-      totalPrice: (json['amount_total'] as num?)?.toDouble() ?? finalService.price,
+      totalPrice: calculatedPrice,
       notes: json['note'] is String ? json['note'] : (phone != null ? 'Phone: $phone' : ''),
       beforeImages: json['before_images'] is List 
           ? List<String>.from(json['before_images']) 
@@ -400,6 +439,10 @@ class Booking {
       technicianName: collectorName ?? (json['technician_name'] is String ? json['technician_name'] as String : ''),
       technicianAvatar: json['technician_avatar'] is String ? json['technician_avatar'] : '',
       odooSaleOrderId: json['id'] is int ? json['id'] as int : int.tryParse(json['id']?.toString() ?? ''),
+      productId: prodId,
+      productPrice: prodPrice,
+      currencySymbol: prodCurrSymbol,
+      timelessHidePrice: prodHidePrice == true,
       bookingPhone: phone,
       bookingVehicleMake: make.isNotEmpty ? make : null,
       bookingVehicleModel: model.isNotEmpty ? model : null,
