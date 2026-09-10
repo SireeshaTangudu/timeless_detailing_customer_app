@@ -7,7 +7,6 @@ import 'package:timeless_detailing_customer_app/features/services/models/service
 import 'package:timeless_detailing_customer_app/features/services/models/service_variant_model.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/views/book_service_screen.dart';
 import 'package:timeless_detailing_customer_app/core/widgets/custom_footer.dart';
-import 'package:timeless_detailing_customer_app/features/services/views/interior_detailing_screen.dart';
 import 'package:timeless_detailing_customer_app/features/services/controllers/services_controller.dart';
 import 'package:timeless_detailing_customer_app/core/widgets/custom_app_bar.dart';
 import 'package:timeless_detailing_customer_app/core/utils/app_animations.dart';
@@ -54,6 +53,28 @@ class _ServiceInteractiveDetailScreenState
     extends State<ServiceInteractiveDetailScreen> {
   CarFocusPoint? _selectedPoint;
   int? _selectedVariantId;
+  final ScrollController _variantScrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _variantScrollController.dispose();
+    super.dispose();
+  }
+
+  void _scrollToVariantIndex(int index) {
+    if (!_variantScrollController.hasClients) return;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final itemOffset = index * 120.0;
+    final targetScroll = itemOffset - (screenWidth / 2) + 60.0;
+    final maxScroll = _variantScrollController.position.maxScrollExtent;
+    final finalScroll = targetScroll.clamp(0.0, maxScroll);
+
+    _variantScrollController.animateTo(
+      finalScroll,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeOut,
+    );
+  }
 
   @override
   void initState() {
@@ -259,10 +280,13 @@ class _ServiceInteractiveDetailScreenState
                       const SizedBox(height: 14),
 
                       SingleChildScrollView(
+                        controller: _variantScrollController,
                         scrollDirection: Axis.horizontal,
                         physics: const BouncingScrollPhysics(),
                         child: Row(
-                          children: allVariants.map((v) {
+                          children: allVariants.asMap().entries.map((entry) {
+                            final idx = entry.key;
+                            final v = entry.value;
                             final isSel = _selectedVariantId == v.id;
                             String cleanName = v.displayName;
                             if (cleanName.contains('(') &&
@@ -310,6 +334,7 @@ class _ServiceInteractiveDetailScreenState
                                       _selectedVariantId = v.id;
                                       _selectedPoint = null;
                                     });
+                                    _scrollToVariantIndex(idx);
                                   }
                                 },
                               ),
@@ -494,22 +519,13 @@ class _ServiceInteractiveDetailScreenState
               final other = otherServices[index];
               return GestureDetector(
                 onTap: () {
-                  if (other.name.toLowerCase().contains('interior')) {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const InteriorDetailingScreen(),
-                      ),
-                    );
-                  } else {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            ServiceInteractiveDetailScreen(service: other),
-                      ),
-                    );
-                  }
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          ServiceInteractiveDetailScreen(service: other),
+                    ),
+                  );
                 },
                 child: Container(
                   width: 160,

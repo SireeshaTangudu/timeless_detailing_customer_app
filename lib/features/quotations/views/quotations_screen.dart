@@ -24,6 +24,29 @@ class QuotationsScreen extends StatefulWidget {
 
 class _QuotationsScreenState extends State<QuotationsScreen> {
   String _selectedFilter = 'All';
+  final ScrollController _filterScrollController = ScrollController();
+  final List<String> _filters = const ['All', 'Sent', 'Sales Order', 'Cancelled'];
+
+  @override
+  void dispose() {
+    _filterScrollController.dispose();
+    super.dispose();
+  }
+
+  void _scrollToFilterIndex(int index) {
+    if (!_filterScrollController.hasClients) return;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final itemOffset = index * 100.0;
+    final targetScroll = itemOffset - (screenWidth / 2) + 50.0;
+    final maxScroll = _filterScrollController.position.maxScrollExtent;
+    final finalScroll = targetScroll.clamp(0.0, maxScroll);
+
+    _filterScrollController.animateTo(
+      finalScroll,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeOut,
+    );
+  }
 
   @override
   void initState() {
@@ -90,15 +113,15 @@ class _QuotationsScreenState extends State<QuotationsScreen> {
               Container(
                 height: 50,
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: ListView(
+                child: ListView.builder(
+                  controller: _filterScrollController,
                   scrollDirection: Axis.horizontal,
                   physics: const BouncingScrollPhysics(),
-                  children: [
-                    _buildFilterChip('All'),
-                    _buildFilterChip('Sent'),
-                    _buildFilterChip('Sales Order'),
-                    _buildFilterChip('Cancelled'),
-                  ],
+                  itemCount: _filters.length,
+                  itemBuilder: (context, index) {
+                    final filter = _filters[index];
+                    return _buildFilterChip(filter, index);
+                  },
                 ),
               ),
               const SizedBox(height: 8),
@@ -133,7 +156,7 @@ class _QuotationsScreenState extends State<QuotationsScreen> {
     );
   }
 
-  Widget _buildFilterChip(String filter) {
+  Widget _buildFilterChip(String filter, int index) {
     final isSelected = _selectedFilter == filter;
     return Padding(
       padding: const EdgeInsets.only(right: 8),
@@ -145,6 +168,7 @@ class _QuotationsScreenState extends State<QuotationsScreen> {
             setState(() {
               _selectedFilter = filter;
             });
+            _scrollToFilterIndex(index);
           }
         },
         labelStyle: GoogleFonts.inter(

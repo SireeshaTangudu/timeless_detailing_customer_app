@@ -38,15 +38,35 @@ class ServicesController extends ChangeNotifier {
   }
 
   List<DetailService> get filteredServices {
-    if (_selectedCategory == 'All') {
+    if (_selectedCategory == 'All' || _selectedCategory.isEmpty) {
       return _services;
     }
-    return _services.where((s) {
-      if (_selectedCategoryId != null && s.mobileCategoryId != null) {
-        return s.mobileCategoryId == _selectedCategoryId;
-      }
-      return s.category == _selectedCategory;
+    
+    if (_selectedCategoryId != null && _services.isNotEmpty) {
+      final categoryMatched = _services.where((s) {
+        if (s.mobileCategoryId != null && s.mobileCategoryId! > 0) {
+          return s.mobileCategoryId == _selectedCategoryId;
+        }
+        return true;
+      }).toList();
+      if (categoryMatched.isNotEmpty) return categoryMatched;
+      return _services;
+    }
+
+    final filtered = _services.where((s) {
+      final cat = s.category.toLowerCase().trim();
+      final sel = _selectedCategory.toLowerCase().trim();
+      return cat == sel ||
+          cat.contains(sel) ||
+          sel.contains(cat) ||
+          (sel.contains('package') && cat.contains('package')) ||
+          (sel.contains('ceramic') && cat.contains('ceramic')) ||
+          (sel.contains('paint') && cat.contains('paint')) ||
+          (sel.contains('tint') && cat.contains('tint')) ||
+          (sel.contains('interior') && cat.contains('interior'));
     }).toList();
+
+    return filtered;
   }
 
   Future<void> initData() async {
@@ -73,7 +93,11 @@ class ServicesController extends ChangeNotifier {
       _selectedCategoryId = null;
     } else {
       final matchedCat = _productCategories.firstWhere(
-        (c) => c.name == category,
+        (c) {
+          final cName = c.name.toLowerCase().trim();
+          final selName = category.toLowerCase().trim();
+          return cName == selName || cName.contains(selName) || selName.contains(cName);
+        },
         orElse: () => ProductCategory(id: 0, name: category),
       );
       _selectedCategoryId = matchedCat.id != 0 ? matchedCat.id : null;
@@ -100,21 +124,13 @@ class ServicesController extends ChangeNotifier {
     try {
       final fetched = await _odooService.getServicesFromProductTemplate(categoryId: categoryId);
       debugPrint('🟢 [ServicesController] Successfully loaded ${fetched.length} services from Odoo');
-      if (categoryId == null || _services.isEmpty) {
-        _services = fetched;
-      } else {
-        // Update or replace existing services
-        final fetchedIds = fetched.map((s) => s.id).toSet();
-        _services = [
-          ...fetched,
-          ..._services.where((s) => !fetchedIds.contains(s.id)),
-        ];
-      }
+      _services = fetched;
       _isLoading = false;
       notifyListeners();
     } catch (e) {
       debugPrint('🔴 [ServicesController] Error in loadServices: $e');
       _isLoading = false;
+      _errorMessage = 'Failed to load services';
       notifyListeners();
     }
   }

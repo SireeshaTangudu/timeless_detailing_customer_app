@@ -15,6 +15,7 @@ import 'package:timeless_detailing_customer_app/features/services/models/product
 import 'package:timeless_detailing_customer_app/features/services/views/services_list_screen.dart';
 import 'package:timeless_detailing_customer_app/features/services/views/interior_detailing_screen.dart';
 import 'package:timeless_detailing_customer_app/features/services/views/service_detail_screen.dart';
+import 'package:timeless_detailing_customer_app/features/services/views/service_interactive_detail_screen.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/controllers/bookings_controller.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/models/booking_model.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/views/upcoming_appointment_details_screen.dart';
@@ -1165,21 +1166,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget _buildServiceCard(BuildContext context, DetailService item) {
     return GestureDetector(
       onTap: () {
-        if (item.name.toLowerCase().contains('interior')) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const InteriorDetailingScreen(),
-            ),
-          );
-        } else {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => ServiceDetailScreen(service: item),
-            ),
-          );
-        }
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) =>
+                ServiceInteractiveDetailScreen(service: item),
+          ),
+        );
       },
       child: Container(
         width: 160,

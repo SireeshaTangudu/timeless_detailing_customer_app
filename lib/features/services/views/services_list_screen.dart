@@ -8,7 +8,6 @@ import 'package:timeless_detailing_customer_app/features/services/controllers/se
 import 'package:timeless_detailing_customer_app/features/services/models/service_model.dart';
 import 'package:timeless_detailing_customer_app/features/services/views/service_interactive_detail_screen.dart';
 import 'package:timeless_detailing_customer_app/core/widgets/custom_shimmer_loading.dart';
-import 'package:timeless_detailing_customer_app/core/widgets/custom_loader.dart';
 import 'package:timeless_detailing_customer_app/core/widgets/custom_app_bar.dart';
 import 'package:timeless_detailing_customer_app/core/utils/app_animations.dart';
 import 'package:timeless_detailing_customer_app/core/services/currency_service.dart';
@@ -23,6 +22,8 @@ class ServicesListScreen extends StatefulWidget {
 }
 
 class _ServicesListScreenState extends State<ServicesListScreen> {
+  final ScrollController _categoryScrollController = ScrollController();
+
   @override
   void initState() {
     super.initState();
@@ -34,7 +35,40 @@ class _ServicesListScreenState extends State<ServicesListScreen> {
       if (controller.services.isEmpty && !controller.isLoading) {
         controller.loadServices(categoryId: controller.selectedCategoryId);
       }
+      _checkAndScrollToSelectedCategory(controller);
     });
+  }
+
+  void _checkAndScrollToSelectedCategory(ServicesController controller) {
+    final index = controller.categories.indexOf(controller.selectedCategory);
+    if (index > 0) {
+      Future.delayed(const Duration(milliseconds: 150), () {
+        if (mounted) {
+          _scrollToCategoryIndex(index);
+        }
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _categoryScrollController.dispose();
+    super.dispose();
+  }
+
+  void _scrollToCategoryIndex(int index) {
+    if (!_categoryScrollController.hasClients) return;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final itemOffset = index * 120.0;
+    final targetScroll = itemOffset - (screenWidth / 2) + 60.0;
+    final maxScroll = _categoryScrollController.position.maxScrollExtent;
+    final finalScroll = targetScroll.clamp(0.0, maxScroll);
+
+    _categoryScrollController.animateTo(
+      finalScroll,
+      duration: const Duration(milliseconds: 350),
+      curve: Curves.easeOutCubic,
+    );
   }
 
   Widget _buildChildServiceFullBleedImage(DetailService service) {
@@ -143,6 +177,7 @@ class _ServicesListScreenState extends State<ServicesListScreen> {
     return SizedBox(
       height: 38,
       child: ListView.separated(
+        controller: _categoryScrollController,
         scrollDirection: Axis.horizontal,
         physics: const BouncingScrollPhysics(),
         itemCount: categories.length,
@@ -154,6 +189,7 @@ class _ServicesListScreenState extends State<ServicesListScreen> {
           return AnimatedPressable(
             onTap: () {
               controller.selectCategory(catName);
+              _scrollToCategoryIndex(index);
             },
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
