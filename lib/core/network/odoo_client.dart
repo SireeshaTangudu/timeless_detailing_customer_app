@@ -1652,16 +1652,11 @@ class OdooApiService implements BaseOdooService {
               final b64 = rawB64.contains(',')
                   ? rawB64.split(',').last
                   : rawB64;
-              return [
-                0,
-                0,
-                {
-                  'name': 'vehicle_photo_$idx.jpg',
-                  'type': 'binary',
-                  'datas': b64,
-                  'mimetype': 'image/jpeg',
-                },
-              ];
+              return {
+                'name': 'vehicle_photo_$idx.jpg',
+                'mimetype': 'image/jpeg',
+                'datas': b64,
+              };
             }).toList()
           : [];
 
@@ -1690,6 +1685,7 @@ class OdooApiService implements BaseOdooService {
         'duration': effectiveDuration,
         'booking_line_ids': bookingLines,
         if (phone != null) 'phone': phone,
+        'collector_required': collectorName != null && collectorName.isNotEmpty,
         if (collectorName != null) 'collector_name': collectorName,
         if (collectorLicense != null) 'collector_license': collectorLicense,
         if (vehicleMake != null) 'vehicle_make': vehicleMake,
