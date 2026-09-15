@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "17071528720",
+    "project_id": "timeless-detailing-production",
+    "storage_bucket": "timeless-detailing-production.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:17071528720:android:32b9ef2a060a60c66fe395",
+        "android_client_info": {
+          "package_name": "com.timelessdetail.customer"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCImYZMFQ25_DtdXEkqs8FY_uH2MWhzx6A"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
