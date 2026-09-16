@@ -998,7 +998,10 @@ class _EstimationScreenState extends State<EstimationScreen> {
                 if (_status == 'accepted' || data.state == 'sale')
                   Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 12,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xFFE8F5E9),
                       borderRadius: BorderRadius.circular(12),
@@ -1013,12 +1016,18 @@ class _EstimationScreenState extends State<EstimationScreen> {
                           size: 20,
                         ),
                         const SizedBox(width: 8),
-                        Text(
-                          'Quotation Accepted & Signed',
-                          style: GoogleFonts.outfit(
-                            fontSize: 15,
-                            fontWeight: FontWeight.bold,
-                            color: const Color(0xFF2E7D32),
+                        Flexible(
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              'Quotation Accepted & Signed',
+                              maxLines: 1,
+                              style: GoogleFonts.outfit(
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                                color: const Color(0xFF2E7D32),
+                              ),
+                            ),
                           ),
                         ),
                       ],
@@ -1027,7 +1036,10 @@ class _EstimationScreenState extends State<EstimationScreen> {
                 else if (_status == 'declined' || data.state == 'cancel')
                   Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 12,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xFFFFEBEE),
                       borderRadius: BorderRadius.circular(12),
@@ -1042,12 +1054,18 @@ class _EstimationScreenState extends State<EstimationScreen> {
                           size: 20,
                         ),
                         const SizedBox(width: 8),
-                        Text(
-                          'Quotation Declined',
-                          style: GoogleFonts.outfit(
-                            fontSize: 15,
-                            fontWeight: FontWeight.bold,
-                            color: const Color(0xFFC62828),
+                        Flexible(
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              'Quotation Declined',
+                              maxLines: 1,
+                              style: GoogleFonts.outfit(
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                                color: const Color(0xFFC62828),
+                              ),
+                            ),
                           ),
                         ),
                       ],
@@ -1103,112 +1121,136 @@ class _EstimationScreenState extends State<EstimationScreen> {
                         const SizedBox(height: 14),
                       ],
 
-                      // Action Buttons: Decline & Accept & Sign
-                      Row(
-                        children: [
-                          // Decline Button
-                          Expanded(
-                            child: SizedBox(
-                              height: 50,
-                              child: OutlinedButton.icon(
-                                onPressed: () {
-                                  _showDeclineReasonDialog(
-                                    context,
-                                    data,
-                                    () {
-                                      if (mounted) {
-                                        setState(() => _status = 'declined');
-                                        ScaffoldMessenger.of(
-                                          context,
-                                        ).showSnackBar(
-                                          const SnackBar(
-                                            content: Text(
-                                              'Quotation declined successfully.',
+                      // Action Buttons: Decline & Accept & Sign (Decline hidden on draft estimates)
+                      if (data.isQuotationSent) ...[
+                        Row(
+                          children: [
+                            // Decline Button
+                            Expanded(
+                              child: SizedBox(
+                                height: 50,
+                                child: OutlinedButton.icon(
+                                  onPressed: () {
+                                    _showDeclineReasonDialog(
+                                      context,
+                                      data,
+                                      () {
+                                        if (mounted) {
+                                          setState(() => _status = 'declined');
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
+                                            const SnackBar(
+                                              content: Text(
+                                                'Quotation declined successfully.',
+                                              ),
+                                              backgroundColor: Color(0xFFB71C1C),
                                             ),
-                                            backgroundColor: Color(0xFFB71C1C),
-                                          ),
-                                        );
-                                      }
-                                    },
-                                  );
-                                },
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: const Color(0xFFB71C1C),
-                                  side: const BorderSide(
+                                          );
+                                        }
+                                      },
+                                    );
+                                  },
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: const Color(0xFFB71C1C),
+                                    side: const BorderSide(
+                                      color: Color(0xFFB71C1C),
+                                      width: 1.5,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                  icon: const Icon(
+                                    Icons.close_rounded,
+                                    size: 18,
                                     color: Color(0xFFB71C1C),
-                                    width: 1.5,
                                   ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                ),
-                                icon: const Icon(
-                                  Icons.close_rounded,
-                                  size: 18,
-                                  color: Color(0xFFB71C1C),
-                                ),
-                                label: FittedBox(
-                                  fit: BoxFit.scaleDown,
-                                  child: Text(
-                                    'Decline',
-                                    style: GoogleFonts.outfit(
-                                      fontSize: 14.5,
-                                      fontWeight: FontWeight.bold,
-                                      color: const Color(0xFFB71C1C),
+                                  label: FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: Text(
+                                      'Decline',
+                                      style: GoogleFonts.outfit(
+                                        fontSize: 14.5,
+                                        fontWeight: FontWeight.bold,
+                                        color: const Color(0xFFB71C1C),
+                                      ),
                                     ),
                                   ),
                                 ),
                               ),
                             ),
-                          ),
-                          const SizedBox(width: 12),
+                            const SizedBox(width: 12),
 
-                          // Accept & Sign Button
-                          Expanded(
-                            child: SizedBox(
-                              height: 50,
-                              child: ElevatedButton.icon(
-                                onPressed: data.isQuotationSent
-                                    ? () =>
-                                        _showAcceptAndSignModal(context, data)
-                                    : null,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFFC4913F),
-                                  foregroundColor: Colors.white,
-                                  disabledBackgroundColor:
-                                      const Color(0xFFE5DFD5),
-                                  disabledForegroundColor:
-                                      const Color(0xFF8C8273),
-                                  elevation: 0,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
+                            // Accept & Sign Button
+                            Expanded(
+                              child: SizedBox(
+                                height: 50,
+                                child: ElevatedButton.icon(
+                                  onPressed: () =>
+                                      _showAcceptAndSignModal(context, data),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFFC4913F),
+                                    foregroundColor: Colors.white,
+                                    elevation: 0,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
                                   ),
-                                ),
-                                icon: Icon(
-                                  Icons.draw_outlined,
-                                  size: 18,
-                                  color: data.isQuotationSent
-                                      ? Colors.white
-                                      : const Color(0xFF8C8273),
-                                ),
-                                label: FittedBox(
-                                  fit: BoxFit.scaleDown,
-                                  child: Text(
-                                    'Accept & Sign',
-                                    style: GoogleFonts.outfit(
-                                      fontSize: 14.5,
-                                      fontWeight: FontWeight.bold,
-                                      color: data.isQuotationSent
-                                          ? Colors.white
-                                          : const Color(0xFF8C8273),
+                                  icon: const Icon(
+                                    Icons.draw_outlined,
+                                    size: 18,
+                                    color: Colors.white,
+                                  ),
+                                  label: FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: Text(
+                                      'Accept & Sign',
+                                      style: GoogleFonts.outfit(
+                                        fontSize: 14.5,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
+                                      ),
                                     ),
                                   ),
                                 ),
                               ),
                             ),
+                          ],
+                        ),
+                      ] else ...[
+                        // Single full-width disabled Accept & Sign button for draft estimates
+                        SizedBox(
+                          width: double.infinity,
+                          height: 50,
+                          child: ElevatedButton.icon(
+                            onPressed: null,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFC4913F),
+                              foregroundColor: Colors.white,
+                              disabledBackgroundColor: const Color(0xFFE5DFD5),
+                              disabledForegroundColor: const Color(0xFF8C8273),
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            icon: const Icon(
+                              Icons.draw_outlined,
+                              size: 18,
+                              color: Color(0xFF8C8273),
+                            ),
+                            label: Text(
+                              'Accept & Sign',
+                              style: GoogleFonts.outfit(
+                                fontSize: 14.5,
+                                fontWeight: FontWeight.bold,
+                                color: const Color(0xFF8C8273),
+                              ),
+                            ),
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                       const SizedBox(height: 10),
 
                       // Get Directions to Garage Button

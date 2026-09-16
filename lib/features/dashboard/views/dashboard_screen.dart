@@ -579,6 +579,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                         upcoming.first,
                                       ),
                                     ),
+                                  ] else ...[
+                                    const SizedBox(height: 18),
+                                    // Empty State "Book Now" Card placed BELOW Services
+                                    FadeSlideIn(
+                                      delay: const Duration(milliseconds: 500),
+                                      child: _buildNoBookingsCard(context),
+                                    ),
                                   ],
                                 ],
                               ),
@@ -900,6 +907,163 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                   child: Text(
                     buttonText,
+                    style: GoogleFonts.outfit(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNoBookingsCard(BuildContext context) {
+    return AnimatedPressable(
+      onTap: () {
+        if (widget.tabController != null) {
+          widget.tabController!.animateTo(1);
+        } else {
+          Navigator.push(
+            context,
+            FadeSlidePageRoute(
+              page: ServicesListScreen(
+                onMenuTap: () {},
+              ),
+            ),
+          );
+        }
+      },
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFF121212), Color(0xFF22190C)],
+          ),
+          borderRadius: BorderRadius.circular(8),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.2),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Title with Glow Dot & Badge
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Row(
+                    children: [
+                      const PulseGlow(
+                        child: Icon(
+                          Icons.circle,
+                          size: 8,
+                          color: Color(0xFFC4913F),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'No Bookings Yet',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.lora(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w500,
+                            color: const Color(0xFFC4913F),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFC4913F).withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(
+                      color: const Color(0xFFC4913F).withValues(alpha: 0.4),
+                      width: 0.8,
+                    ),
+                  ),
+                  child: Text(
+                    'BOOK NOW',
+                    style: GoogleFonts.outfit(
+                      fontSize: 9.5,
+                      fontWeight: FontWeight.bold,
+                      color: const Color(0xFFC4913F),
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+
+            // Divider
+            const Divider(color: Color(0xFF332A1F), height: 1, thickness: 1),
+            const SizedBox(height: 12),
+
+            // Subtitle text
+            Text(
+              "You don't have any active detailing bookings yet. Book a service today to get started!",
+              style: GoogleFonts.montserrat(
+                fontSize: 11.5,
+                fontWeight: FontWeight.w400,
+                color: const Color(0xFF9E9384),
+                height: 1.35,
+              ),
+            ),
+            const SizedBox(height: 14),
+
+            // Action Button
+            Align(
+              alignment: Alignment.centerRight,
+              child: SizedBox(
+                height: 38,
+                child: ElevatedButton(
+                  onPressed: () {
+                    if (widget.tabController != null) {
+                      widget.tabController!.animateTo(1);
+                    } else {
+                      Navigator.push(
+                        context,
+                        FadeSlidePageRoute(
+                          page: ServicesListScreen(
+                            onMenuTap: () {},
+                          ),
+                        ),
+                      );
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFC4913F),
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(horizontal: 18),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: Text(
+                    'Book Now',
                     style: GoogleFonts.outfit(
                       fontSize: 12.5,
                       fontWeight: FontWeight.w600,

@@ -21,7 +21,7 @@ class BookingsHistoryScreen extends StatefulWidget {
 
 class _BookingsHistoryScreenState extends State<BookingsHistoryScreen> {
   int _selectedTabIndex =
-      0; // 0: Closed Bookings, 1: Upcoming Bookings, 2: Cancelled Bookings
+      0; // 0: Upcoming Bookings, 1: Closed Bookings, 2: Cancelled Bookings
 
   @override
   void initState() {
@@ -52,9 +52,9 @@ class _BookingsHistoryScreenState extends State<BookingsHistoryScreen> {
 
     List<dynamic> displayList;
     if (_selectedTabIndex == 0) {
-      displayList = completedList;
-    } else if (_selectedTabIndex == 1) {
       displayList = upcomingList;
+    } else if (_selectedTabIndex == 1) {
+      displayList = completedList;
     } else {
       displayList = cancelledList;
     }
@@ -93,9 +93,9 @@ class _BookingsHistoryScreenState extends State<BookingsHistoryScreen> {
                       // Segmented Pill Tab Bar (Closed Bookings / Upcoming Bookings / Cancelled Bookings)
                       Row(
                         children: [
-                          Expanded(child: _buildTabPill(0, 'Closed')),
+                          Expanded(child: _buildTabPill(0, 'Upcoming')),
                           const SizedBox(width: 6),
-                          Expanded(child: _buildTabPill(1, 'Upcoming')),
+                          Expanded(child: _buildTabPill(1, 'Closed')),
                           const SizedBox(width: 6),
                           Expanded(child: _buildTabPill(2, 'Cancelled')),
                         ],
@@ -356,9 +356,9 @@ class _BookingsHistoryScreenState extends State<BookingsHistoryScreen> {
   Widget _buildEmptyState() {
     String message = 'You have no detailing orders in this section.';
     if (_selectedTabIndex == 0) {
-      message = 'You have no closed detailing orders.';
-    } else if (_selectedTabIndex == 1) {
       message = 'You have no upcoming detailing appointments.';
+    } else if (_selectedTabIndex == 1) {
+      message = 'You have no closed detailing orders.';
     } else if (_selectedTabIndex == 2) {
       message = 'You have no cancelled detailing appointments.';
     }
@@ -385,9 +385,40 @@ class _BookingsHistoryScreenState extends State<BookingsHistoryScreen> {
             const SizedBox(height: 4),
             Text(
               message,
+              textAlign: TextAlign.center,
               style: GoogleFonts.montserrat(
                 fontSize: 12,
                 color: const Color(0xFF8C8273),
+              ),
+            ),
+            const SizedBox(height: 18),
+            SizedBox(
+              height: 38,
+              child: ElevatedButton(
+                onPressed: () {
+                  if (widget.onMenuTap != null) {
+                    widget.onMenuTap!();
+                  } else if (Navigator.canPop(context)) {
+                    Navigator.pop(context);
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFC4913F),
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: Text(
+                  'Book Now',
+                  style: GoogleFonts.outfit(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
               ),
             ),
           ],
