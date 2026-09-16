@@ -38,8 +38,9 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF9F7F4),
-      body: Column(
-        children: [
+      body: SafeArea(
+        child: Column(
+          children: [
           CustomAppBar(
             title: 'Live Detailing Tracking',
             subtitle: activeBooking.service.name,
@@ -415,6 +416,7 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
           ),
         ],
       ),
-    );
+    ),
+  );
   }
 }

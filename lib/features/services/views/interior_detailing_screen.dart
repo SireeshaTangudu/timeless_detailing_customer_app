@@ -50,7 +50,7 @@ class _InteriorDetailingScreenState extends State<InteriorDetailingScreen> {
     if (matches.isEmpty) {
       return const Scaffold(
         backgroundColor: Colors.white,
-        body: FourRotatingDotsLoader(),
+        body: SafeArea(child: FourRotatingDotsLoader()),
       );
     }
 

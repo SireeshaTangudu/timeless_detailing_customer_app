@@ -60,8 +60,9 @@ class _ServiceVariantsScreenState extends State<ServiceVariantsScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF9F7F4),
-      body: Column(
-        children: [
+      body: SafeArea(
+        child: Column(
+          children: [
           CustomAppBar(
             // title: widget.parentService.name,
             // subtitle: widget.parentService.description.isNotEmpty
@@ -100,7 +101,8 @@ class _ServiceVariantsScreenState extends State<ServiceVariantsScreen> {
           ),
         ],
       ),
-    );
+    ),
+  );
   }
 
   Widget _buildVariantCard(BuildContext context, DetailService subService) {

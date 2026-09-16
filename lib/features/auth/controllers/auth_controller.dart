@@ -294,6 +294,7 @@ class AuthController extends ChangeNotifier {
 
       _userProfile ??= {};
       _userProfile!['image_1920'] = base64Image;
+      _userProfile!['image_128'] = base64Image;
 
       _isLoading = false;
       notifyListeners();
@@ -303,6 +304,7 @@ class AuthController extends ChangeNotifier {
       final base64Image = base64Encode(imageBytes);
       _userProfile ??= {};
       _userProfile!['image_1920'] = base64Image;
+      _userProfile!['image_128'] = base64Image;
       notifyListeners();
       return true;
     }
@@ -353,6 +355,7 @@ class AuthController extends ChangeNotifier {
 
       _userProfile ??= {};
       _userProfile!.remove('image_1920');
+      _userProfile!.remove('image_128');
 
       _isLoading = false;
       notifyListeners();
@@ -365,6 +368,7 @@ class AuthController extends ChangeNotifier {
       _isLoading = false;
       _userProfile ??= {};
       _userProfile!.remove('image_1920');
+      _userProfile!.remove('image_128');
       return false;
     }
   }

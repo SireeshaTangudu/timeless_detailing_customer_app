@@ -860,8 +860,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      body: Column(
-        children: [
+      body: SafeArea(
+        child: Column(
+          children: [
           const CustomAppBar(
             title: 'Settings',
             subtitle: 'Manage your preferences',
@@ -927,6 +928,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ],
         ),
+      ),
     );
   }
 }

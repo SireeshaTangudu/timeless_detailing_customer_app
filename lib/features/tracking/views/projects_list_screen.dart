@@ -32,88 +32,90 @@ class _ProjectsListScreenState extends State<ProjectsListScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF9F7F4),
-      body: Column(
-        children: [
-          CustomAppBar(
-            title: 'Live Track - Projects',
-            showBackButton: true,
-            onBackPressed: () {
-              if (Navigator.canPop(context)) {
-                Navigator.pop(context);
-              } else if (widget.onMenuTap != null) {
-                widget.onMenuTap!();
-              }
-            },
-          ),
-          Expanded(
-            child: controller.isLoading
-                ? const ShimmerListLoader()
-                : RefreshIndicator(
-                    color: const Color(0xFFC4913F),
-                    onRefresh: () => controller.loadProjects(),
-                    child: controller.projects.isEmpty
-                        ? SingleChildScrollView(
-                            physics: const AlwaysScrollableScrollPhysics(),
-                            child: SizedBox(
-                              height: MediaQuery.of(context).size.height * 0.7,
-                              child: Center(
-                                child: Padding(
-                                  padding: const EdgeInsets.all(32),
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Container(
-                                        padding: const EdgeInsets.all(20),
-                                        decoration: BoxDecoration(
-                                          color: const Color(
-                                            0xFFC4913F,
-                                          ).withValues(alpha: 0.08),
-                                          shape: BoxShape.circle,
+      body: SafeArea(
+        child: Column(
+          children: [
+            CustomAppBar(
+              title: 'Live Track - Projects',
+              showBackButton: true,
+              onBackPressed: () {
+                if (Navigator.canPop(context)) {
+                  Navigator.pop(context);
+                } else if (widget.onMenuTap != null) {
+                  widget.onMenuTap!();
+                }
+              },
+            ),
+            Expanded(
+              child: controller.isLoading
+                  ? const ShimmerListLoader()
+                  : RefreshIndicator(
+                      color: const Color(0xFFC4913F),
+                      onRefresh: () => controller.loadProjects(),
+                      child: controller.projects.isEmpty
+                          ? SingleChildScrollView(
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              child: SizedBox(
+                                height: MediaQuery.of(context).size.height * 0.7,
+                                child: Center(
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(32),
+                                    child: Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.all(20),
+                                          decoration: BoxDecoration(
+                                            color: const Color(
+                                              0xFFC4913F,
+                                            ).withValues(alpha: 0.08),
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: const Icon(
+                                            Icons.track_changes_outlined,
+                                            size: 48,
+                                            color: Color(0xFFC4913F),
+                                          ),
                                         ),
-                                        child: const Icon(
-                                          Icons.track_changes_outlined,
-                                          size: 48,
-                                          color: Color(0xFFC4913F),
+                                        const SizedBox(height: 16),
+                                        Text(
+                                          'No Active Projects Found',
+                                          style: GoogleFonts.outfit(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold,
+                                            color: const Color(0xFF3A2F1E),
+                                          ),
                                         ),
-                                      ),
-                                      const SizedBox(height: 16),
-                                      Text(
-                                        'No Active Projects Found',
-                                        style: GoogleFonts.outfit(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.bold,
-                                          color: const Color(0xFF3A2F1E),
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          'Live project tracking updates and service events will appear here.',
+                                          textAlign: TextAlign.center,
+                                          style: GoogleFonts.montserrat(
+                                            fontSize: 13,
+                                            color: const Color(0xFF7A7A7E),
+                                            height: 1.4,
+                                          ),
                                         ),
-                                      ),
-                                      const SizedBox(height: 8),
-                                      Text(
-                                        'Live project tracking updates and service events will appear here.',
-                                        textAlign: TextAlign.center,
-                                        style: GoogleFonts.montserrat(
-                                          fontSize: 13,
-                                          color: const Color(0xFF7A7A7E),
-                                          height: 1.4,
-                                        ),
-                                      ),
-                                    ],
+                                      ],
+                                    ),
                                   ),
                                 ),
                               ),
+                            )
+                          : ListView.separated(
+                              padding: const EdgeInsets.all(16),
+                              itemCount: controller.projects.length,
+                              separatorBuilder: (context, index) =>
+                                  const SizedBox(height: 14),
+                              itemBuilder: (context, index) {
+                                final project = controller.projects[index];
+                                return _buildProjectCard(context, project);
+                              },
                             ),
-                          )
-                        : ListView.separated(
-                            padding: const EdgeInsets.all(16),
-                            itemCount: controller.projects.length,
-                            separatorBuilder: (context, index) =>
-                                const SizedBox(height: 14),
-                            itemBuilder: (context, index) {
-                              final project = controller.projects[index];
-                              return _buildProjectCard(context, project);
-                            },
-                          ),
-                  ),
-          ),
-        ],
+                    ),
+            ),
+          ],
+        ),
       ),
     );
   }

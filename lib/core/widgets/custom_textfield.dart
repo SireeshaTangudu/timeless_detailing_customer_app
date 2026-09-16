@@ -40,6 +40,14 @@ class CustomTextField extends StatefulWidget {
 class _CustomTextFieldState extends State<CustomTextField> {
   bool _obscureText = true;
 
+  static final TextInputFormatter emojiDenyFormatter =
+      FilteringTextInputFormatter.deny(
+    RegExp(
+      r'[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F700}-\u{1F77F}\u{1F800}-\u{1FAFF}\u{1F900}-\u{1F9FF}\u{1FA70}-\u{1FAFF}\u{2600}-\u{27BF}\u{1F1E6}-\u{1F1FF}\u{200D}\u{FE0F}\u{2002}\u{2003}]',
+      unicode: true,
+    ),
+  );
+
   @override
   Widget build(BuildContext context) {
     return TextFormField(
@@ -54,15 +62,10 @@ class _CustomTextFieldState extends State<CustomTextField> {
       maxLines: widget.maxLines,
       readOnly: widget.readOnly,
       onTap: widget.onTap,
-      inputFormatters: widget.inputFormatters ??
-          [
-            FilteringTextInputFormatter.deny(
-              RegExp(
-                r'[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F700}-\u{1F77F}\u{1F800}-\u{1FAFF}\u{2600}-\u{27BF}\u{1F1E6}-\u{1F1FF}\u{200D}\u{FE0F}]',
-                unicode: true,
-              ),
-            ),
-          ],
+      inputFormatters: [
+        emojiDenyFormatter,
+        ...?widget.inputFormatters,
+      ],
       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
             color: AppTheme.textPrimary,
             fontSize: 15,

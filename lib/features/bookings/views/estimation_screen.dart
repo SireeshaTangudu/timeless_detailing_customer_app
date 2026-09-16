@@ -587,66 +587,68 @@ class _EstimationScreenState extends State<EstimationScreen> {
       },
       child: Scaffold(
         backgroundColor: const Color(0xFFF7F5F0),
-        body: Column(
-          children: [
-            CustomAppBar(
-              title: 'Your Estimate',
-              onBackPressed: () => _handleBack(context),
-            ),
-            Expanded(
-              child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 16,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Main Estimation Ticket Card
-                    _buildEstimateTicketCard(context, data),
+        body: SafeArea(
+          child: Column(
+            children: [
+              CustomAppBar(
+                title: 'Your Estimate',
+                onBackPressed: () => _handleBack(context),
+              ),
+              Expanded(
+                child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 16,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Main Estimation Ticket Card
+                      _buildEstimateTicketCard(context, data),
 
-                    const SizedBox(height: 16),
+                      const SizedBox(height: 16),
 
-                    // Disclaimer notice
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      child: Text(
-                        data.disclaimerText,
-                        textAlign: TextAlign.center,
-                        style: GoogleFonts.montserrat(
-                          fontSize: 11.5,
-                          color: const Color(0xFF7E7667),
-                          height: 1.45,
-                          fontWeight: FontWeight.w400,
+                      // Disclaimer notice
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        child: Text(
+                          data.disclaimerText,
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.montserrat(
+                            fontSize: 11.5,
+                            color: const Color(0xFF7E7667),
+                            height: 1.45,
+                            fontWeight: FontWeight.w400,
+                          ),
                         ),
                       ),
-                    ),
 
-                    const SizedBox(height: 28),
+                      const SizedBox(height: 28),
 
-                    // Section Title: What will happen next
-                    Text(
-                      'What will happen next',
-                      style: GoogleFonts.outfit(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: const Color(0xFF1C1C1E),
-                        letterSpacing: -0.2,
+                      // Section Title: What will happen next
+                      Text(
+                        'What will happen next',
+                        style: GoogleFonts.outfit(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFF1C1C1E),
+                          letterSpacing: -0.2,
+                        ),
                       ),
-                    ),
 
-                    const SizedBox(height: 14),
+                      const SizedBox(height: 14),
 
-                    // Next steps timeline container
-                    _buildNextStepsCard(context, data),
+                      // Next steps timeline container
+                      _buildNextStepsCard(context, data),
 
-                    const SizedBox(height: 32),
-                  ],
+                      const SizedBox(height: 32),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -1101,44 +1103,111 @@ class _EstimationScreenState extends State<EstimationScreen> {
                         const SizedBox(height: 14),
                       ],
 
-                      // Accept & Sign Button (Enabled if quotation sent by technician, Disabled otherwise)
-                      SizedBox(
-                        width: double.infinity,
-                        height: 50,
-                        child: ElevatedButton.icon(
-                          onPressed: data.isQuotationSent
-                              ? () => _showAcceptAndSignModal(context, data)
-                              : null,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFC4913F),
-                            foregroundColor: Colors.white,
-                            disabledBackgroundColor: const Color(0xFFE5DFD5),
-                            disabledForegroundColor: const Color(0xFF8C8273),
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                      // Action Buttons: Decline & Accept & Sign
+                      Row(
+                        children: [
+                          // Decline Button
+                          Expanded(
+                            child: SizedBox(
+                              height: 50,
+                              child: OutlinedButton.icon(
+                                onPressed: () {
+                                  _showDeclineReasonDialog(
+                                    context,
+                                    data,
+                                    () {
+                                      if (mounted) {
+                                        setState(() => _status = 'declined');
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          const SnackBar(
+                                            content: Text(
+                                              'Quotation declined successfully.',
+                                            ),
+                                            backgroundColor: Color(0xFFB71C1C),
+                                          ),
+                                        );
+                                      }
+                                    },
+                                  );
+                                },
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: const Color(0xFFB71C1C),
+                                  side: const BorderSide(
+                                    color: Color(0xFFB71C1C),
+                                    width: 1.5,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                icon: const Icon(
+                                  Icons.close_rounded,
+                                  size: 18,
+                                  color: Color(0xFFB71C1C),
+                                ),
+                                label: FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Text(
+                                    'Decline',
+                                    style: GoogleFonts.outfit(
+                                      fontSize: 14.5,
+                                      fontWeight: FontWeight.bold,
+                                      color: const Color(0xFFB71C1C),
+                                    ),
+                                  ),
+                                ),
+                              ),
                             ),
                           ),
-                          icon: Icon(
-                            Icons.draw_outlined,
-                            size: 20,
-                            color: data.isQuotationSent
-                                ? Colors.white
-                                : const Color(0xFF8C8273),
-                          ),
-                          label: Text(
-                            data.isQuotationSent
-                                ? 'Accept & Sign'
-                                : 'Accept & Sign (Disabled - Waiting for Quotation)',
-                            style: GoogleFonts.outfit(
-                              fontSize: 14.5,
-                              fontWeight: FontWeight.bold,
-                              color: data.isQuotationSent
-                                  ? Colors.white
-                                  : const Color(0xFF8C8273),
+                          const SizedBox(width: 12),
+
+                          // Accept & Sign Button
+                          Expanded(
+                            child: SizedBox(
+                              height: 50,
+                              child: ElevatedButton.icon(
+                                onPressed: data.isQuotationSent
+                                    ? () =>
+                                        _showAcceptAndSignModal(context, data)
+                                    : null,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFFC4913F),
+                                  foregroundColor: Colors.white,
+                                  disabledBackgroundColor:
+                                      const Color(0xFFE5DFD5),
+                                  disabledForegroundColor:
+                                      const Color(0xFF8C8273),
+                                  elevation: 0,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                icon: Icon(
+                                  Icons.draw_outlined,
+                                  size: 18,
+                                  color: data.isQuotationSent
+                                      ? Colors.white
+                                      : const Color(0xFF8C8273),
+                                ),
+                                label: FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Text(
+                                    'Accept & Sign',
+                                    style: GoogleFonts.outfit(
+                                      fontSize: 14.5,
+                                      fontWeight: FontWeight.bold,
+                                      color: data.isQuotationSent
+                                          ? Colors.white
+                                          : const Color(0xFF8C8273),
+                                    ),
+                                  ),
+                                ),
+                              ),
                             ),
                           ),
-                        ),
+                        ],
                       ),
                       const SizedBox(height: 10),
 

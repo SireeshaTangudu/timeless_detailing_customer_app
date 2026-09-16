@@ -272,7 +272,7 @@ class _WarrantiesScreenState extends State<WarrantiesScreen> {
               // Validity Date Range Box
               Container(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
+                  horizontal: 10,
                   vertical: 8,
                 ),
                 decoration: BoxDecoration(
@@ -291,7 +291,7 @@ class _WarrantiesScreenState extends State<WarrantiesScreen> {
                           size: 14,
                           color: Color(0xFFC4913F),
                         ),
-                        const SizedBox(width: 6),
+                        const SizedBox(width: 4),
                         Text(
                           'Coverage Period:',
                           style: GoogleFonts.montserrat(
@@ -302,17 +302,22 @@ class _WarrantiesScreenState extends State<WarrantiesScreen> {
                         ),
                       ],
                     ),
-                    const SizedBox(width: 6),
-                    Flexible(
-                      child: Text(
-                        '$startFormatted – $endFormatted',
-                        textAlign: TextAlign.end,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.montserrat(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: const Color(0xFF1C1C1E),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Align(
+                        alignment: Alignment.centerRight,
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerRight,
+                          child: Text(
+                            '$startFormatted – $endFormatted',
+                            textAlign: TextAlign.end,
+                            style: GoogleFonts.montserrat(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFF1C1C1E),
+                            ),
+                          ),
                         ),
                       ),
                     ),

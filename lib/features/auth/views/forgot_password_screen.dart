@@ -101,8 +101,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       behavior: HitTestBehavior.opaque,
       child: Scaffold(
         backgroundColor: Colors.white,
-        body: Column(
-          children: [
+        body: SafeArea(
+          child: Column(
+            children: [
             const CustomAppBar(
               title: 'Forgot Password',
               subtitle: 'Enter your email to receive reset instructions',
@@ -257,6 +258,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }

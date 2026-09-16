@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -105,6 +107,56 @@ class _MainNavigationScaffoldState extends State<MainNavigationScaffold>
     );
   }
 
+  Widget _buildDrawerAvatar(AuthController auth) {
+    final base64Str = auth.profileImageBase64;
+    Uint8List? imageBytes;
+    if (base64Str != null) {
+      try {
+        String cleaned = base64Str.replaceAll(RegExp(r'\s+'), '');
+        if (cleaned.contains(',')) {
+          cleaned = cleaned.split(',').last;
+        }
+        while (cleaned.length % 4 != 0) {
+          cleaned += '=';
+        }
+        imageBytes = base64Decode(cleaned);
+      } catch (_) {
+        imageBytes = null;
+      }
+    }
+
+    return Container(
+      width: 46,
+      height: 46,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: AppTheme.primary.withValues(alpha: 0.12),
+        border: Border.all(color: AppTheme.primary, width: 1.5),
+      ),
+      child: ClipOval(
+        child: imageBytes != null
+            ? Image.memory(
+                imageBytes,
+                key: ValueKey(base64Str),
+                fit: BoxFit.cover,
+                width: 46,
+                height: 46,
+                gaplessPlayback: true,
+                errorBuilder: (context, error, stackTrace) => const Icon(
+                  Icons.person_outline,
+                  color: AppTheme.primary,
+                  size: 24,
+                ),
+              )
+            : const Icon(
+                Icons.person_outline,
+                color: AppTheme.primary,
+                size: 24,
+              ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final auth = Provider.of<AuthController>(context);
@@ -140,32 +192,21 @@ class _MainNavigationScaffoldState extends State<MainNavigationScaffold>
           child: Column(
             children: [
               // User Profile Header in Side Drawer
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
-                decoration: const BoxDecoration(
-                  color: Color(0xFFF9F7F4),
-                  border: Border(
-                    bottom: BorderSide(color: Color(0xFFEBE7DF), width: 1),
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 46,
-                      height: 46,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: AppTheme.primary.withValues(alpha: 0.12),
-                        border: Border.all(color: AppTheme.primary, width: 1.5),
-                      ),
-                      child: const Icon(
-                        Icons.person_outline,
-                        color: AppTheme.primary,
-                        size: 24,
-                      ),
+              GestureDetector(
+                onTap: () => _onSelectItem(3),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFF9F7F4),
+                    border: Border(
+                      bottom: BorderSide(color: Color(0xFFEBE7DF), width: 1),
                     ),
-                    const SizedBox(width: 14),
+                  ),
+                  child: Row(
+                    children: [
+                      _buildDrawerAvatar(auth),
+                      const SizedBox(width: 14),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -198,6 +239,7 @@ class _MainNavigationScaffoldState extends State<MainNavigationScaffold>
                   ],
                 ),
               ),
+            ),
 
               // Scrollable Sidebar Navigation Items
               Expanded(

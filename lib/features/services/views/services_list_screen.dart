@@ -238,7 +238,8 @@ class _ServicesListScreenState extends State<ServicesListScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF9F7F4),
-        body: Column(
+      body: SafeArea(
+        child: Column(
           children: [
             CustomAppBar(
               title: selectedCategoryName == 'All'
@@ -318,8 +319,9 @@ class _ServicesListScreenState extends State<ServicesListScreen> {
         ),
       ],
     ),
-  );
-}
+  ),
+);
+  }
 
   Widget _buildChildServiceCard(BuildContext context, DetailService service) {
     return AnimatedPressable(

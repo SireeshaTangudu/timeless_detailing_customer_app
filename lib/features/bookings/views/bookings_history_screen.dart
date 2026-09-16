@@ -6,10 +6,7 @@ import '../../../core/widgets/custom_app_bar.dart';
 import '../controllers/bookings_controller.dart';
 import '../models/booking_model.dart';
 import 'estimation_screen.dart';
-import '../../tracking/views/live_tracking_screen.dart';
-import '../../services/models/service_model.dart';
 import 'package:timeless_detailing_customer_app/core/widgets/custom_shimmer_loading.dart';
-import 'package:timeless_detailing_customer_app/features/bookings/views/upcoming_appointment_details_screen.dart';
 import '../../../core/widgets/custom_loader.dart';
 import 'package:timeless_detailing_customer_app/core/services/currency_service.dart';
 
@@ -23,7 +20,8 @@ class BookingsHistoryScreen extends StatefulWidget {
 }
 
 class _BookingsHistoryScreenState extends State<BookingsHistoryScreen> {
-  int _selectedTabIndex = 0; // 0: Completed Orders, 1: Upcoming Bookings
+  int _selectedTabIndex =
+      0; // 0: Closed Bookings, 1: Upcoming Bookings, 2: Cancelled Bookings
 
   @override
   void initState() {
@@ -39,17 +37,31 @@ class _BookingsHistoryScreenState extends State<BookingsHistoryScreen> {
 
     // Filter bookings based on selected tab
     final completedList = controller.bookings
-        .where((b) => b.status == BookingStatus.completed || b.status == BookingStatus.cancelled)
+        .where((b) => b.status == BookingStatus.completed)
         .toList();
     final upcomingList = controller.bookings
-        .where((b) => b.status != BookingStatus.completed && b.status != BookingStatus.cancelled)
+        .where(
+          (b) =>
+              b.status != BookingStatus.completed &&
+              b.status != BookingStatus.cancelled,
+        )
+        .toList();
+    final cancelledList = controller.bookings
+        .where((b) => b.status == BookingStatus.cancelled)
         .toList();
 
-    final displayList = _selectedTabIndex == 0 ? completedList : upcomingList;
+    List<dynamic> displayList;
+    if (_selectedTabIndex == 0) {
+      displayList = completedList;
+    } else if (_selectedTabIndex == 1) {
+      displayList = upcomingList;
+    } else {
+      displayList = cancelledList;
+    }
 
-    return Container(
-      color: const Color(0xFFF7F5F0), // Warm light cream matching Figma
-      child: SafeArea(
+    return Scaffold(
+      backgroundColor: const Color(0xFFF7F5F0), // Warm light cream matching Figma
+      body: SafeArea(
         child: Column(
           children: [
             CustomAppBar(
@@ -78,14 +90,14 @@ class _BookingsHistoryScreenState extends State<BookingsHistoryScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Segmented Pill Tab Bar (Closed Bookings / Upcoming Bookings)
+                      // Segmented Pill Tab Bar (Closed Bookings / Upcoming Bookings / Cancelled Bookings)
                       Row(
                         children: [
-                          Expanded(child: _buildTabPill(0, 'Closed Bookings')),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: _buildTabPill(1, 'Upcoming Bookings'),
-                          ),
+                          Expanded(child: _buildTabPill(0, 'Closed')),
+                          const SizedBox(width: 6),
+                          Expanded(child: _buildTabPill(1, 'Upcoming')),
+                          const SizedBox(width: 6),
+                          Expanded(child: _buildTabPill(2, 'Cancelled')),
                         ],
                       ),
 
@@ -133,7 +145,7 @@ class _BookingsHistoryScreenState extends State<BookingsHistoryScreen> {
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 10),
         decoration: BoxDecoration(
           color: isSelected ? const Color(0xFFFAF3E8) : Colors.white,
           borderRadius: BorderRadius.circular(24),
@@ -153,17 +165,19 @@ class _BookingsHistoryScreenState extends State<BookingsHistoryScreen> {
                 ]
               : [],
         ),
-        child: Text(
-          label,
-          textAlign: TextAlign.center,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: GoogleFonts.montserrat(
-            fontSize: 12,
-            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-            color: isSelected
-                ? const Color(0xFFA17730)
-                : const Color(0xFF8C8273),
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            style: GoogleFonts.montserrat(
+              fontSize: 11,
+              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+              color: isSelected
+                  ? const Color(0xFFA17730)
+                  : const Color(0xFF8C8273),
+            ),
           ),
         ),
       ),
@@ -184,6 +198,8 @@ class _BookingsHistoryScreenState extends State<BookingsHistoryScreen> {
     final String? resourceName = item is Booking
         ? item.appointmentResourceName
         : null;
+    final bool isCancelled =
+        item is Booking && item.status == BookingStatus.cancelled;
 
     return GestureDetector(
       onTap: () {
@@ -216,16 +232,24 @@ class _BookingsHistoryScreenState extends State<BookingsHistoryScreen> {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: const Color(0xFFFAF5ED),
+                color: isCancelled
+                    ? const Color(0xFFFFEBEE)
+                    : const Color(0xFFFAF5ED),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: const Color(0xFFC4913F).withValues(alpha: 0.3),
+                  color: isCancelled
+                      ? const Color(0xFFE57373).withValues(alpha: 0.4)
+                      : const Color(0xFFC4913F).withValues(alpha: 0.3),
                   width: 1,
                 ),
               ),
-              child: const Icon(
-                Icons.cleaning_services_outlined,
-                color: Color(0xFFC4913F),
+              child: Icon(
+                isCancelled
+                    ? Icons.cancel_outlined
+                    : Icons.cleaning_services_outlined,
+                color: isCancelled
+                    ? const Color(0xFFC62828)
+                    : const Color(0xFFC4913F),
                 size: 22,
               ),
             ),
@@ -257,7 +281,28 @@ class _BookingsHistoryScreenState extends State<BookingsHistoryScreen> {
                       fontWeight: FontWeight.w400,
                     ),
                   ),
-                  if (resourceName != null && resourceName.isNotEmpty) ...[
+                  if (isCancelled) ...[
+                    const SizedBox(height: 4),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFEBEE),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        'Cancelled',
+                        style: GoogleFonts.montserrat(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFFC62828),
+                        ),
+                      ),
+                    ),
+                  ] else if (resourceName != null &&
+                      resourceName.isNotEmpty) ...[
                     const SizedBox(height: 4),
                     Container(
                       padding: const EdgeInsets.symmetric(
@@ -297,7 +342,9 @@ class _BookingsHistoryScreenState extends State<BookingsHistoryScreen> {
               style: GoogleFonts.outfit(
                 fontSize: 15,
                 fontWeight: FontWeight.bold,
-                color: const Color(0xFFC4913F),
+                color: isCancelled
+                    ? const Color(0xFF8C8273)
+                    : const Color(0xFFC4913F),
               ),
             ),
           ],
@@ -307,6 +354,15 @@ class _BookingsHistoryScreenState extends State<BookingsHistoryScreen> {
   }
 
   Widget _buildEmptyState() {
+    String message = 'You have no detailing orders in this section.';
+    if (_selectedTabIndex == 0) {
+      message = 'You have no closed detailing orders.';
+    } else if (_selectedTabIndex == 1) {
+      message = 'You have no upcoming detailing appointments.';
+    } else if (_selectedTabIndex == 2) {
+      message = 'You have no cancelled detailing appointments.';
+    }
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 40),
       child: Center(
@@ -328,7 +384,7 @@ class _BookingsHistoryScreenState extends State<BookingsHistoryScreen> {
             ),
             const SizedBox(height: 4),
             Text(
-              'You have no detailing orders in this section.',
+              message,
               style: GoogleFonts.montserrat(
                 fontSize: 12,
                 color: const Color(0xFF8C8273),
@@ -495,7 +551,8 @@ class _NewEstimateScreenState extends State<NewEstimateScreen> {
         : (widget.bookingItem?['title'] ?? 'Car Detailing');
     final String priceStr = b != null
         ? CurrencyService.instance.format(b.totalPrice, decimalDigits: 0)
-        : (widget.bookingItem?['price'] ?? '${CurrencyService.instance.defaultSymbol} 0');
+        : (widget.bookingItem?['price'] ??
+              '${CurrencyService.instance.defaultSymbol} 0');
     final String selectedCar = b != null
         ? (b.vehicleName.isNotEmpty ? b.vehicleName : 'Client Vehicle')
         : (widget.bookingItem?['car'] ?? 'Client Vehicle');

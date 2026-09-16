@@ -386,8 +386,9 @@ class _UpcomingAppointmentDetailsScreenState
       },
       child: Scaffold(
         backgroundColor: const Color(0xFFF7F5F0),
-        body: Column(
-          children: [
+        body: SafeArea(
+          child: Column(
+            children: [
             CustomAppBar(
               title: appBarTitle,
               onBackPressed: () => _handleBack(context),
@@ -746,8 +747,9 @@ class _UpcomingAppointmentDetailsScreenState
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildDownPaymentInvoiceBody(
     BuildContext context,

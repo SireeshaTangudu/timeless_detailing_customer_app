@@ -80,91 +80,93 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF9F7F4),
-      body: Column(
-        children: [
-          CustomAppBar(
-            title: currentProject.name.isNotEmpty
-                ? currentProject.name
-                : 'Project #${currentProject.id}',
-            subtitle: 'Live Tracking & Task Stage Progress',
-            showBackButton: true,
-            onBackPressed: () => Navigator.pop(context),
-          ),
-          Expanded(
-            child: _isLoading
-                ? const Center(child: FourRotatingDotsLoader())
-                : RefreshIndicator(
-              color: const Color(0xFFC4913F),
-              onRefresh: _fetchProjectData,
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Project Overview Header Card
-                    _buildProjectOverviewCard(currentProject),
+      body: SafeArea(
+        child: Column(
+          children: [
+            CustomAppBar(
+              title: currentProject.name.isNotEmpty
+                  ? currentProject.name
+                  : 'Project #${currentProject.id}',
+              subtitle: 'Live Tracking & Task Stage Progress',
+              showBackButton: true,
+              onBackPressed: () => Navigator.pop(context),
+            ),
+            Expanded(
+              child: _isLoading
+                  ? const Center(child: FourRotatingDotsLoader())
+                  : RefreshIndicator(
+                color: const Color(0xFFC4913F),
+                onRefresh: _fetchProjectData,
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Project Overview Header Card
+                      _buildProjectOverviewCard(currentProject),
 
-                    const SizedBox(height: 24),
+                      const SizedBox(height: 24),
 
-                    // Section Header: Project Tasks & Stage Progress
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'PROJECT TASKS & PROGRESS',
-                          style: GoogleFonts.outfit(
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
-                            color: const Color(0xFFC4913F),
-                            letterSpacing: 1.0,
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFC4913F).withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            '${_tasks.length} ${_tasks.length == 1 ? "Task" : "Tasks"}',
-                            style: GoogleFonts.montserrat(
-                              fontSize: 11.5,
-                              fontWeight: FontWeight.w600,
+                      // Section Header: Project Tasks & Stage Progress
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'PROJECT TASKS & PROGRESS',
+                            style: GoogleFonts.outfit(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
                               color: const Color(0xFFC4913F),
+                              letterSpacing: 1.0,
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    if (_tasks.isEmpty)
-                      _buildEmptyTasksView()
-                    else
-                      ListView.separated(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: _tasks.length,
-                        separatorBuilder: (context, index) =>
-                        const SizedBox(height: 20),
-                        itemBuilder: (context, index) {
-                          final task = _tasks[index];
-                          final progress = _taskProgressMap[task.id];
-                          final isHighlighted = widget.initialTaskId != null && widget.initialTaskId == task.id;
-                          return _buildTaskProgressCard(task, progress, isHighlighted);
-                        },
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFC4913F).withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              '${_tasks.length} ${_tasks.length == 1 ? "Task" : "Tasks"}',
+                              style: GoogleFonts.montserrat(
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w600,
+                                color: const Color(0xFFC4913F),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                  ],
+
+                      const SizedBox(height: 16),
+
+                      if (_tasks.isEmpty)
+                        _buildEmptyTasksView()
+                      else
+                        ListView.separated(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: _tasks.length,
+                          separatorBuilder: (context, index) =>
+                          const SizedBox(height: 20),
+                          itemBuilder: (context, index) {
+                            final task = _tasks[index];
+                            final progress = _taskProgressMap[task.id];
+                            final isHighlighted = widget.initialTaskId != null && widget.initialTaskId == task.id;
+                            return _buildTaskProgressCard(task, progress, isHighlighted);
+                          },
+                        ),
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

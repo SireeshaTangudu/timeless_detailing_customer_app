@@ -76,9 +76,10 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
         showBackButton: true,
         onBackPressed: () => Navigator.pop(context),
       ),
-      body: _isLoading
-          ? const ShimmerDetailLoader()
-          : SingleChildScrollView(
+      body: SafeArea(
+        child: _isLoading
+            ? const ShimmerDetailLoader()
+            : SingleChildScrollView(
               padding: const EdgeInsets.all(20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -366,6 +367,7 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
                 ],
               ),
             ),
+      ),
     );
   }
 }

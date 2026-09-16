@@ -215,36 +215,38 @@ class _OdooPaymentWebviewScreenState extends State<OdooPaymentWebviewScreen> {
             ),
           ],
         ),
-        body: Stack(
-          children: [
-            Positioned.fill(
-              child: _controller != null
-                  ? WebViewWidget(controller: _controller!)
-                  : const Center(
-                      child: CircularProgressIndicator(
-                        color: Color(0xFFC4913F),
+        body: SafeArea(
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: _controller != null
+                    ? WebViewWidget(controller: _controller!)
+                    : const Center(
+                        child: CircularProgressIndicator(
+                          color: Color(0xFFC4913F),
+                        ),
                       ),
-                    ),
-            ),
-            if (_isLoading)
-              Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                child: SizedBox(
-                  height: 3,
-                  child: LinearProgressIndicator(
-                    value: _loadingProgress > 0
-                        ? _loadingProgress / 100.0
-                        : null,
-                    backgroundColor: const Color(0xFF2A231C),
-                    valueColor: const AlwaysStoppedAnimation<Color>(
-                      Color(0xFFC4913F),
+              ),
+              if (_isLoading)
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  child: SizedBox(
+                    height: 3,
+                    child: LinearProgressIndicator(
+                      value: _loadingProgress > 0
+                          ? _loadingProgress / 100.0
+                          : null,
+                      backgroundColor: const Color(0xFF2A231C),
+                      valueColor: const AlwaysStoppedAnimation<Color>(
+                        Color(0xFFC4913F),
+                      ),
                     ),
                   ),
                 ),
-              ),
-          ],
+            ],
+          ),
         ),
 
         // bottomNavigationBar: SafeArea(

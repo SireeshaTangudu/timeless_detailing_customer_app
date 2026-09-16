@@ -52,9 +52,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         showBackButton: true,
         onBackPressed: () => Navigator.pop(context),
       ),
-      body: _isLoading
-          ? const ShimmerListLoader()
-          : RefreshIndicator(
+      body: SafeArea(
+        child: _isLoading
+            ? const ShimmerListLoader()
+            : RefreshIndicator(
               color: const Color(0xFFC4913F),
               onRefresh: _fetchNotifications,
               child: _notifications.isEmpty
@@ -234,6 +235,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                       },
                     ),
             ),
+      ),
     );
   }
 }

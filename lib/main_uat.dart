@@ -6,8 +6,8 @@ void main() async {
     environment: Environment.uat,
     appName: 'Timeless Detailing UAT',
     baseUrl:
-        'https://keerthan-lfi-lfi-timeless-detailing1-uat-37440283.dev.odoo.com',
-    db: 'keerthan-lfi-lfi-timeless-detailing1-uat-37440283',
+        'https://keerthan-lfi-lfi-timeless-detailing1-uat-38062873.dev.odoo.com',
+    db: 'keerthan-lfi-lfi-timeless-detailing1-uat-38062873',
   );
   await bootstrap();
 }

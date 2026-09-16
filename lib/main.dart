@@ -36,8 +36,8 @@ void main() async {
       environment: Environment.uat,
       appName: 'Timeless Detailing UAT',
       baseUrl:
-          'https://keerthan-lfi-lfi-timeless-detailing1-uat-37440283.dev.odoo.com',
-      db: 'keerthan-lfi-lfi-timeless-detailing1-uat-37440283',
+          'https://keerthan-lfi-lfi-timeless-detailing1-uat-38062873.dev.odoo.com',
+      db: 'keerthan-lfi-lfi-timeless-detailing1-uat-38062873',
     );
   }
   await bootstrap();
@@ -53,10 +53,7 @@ Future<void> bootstrap() async {
   // ODOO INTEGRATION CONFIGURATION FROM APPCONFIG
   // =========================================================================
   final config = AppConfig.instance;
-  final odooService = OdooApiService(
-    baseUrl: config.baseUrl,
-    db: config.db,
-  );
+  final odooService = OdooApiService(baseUrl: config.baseUrl, db: config.db);
 
   // Initialize Firebase & FCM asynchronously so runApp is NEVER blocked on startup
   FirebaseNotificationService.initialize(odooService: odooService).catchError((
@@ -80,7 +77,9 @@ Future<void> bootstrap() async {
       providers: [
         // Core Odoo service provider injection
         Provider<BaseOdooService>.value(value: odooService),
-        ChangeNotifierProvider(create: (context) => NetworkConnectivityService()),
+        ChangeNotifierProvider(
+          create: (context) => NetworkConnectivityService(),
+        ),
 
         // Feature Controller Providers
         ChangeNotifierProvider(

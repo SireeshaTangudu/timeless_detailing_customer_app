@@ -482,8 +482,9 @@ class _BookServiceScreenState extends State<BookServiceScreen> {
         children: [
         Scaffold(
           backgroundColor: const Color(0xFFF9F7F4),
-          body: Column(
-            children: [
+          body: SafeArea(
+            child: Column(
+              children: [
               CustomAppBar(
                 title: 'Book slot for ${widget.initialService.name}',
                 onBackPressed: () => Navigator.pop(context),
@@ -998,6 +999,7 @@ class _BookServiceScreenState extends State<BookServiceScreen> {
             ],
           ),
         ),
+      ),
         if (bookingsController.isLoading)
           Positioned.fill(
             child: BackdropFilter(
