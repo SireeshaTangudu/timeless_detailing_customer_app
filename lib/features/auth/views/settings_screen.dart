@@ -81,7 +81,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 height: 48,
                 child: ElevatedButton(
                   onPressed: () {
-                    final navigator = Navigator.of(context, rootNavigator: true);
+                    final navigator = Navigator.of(
+                      context,
+                      rootNavigator: true,
+                    );
                     final auth = Provider.of<AuthController>(
                       context,
                       listen: false,
@@ -166,7 +169,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ),
                         ),
                         GestureDetector(
-                          onTap: isSubmitting ? null : () => Navigator.pop(context),
+                          onTap: isSubmitting
+                              ? null
+                              : () => Navigator.pop(context),
                           child: Container(
                             width: 28,
                             height: 28,
@@ -196,7 +201,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     TextField(
                       controller: oldPasswordController,
                       obscureText: obscureOld,
-                      style: GoogleFonts.inter(fontSize: 14, color: Colors.white),
+                      style: GoogleFonts.inter(
+                        fontSize: 14,
+                        color: Colors.white,
+                      ),
                       onChanged: (val) {
                         if (oldPwdError != null) {
                           setSheetState(() => oldPwdError = null);
@@ -206,21 +214,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         filled: true,
                         fillColor: const Color(0xFF24242A),
                         hintText: 'Enter current password',
-                        hintStyle: GoogleFonts.inter(color: Colors.grey, fontSize: 13),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        hintStyle: GoogleFonts.inter(
+                          color: Colors.grey,
+                          fontSize: 13,
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 12,
+                        ),
                         errorText: oldPwdError,
-                        errorStyle: GoogleFonts.inter(color: const Color(0xFFEF5350), fontSize: 11),
+                        errorStyle: GoogleFonts.inter(
+                          color: const Color(0xFFEF5350),
+                          fontSize: 11,
+                        ),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
                           borderSide: BorderSide.none,
                         ),
                         suffixIcon: IconButton(
                           icon: Icon(
-                            obscureOld ? Icons.visibility_off : Icons.visibility,
+                            obscureOld
+                                ? Icons.visibility_off
+                                : Icons.visibility,
                             color: const Color(0xFFC4913F),
                             size: 20,
                           ),
-                          onPressed: () => setSheetState(() => obscureOld = !obscureOld),
+                          onPressed: () =>
+                              setSheetState(() => obscureOld = !obscureOld),
                         ),
                       ),
                     ),
@@ -237,14 +257,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     TextField(
                       controller: newPasswordController,
                       obscureText: obscureNew,
-                      style: GoogleFonts.inter(fontSize: 14, color: Colors.white),
+                      style: GoogleFonts.inter(
+                        fontSize: 14,
+                        color: Colors.white,
+                      ),
                       onChanged: (val) {
                         setSheetState(() {
                           if (val.length >= 6) {
                             newPwdError = null;
                           }
                           if (confirmPasswordController.text.isNotEmpty) {
-                            confirmPwdError = (confirmPasswordController.text != val)
+                            confirmPwdError =
+                                (confirmPasswordController.text != val)
                                 ? 'Passwords do not match'
                                 : null;
                           }
@@ -254,21 +278,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         filled: true,
                         fillColor: const Color(0xFF24242A),
                         hintText: 'Enter new password',
-                        hintStyle: GoogleFonts.inter(color: Colors.grey, fontSize: 13),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        hintStyle: GoogleFonts.inter(
+                          color: Colors.grey,
+                          fontSize: 13,
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 12,
+                        ),
                         errorText: newPwdError,
-                        errorStyle: GoogleFonts.inter(color: const Color(0xFFEF5350), fontSize: 11),
+                        errorStyle: GoogleFonts.inter(
+                          color: const Color(0xFFEF5350),
+                          fontSize: 11,
+                        ),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
                           borderSide: BorderSide.none,
                         ),
                         suffixIcon: IconButton(
                           icon: Icon(
-                            obscureNew ? Icons.visibility_off : Icons.visibility,
+                            obscureNew
+                                ? Icons.visibility_off
+                                : Icons.visibility,
                             color: const Color(0xFFC4913F),
                             size: 20,
                           ),
-                          onPressed: () => setSheetState(() => obscureNew = !obscureNew),
+                          onPressed: () =>
+                              setSheetState(() => obscureNew = !obscureNew),
                         ),
                       ),
                     ),
@@ -285,7 +321,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     TextField(
                       controller: confirmPasswordController,
                       obscureText: obscureConfirm,
-                      style: GoogleFonts.inter(fontSize: 14, color: Colors.white),
+                      style: GoogleFonts.inter(
+                        fontSize: 14,
+                        color: Colors.white,
+                      ),
                       onChanged: (val) {
                         setSheetState(() {
                           if (val != newPasswordController.text) {
@@ -299,21 +338,34 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         filled: true,
                         fillColor: const Color(0xFF24242A),
                         hintText: 'Confirm new password',
-                        hintStyle: GoogleFonts.inter(color: Colors.grey, fontSize: 13),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        hintStyle: GoogleFonts.inter(
+                          color: Colors.grey,
+                          fontSize: 13,
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 12,
+                        ),
                         errorText: confirmPwdError,
-                        errorStyle: GoogleFonts.inter(color: const Color(0xFFEF5350), fontSize: 11),
+                        errorStyle: GoogleFonts.inter(
+                          color: const Color(0xFFEF5350),
+                          fontSize: 11,
+                        ),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
                           borderSide: BorderSide.none,
                         ),
                         suffixIcon: IconButton(
                           icon: Icon(
-                            obscureConfirm ? Icons.visibility_off : Icons.visibility,
+                            obscureConfirm
+                                ? Icons.visibility_off
+                                : Icons.visibility,
                             color: const Color(0xFFC4913F),
                             size: 20,
                           ),
-                          onPressed: () => setSheetState(() => obscureConfirm = !obscureConfirm),
+                          onPressed: () => setSheetState(
+                            () => obscureConfirm = !obscureConfirm,
+                          ),
                         ),
                       ),
                     ),
@@ -325,21 +377,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         onPressed: isSubmitting
                             ? null
                             : () async {
-                                final oldPwd = oldPasswordController.text.trim();
-                                final newPwd = newPasswordController.text.trim();
-                                final confirmPwd = confirmPasswordController.text.trim();
+                                final oldPwd = oldPasswordController.text
+                                    .trim();
+                                final newPwd = newPasswordController.text
+                                    .trim();
+                                final confirmPwd = confirmPasswordController
+                                    .text
+                                    .trim();
 
                                 setSheetState(() {
-                                  oldPwdError = oldPwd.isEmpty ? 'Current password is required' : null;
+                                  oldPwdError = oldPwd.isEmpty
+                                      ? 'Current password is required'
+                                      : null;
                                   if (newPwd.isEmpty) {
                                     newPwdError = 'New password is required';
                                   } else if (newPwd.length < 6) {
-                                    newPwdError = 'Password must be at least 6 characters';
+                                    newPwdError =
+                                        'Password must be at least 6 characters';
                                   } else {
                                     newPwdError = null;
                                   }
                                   if (confirmPwd.isEmpty) {
-                                    confirmPwdError = 'Please confirm new password';
+                                    confirmPwdError =
+                                        'Please confirm new password';
                                   } else if (newPwd != confirmPwd) {
                                     confirmPwdError = 'Passwords do not match';
                                   } else {
@@ -347,14 +407,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   }
                                 });
 
-                                if (oldPwdError != null || newPwdError != null || confirmPwdError != null) {
+                                if (oldPwdError != null ||
+                                    newPwdError != null ||
+                                    confirmPwdError != null) {
                                   return;
                                 }
 
                                 setSheetState(() => isSubmitting = true);
-                                final navigator = Navigator.of(context, rootNavigator: true);
+                                final navigator = Navigator.of(
+                                  context,
+                                  rootNavigator: true,
+                                );
                                 final messenger = ScaffoldMessenger.of(context);
-                                final auth = Provider.of<AuthController>(context, listen: false);
+                                final auth = Provider.of<AuthController>(
+                                  context,
+                                  listen: false,
+                                );
 
                                 final success = await auth.changePassword(
                                   oldPassword: oldPwd,
@@ -375,7 +443,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                     SnackBar(
                                       content: Text(
                                         'Password changed successfully. Please log in with your new password.',
-                                        style: GoogleFonts.inter(color: Colors.white),
+                                        style: GoogleFonts.inter(
+                                          color: Colors.white,
+                                        ),
                                       ),
                                       backgroundColor: AppTheme.primary,
                                       duration: const Duration(seconds: 4),
@@ -388,7 +458,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                       content: Text(
                                         auth.errorMessage ??
                                             'Failed to change password. Please verify your current password.',
-                                        style: GoogleFonts.inter(color: Colors.white),
+                                        style: GoogleFonts.inter(
+                                          color: Colors.white,
+                                        ),
                                       ),
                                       backgroundColor: AppTheme.error,
                                       duration: const Duration(seconds: 4),
@@ -402,10 +474,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          disabledBackgroundColor: AppTheme.primary.withValues(alpha: 0.5),
+                          disabledBackgroundColor: AppTheme.primary.withValues(
+                            alpha: 0.5,
+                          ),
                         ),
                         child: isSubmitting
-                            ? const FourRotatingDotsLoader(size: 20, color: Colors.white)
+                            ? const FourRotatingDotsLoader(
+                                size: 20,
+                                color: Colors.white,
+                              )
                             : Text(
                                 'Update Password',
                                 style: GoogleFonts.inter(
@@ -512,11 +589,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                     success
                                         ? 'Profile picture removed.'
                                         : auth.errorMessage ??
-                                            'Failed to remove profile picture.',
-                                    style: GoogleFonts.inter(color: Colors.white),
+                                              'Failed to remove profile picture.',
+                                    style: GoogleFonts.inter(
+                                      color: Colors.white,
+                                    ),
                                   ),
-                                  backgroundColor:
-                                      success ? AppTheme.primary : AppTheme.error,
+                                  backgroundColor: success
+                                      ? AppTheme.primary
+                                      : AppTheme.error,
                                 ),
                               );
                             },
@@ -526,11 +606,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        disabledBackgroundColor:
-                            AppTheme.primary.withValues(alpha: 0.5),
+                        disabledBackgroundColor: AppTheme.primary.withValues(
+                          alpha: 0.5,
+                        ),
                       ),
                       child: isClearing
-                          ? const FourRotatingDotsLoader(size: 20, color: Colors.white)
+                          ? const FourRotatingDotsLoader(
+                              size: 20,
+                              color: Colors.white,
+                            )
                           : Text(
                               'Remove Picture',
                               style: GoogleFonts.inter(
@@ -546,7 +630,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     width: double.infinity,
                     height: 48,
                     child: TextButton(
-                      onPressed: isClearing ? null : () => Navigator.pop(context),
+                      onPressed: isClearing
+                          ? null
+                          : () => Navigator.pop(context),
                       child: Text(
                         'Cancel',
                         style: GoogleFonts.inter(
@@ -703,7 +789,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   SnackBar(
                                     content: Text(
                                       'Account deleted. We\u2019re sorry to see you go.',
-                                      style: GoogleFonts.inter(color: Colors.white),
+                                      style: GoogleFonts.inter(
+                                        color: Colors.white,
+                                      ),
                                     ),
                                     backgroundColor: AppTheme.primary,
                                   ),
@@ -714,7 +802,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                     content: Text(
                                       auth.errorMessage ??
                                           'Failed to delete account. Please try again or contact support.',
-                                      style: GoogleFonts.inter(color: Colors.white),
+                                      style: GoogleFonts.inter(
+                                        color: Colors.white,
+                                      ),
                                     ),
                                     backgroundColor: AppTheme.error,
                                     duration: const Duration(seconds: 5),
@@ -728,11 +818,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        disabledBackgroundColor:
-                            AppTheme.error.withValues(alpha: 0.5),
+                        disabledBackgroundColor: AppTheme.error.withValues(
+                          alpha: 0.5,
+                        ),
                       ),
                       child: isDeleting
-                          ? const FourRotatingDotsLoader(size: 20, color: Colors.white)
+                          ? const FourRotatingDotsLoader(
+                              size: 20,
+                              color: Colors.white,
+                            )
                           : Text(
                               'Delete My Account',
                               style: GoogleFonts.inter(
@@ -748,7 +842,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     width: double.infinity,
                     height: 48,
                     child: TextButton(
-                      onPressed: isDeleting ? null : () => Navigator.pop(context),
+                      onPressed: isDeleting
+                          ? null
+                          : () => Navigator.pop(context),
                       child: Text(
                         'Cancel',
                         style: GoogleFonts.inter(
@@ -828,11 +924,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 color: (color ?? AppTheme.primary).withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Icon(
-                icon,
-                size: 18,
-                color: color ?? AppTheme.primary,
-              ),
+              child: Icon(icon, size: 18, color: color ?? AppTheme.primary),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -845,11 +937,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ),
             ),
-            const Icon(
-              Icons.chevron_right,
-              size: 20,
-              color: Color(0xFF8E8E93),
-            ),
+            const Icon(Icons.chevron_right, size: 20, color: Color(0xFF8E8E93)),
           ],
         ),
       ),
@@ -863,10 +951,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
       body: SafeArea(
         child: Column(
           children: [
-          const CustomAppBar(
-            title: 'Settings',
-            subtitle: 'Manage your preferences',
-          ),
+            const CustomAppBar(
+              title: 'Settings',
+              subtitle: 'Manage your preferences',
+            ),
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.symmetric(horizontal: 24.0),
@@ -898,13 +986,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     icon: Icons.logout_rounded,
                     onTap: _showLogoutConfirmationSheet,
                   ),
-                  const Divider(color: Color(0xFFF0EDE6), height: 1),
-                  _buildSettingsTile(
-                    title: 'Delete Account',
-                    icon: Icons.delete_outline_rounded,
-                    color: AppTheme.error,
-                    onTap: _showDeleteAccountSheet,
-                  ),
+                  // const Divider(color: Color(0xFFF0EDE6), height: 1),
+                  // _buildSettingsTile(
+                  //   title: 'Delete Account',
+                  //   icon: Icons.delete_outline_rounded,
+                  //   color: AppTheme.error,
+                  //   onTap: _showDeleteAccountSheet,
+                  // ),
                   const Divider(color: Color(0xFFF0EDE6), height: 1),
                   const SizedBox(height: 32),
                   Text(
