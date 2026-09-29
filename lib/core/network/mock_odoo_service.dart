@@ -328,11 +328,16 @@ class MockOdooService implements BaseOdooService {
   }
 
   @override
-  Future<bool> deleteAccount() async {
+  Future<Map<String, dynamic>> deleteAccount() async {
     await Future.delayed(const Duration(milliseconds: 800));
     _mockProfile = null;
     await logout();
-    return true;
+    return {
+      'success': true,
+      'status': 'deleted',
+      'user_id': 123,
+      'partner_id': 456,
+    };
   }
 
   @override

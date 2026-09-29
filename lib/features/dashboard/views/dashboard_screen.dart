@@ -587,6 +587,36 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                       child: _buildNoBookingsCard(context),
                                     ),
                                   ],
+                                  const SizedBox(height: 20),
+                                  // Developed by Footer
+                                  FadeSlideIn(
+                                    delay: const Duration(milliseconds: 600),
+                                    child: Center(
+                                      child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Text(
+                                            'Developed By',
+                                            style: GoogleFonts.lora(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.w600,
+                                              color: Colors.black,
+                                              letterSpacing: 1.2,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 6),
+                                          Image.asset(
+                                            'assets/images/redin_logo.png',
+                                            height: 28,
+                                            fit: BoxFit.contain,
+                                            errorBuilder:
+                                                (context, error, stackTrace) =>
+                                                    const SizedBox.shrink(),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
                                 ],
                               ),
                             ),
@@ -930,11 +960,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         } else {
           Navigator.push(
             context,
-            FadeSlidePageRoute(
-              page: ServicesListScreen(
-                onMenuTap: () {},
-              ),
-            ),
+            FadeSlidePageRoute(page: ServicesListScreen(onMenuTap: () {})),
           );
         }
       },
@@ -1046,9 +1072,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       Navigator.push(
                         context,
                         FadeSlidePageRoute(
-                          page: ServicesListScreen(
-                            onMenuTap: () {},
-                          ),
+                          page: ServicesListScreen(onMenuTap: () {}),
                         ),
                       );
                     }
@@ -1333,8 +1357,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) =>
-                ServiceInteractiveDetailScreen(service: item),
+            builder: (context) => ServiceInteractiveDetailScreen(service: item),
           ),
         );
       },

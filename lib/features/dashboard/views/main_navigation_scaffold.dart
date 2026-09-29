@@ -1,3 +1,4 @@
+import 'package:package_info_plus/package_info_plus.dart';
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
@@ -35,6 +36,22 @@ class _MainNavigationScaffoldState extends State<MainNavigationScaffold>
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   late TabController _tabController;
   int _currentIndex = 0;
+  String _appVersion = 'v1.0.0+2';
+
+  Future<void> _loadAppVersion() async {
+    try {
+      final info = await PackageInfo.fromPlatform();
+      if (mounted) {
+        final versionNum = info.version.isNotEmpty ? info.version : '1.0.0';
+        final buildNum = info.buildNumber.isNotEmpty ? info.buildNumber : '2';
+        setState(() {
+          _appVersion = 'v$versionNum+$buildNum';
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading app version: $e');
+    }
+  }
 
   void _openDrawer() {
     debugPrint(
@@ -47,6 +64,7 @@ class _MainNavigationScaffoldState extends State<MainNavigationScaffold>
   void initState() {
     super.initState();
     _tabController = TabController(length: 5, vsync: this);
+    _loadAppVersion();
     _tabController.addListener(() {
       if (!_tabController.indexIsChanging) {
         setState(() {
@@ -100,7 +118,9 @@ class _MainNavigationScaffoldState extends State<MainNavigationScaffold>
               color: isSelected ? AppTheme.primary : const Color(0xFF3A2F1E),
             ),
           ),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           onTap: customOnTap ?? () => _onSelectItem(index),
         ),
       ),
@@ -165,9 +185,14 @@ class _MainNavigationScaffoldState extends State<MainNavigationScaffold>
     // Auto-retry callback when connection is restored
     netService.onReconnected = () {
       try {
-        debugPrint('🟢 [MainNavigationScaffold] Auto-triggering API refreshes on reconnection...');
+        debugPrint(
+          '🟢 [MainNavigationScaffold] Auto-triggering API refreshes on reconnection...',
+        );
         Provider.of<BookingsController>(context, listen: false).loadBookings();
-        Provider.of<ServicesController>(context, listen: false).fetchProductCategories();
+        Provider.of<ServicesController>(
+          context,
+          listen: false,
+        ).fetchProductCategories();
       } catch (e) {
         debugPrint('Error triggering auto-retry API calls: $e');
       }
@@ -177,8 +202,14 @@ class _MainNavigationScaffoldState extends State<MainNavigationScaffold>
       return NoInternetScreen(
         onRetry: () {
           try {
-            Provider.of<BookingsController>(context, listen: false).loadBookings();
-            Provider.of<ServicesController>(context, listen: false).fetchProductCategories();
+            Provider.of<BookingsController>(
+              context,
+              listen: false,
+            ).loadBookings();
+            Provider.of<ServicesController>(
+              context,
+              listen: false,
+            ).fetchProductCategories();
           } catch (_) {}
         },
       );
@@ -207,39 +238,39 @@ class _MainNavigationScaffoldState extends State<MainNavigationScaffold>
                     children: [
                       _buildDrawerAvatar(auth),
                       const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            auth.userName,
-                            style: AppTypography.canela(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: const Color(0xFF3A2F1E),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              auth.userName,
+                              style: AppTypography.canela(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: const Color(0xFF3A2F1E),
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            auth.userEmail.isNotEmpty
-                                ? auth.userEmail
-                                : 'Customer Account',
-                            style: GoogleFonts.inter(
-                              fontSize: 12,
-                              color: const Color(0xFF7A7A7E),
+                            const SizedBox(height: 2),
+                            Text(
+                              auth.userEmail.isNotEmpty
+                                  ? auth.userEmail
+                                  : 'Customer Account',
+                              style: GoogleFonts.inter(
+                                fontSize: 12,
+                                color: const Color(0xFF7A7A7E),
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-            ),
 
               // Scrollable Sidebar Navigation Items
               Expanded(
@@ -260,6 +291,23 @@ class _MainNavigationScaffoldState extends State<MainNavigationScaffold>
                         index: 2,
                       ),
                       _buildDrawerItem(
+                        icon: Icons.request_quote_outlined,
+                        activeIcon: Icons.request_quote,
+                        title: 'Quotations',
+                        index: -1,
+                        customOnTap: () {
+                          Navigator.pop(context);
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  QuotationsScreen(onMenuTap: _openDrawer),
+                            ),
+                          );
+                        },
+                      ),
+
+                      _buildDrawerItem(
                         icon: Icons.receipt_long_outlined,
                         activeIcon: Icons.receipt_long,
                         title: 'Invoices',
@@ -269,9 +317,8 @@ class _MainNavigationScaffoldState extends State<MainNavigationScaffold>
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => InvoicesScreen(
-                                onMenuTap: _openDrawer,
-                              ),
+                              builder: (context) =>
+                                  InvoicesScreen(onMenuTap: _openDrawer),
                             ),
                           );
                         },
@@ -286,9 +333,8 @@ class _MainNavigationScaffoldState extends State<MainNavigationScaffold>
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => ProjectsListScreen(
-                                onMenuTap: _openDrawer,
-                              ),
+                              builder: (context) =>
+                                  ProjectsListScreen(onMenuTap: _openDrawer),
                             ),
                           );
                         },
@@ -303,9 +349,8 @@ class _MainNavigationScaffoldState extends State<MainNavigationScaffold>
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => WarrantiesScreen(
-                                onMenuTap: _openDrawer,
-                              ),
+                              builder: (context) =>
+                                  WarrantiesScreen(onMenuTap: _openDrawer),
                             ),
                           );
                         },
@@ -320,30 +365,13 @@ class _MainNavigationScaffoldState extends State<MainNavigationScaffold>
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => SubscriptionsScreen(
-                                onMenuTap: _openDrawer,
-                              ),
+                              builder: (context) =>
+                                  SubscriptionsScreen(onMenuTap: _openDrawer),
                             ),
                           );
                         },
                       ),
-                      _buildDrawerItem(
-                        icon: Icons.request_quote_outlined,
-                        activeIcon: Icons.request_quote,
-                        title: 'Quotations',
-                        index: -1,
-                        customOnTap: () {
-                          Navigator.pop(context);
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => QuotationsScreen(
-                                onMenuTap: _openDrawer,
-                              ),
-                            ),
-                          );
-                        },
-                      ),
+
                       _buildDrawerItem(
                         icon: Icons.person_outline,
                         activeIcon: Icons.person,
@@ -402,6 +430,22 @@ class _MainNavigationScaffoldState extends State<MainNavigationScaffold>
                         (route) => false,
                       );
                     },
+                  ),
+                ),
+              ),
+              // App Version Footer (Right-aligned with Build Number)
+              Padding(
+                padding: const EdgeInsets.only(right: 20, bottom: 16, top: 4),
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: Text(
+                    _appVersion.isNotEmpty ? _appVersion : 'v1.0.0+2',
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: const Color(0xFF9A9285),
+                      letterSpacing: 0.5,
+                    ),
                   ),
                 ),
               ),

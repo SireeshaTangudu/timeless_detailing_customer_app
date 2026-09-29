@@ -42,7 +42,7 @@ android {
 
     defaultConfig {
         // Default application ID and app name
-        applicationId = "com.example.timeless_detailing_customer_app"
+        applicationId = "com.timelessdetail.customer"
         resValue("string", "app_name", "Timeless Detail")
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion

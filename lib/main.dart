@@ -130,9 +130,13 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final String appTitle = AppConfig.isInitialized
+        ? AppConfig.instance.appName
+        : 'Timeless Detail';
+
     return MaterialApp(
       navigatorKey: navigatorKey,
-      title: 'Timeless Detailing',
+      title: appTitle,
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       themeMode: ThemeMode.light,

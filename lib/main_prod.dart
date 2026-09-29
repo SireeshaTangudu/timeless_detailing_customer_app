@@ -5,9 +5,8 @@ void main() async {
   AppConfig.init(
     environment: Environment.prod,
     appName: 'Timeless Detail',
-    baseUrl:
-        'https://keerthan-lfi-lfi-timeless-detailing1-uat-38115700.dev.odoo.com',
-    db: 'keerthan-lfi-lfi-timeless-detailing1-uat-38115700',
+    baseUrl: 'https://micahharipersad-timeless-detailing.odoo.com',
+    db: 'micahharipersad-timeless-detailing-main-38183883',
   );
   await bootstrap();
 }

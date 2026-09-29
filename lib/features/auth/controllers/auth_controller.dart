@@ -326,19 +326,22 @@ class AuthController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final success = await _odooService.deleteAccount();
+      final result = await _odooService.deleteAccount();
+      final success = result['success'] == true;
       if (success) {
         _isAuthenticated = false;
         _userProfile = null;
       } else {
-        _errorMessage = 'Failed to delete account. Please contact support.';
+        _errorMessage = result['message']?.toString() ??
+            'Failed to delete account. Please try again or contact support.';
       }
       _isLoading = false;
       notifyListeners();
       return success;
     } catch (e) {
       _isLoading = false;
-      _errorMessage = _extractPermissionError(e) ?? 'Failed to delete account: $e';
+      _errorMessage =
+          _extractPermissionError(e) ?? 'Failed to delete account: $e';
       notifyListeners();
       return false;
     }

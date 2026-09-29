@@ -125,7 +125,7 @@ class _BookServiceScreenState extends State<BookServiceScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'Attach Photo (${_attachedImages.length}/5)',
+                  'Attach Photo (${_attachedImages.length}/3)',
                   style: GoogleFonts.inter(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -192,12 +192,13 @@ class _BookServiceScreenState extends State<BookServiceScreen> {
       bool hasDuplicates = false;
       if (source == ImageSource.gallery) {
         final List<XFile> pickedFiles = await _picker.pickMultiImage(
-          limit: 5 - _attachedImages.length,
+          limit: 3 - _attachedImages.length,
+          imageQuality: 50,
         );
         if (pickedFiles.isNotEmpty) {
           final List<XFile> uniqueNewFiles = [];
           for (final file in pickedFiles) {
-            if (_attachedImages.length + uniqueNewFiles.length >= 5) break;
+            if (_attachedImages.length + uniqueNewFiles.length >= 3) break;
             final isDupInAttached = await _isDuplicate(file, _attachedImages);
             final isDupInNew = await _isDuplicate(file, uniqueNewFiles);
             if (isDupInAttached || isDupInNew) {
@@ -213,9 +214,12 @@ class _BookServiceScreenState extends State<BookServiceScreen> {
           }
         }
       } else {
-        final XFile? photo = await _picker.pickImage(source: source);
+        final XFile? photo = await _picker.pickImage(
+          source: source,
+          imageQuality: 50,
+        );
         if (photo != null) {
-          if (_attachedImages.length >= 5) return;
+          if (_attachedImages.length >= 3) return;
           final isDup = await _isDuplicate(photo, _attachedImages);
           if (isDup) {
             hasDuplicates = true;
@@ -767,7 +771,7 @@ class _BookServiceScreenState extends State<BookServiceScreen> {
                       ),
                       const SizedBox(height: 24),
 
-                      // Attach Vehicle / Condition Photos Section (Up to 5 Photos)
+                      // Attach Vehicle / Condition Photos Section (Up to 3 Photos)
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -780,7 +784,7 @@ class _BookServiceScreenState extends State<BookServiceScreen> {
                             ),
                           ),
                           Text(
-                            '${_attachedImages.length}/5',
+                            '${_attachedImages.length}/3',
                             style: GoogleFonts.inter(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
@@ -791,7 +795,7 @@ class _BookServiceScreenState extends State<BookServiceScreen> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Attach up to 5 photos of your car or specific areas needing attention.',
+                        'Attach up to 3 photos of your car or specific areas needing attention.',
                         style: GoogleFonts.inter(
                           fontSize: 11.5,
                           color: const Color(0xFF8A8275),
@@ -804,7 +808,7 @@ class _BookServiceScreenState extends State<BookServiceScreen> {
                           scrollDirection: Axis.horizontal,
                           itemCount:
                               _attachedImages.length +
-                              (_attachedImages.length < 5 ? 1 : 0),
+                              (_attachedImages.length < 3 ? 1 : 0),
                           separatorBuilder: (context, index) =>
                               const SizedBox(width: 10),
                           itemBuilder: (context, index) {

@@ -40,7 +40,7 @@ abstract class BaseOdooService {
   });
   Future<bool> uploadProfileImage(String customerId, Uint8List imageBytes);
   Future<bool> clearProfilePicture(String customerId);
-  Future<bool> deleteAccount();
+  Future<Map<String, dynamic>> deleteAccount();
   Future<bool> changePassword({
     required String oldPassword,
     required String newPassword,
@@ -3525,93 +3525,121 @@ class OdooApiService implements BaseOdooService {
   }
 
   @override
-  Future<bool> deleteAccount() async {
-    try {
-      await _ensureInitialized();
-      final partnerId = _partnerId;
-      final userId = _uid;
-      bool success = false;
-
-      // 1. Try archiving res.users record first
-      if (userId != null) {
-        try {
-          final userResp = await _callKw(
-            model: 'res.users',
-            method: 'write',
-            args: [
-              [userId],
-              {'active': false},
-            ],
-            kwargs: {},
-          );
-          if (userResp == true) {
-            success = true;
-            debugPrint('🟢 [Odoo] Successfully archived res.users for userId=$userId');
-          }
-        } catch (e) {
-          debugPrint('⚠️ [Odoo] Archive res.users failed (Odoo restricts self-deactivation): $e');
-        }
-      }
-
-      // 2. Try archiving res.partner record
-      if (!success && partnerId != null) {
-        try {
-          final partnerResp = await _callKw(
-            model: 'res.partner',
-            method: 'write',
-            args: [
-              [partnerId],
-              {'active': false},
-            ],
-            kwargs: {},
-          );
-          if (partnerResp == true) {
-            success = true;
-            debugPrint('🟢 [Odoo] Successfully archived res.partner for partnerId=$partnerId');
-          }
-        } catch (e) {
-          debugPrint('⚠️ [Odoo] Archive res.partner failed: $e');
-        }
-      }
-
-      // 3. Fallback: Anonymize customer profile fields accessible to Portal User (name, phone, mobile)
-      if (!success && partnerId != null) {
-        try {
-          final anonResp = await _callKw(
-            model: 'res.partner',
-            method: 'write',
-            args: [
-              [partnerId],
-              {
-                'name': 'Deleted Account',
-                'phone': '',
-                'mobile': '',
-              },
-            ],
-            kwargs: {},
-          );
-          if (anonResp == true) {
-            success = true;
-            debugPrint('🟢 [Odoo] Successfully anonymized res.partner for partnerId=$partnerId');
-          }
-        } catch (e) {
-          debugPrint('⚠️ [Odoo] Anonymize res.partner failed: $e');
-        }
-      }
-
-      // Finalize: Always log out local session, clear cached credentials, and return true to complete deletion
-      try {
-        await logout();
-      } catch (_) {}
-
-      return true;
-    } catch (e) {
-      debugPrint('Odoo deleteAccount error: $e');
-      try {
-        await logout();
-      } catch (_) {}
-      return true;
+  Future<Map<String, dynamic>> deleteAccount() async {
+    await _ensureInitialized();
+    if (_dio == null) {
+      return {'success': false, 'message': 'Not authenticated'};
     }
+    try {
+      final response = await _dio!.post(
+        '/web/dataset/call_kw/res.users/timeless_delete_account',
+        data: {
+          'jsonrpc': '2.0',
+          'method': 'call',
+          'params': {
+            'model': 'res.users',
+            'method': 'timeless_delete_account',
+            'args': [[]],
+            'kwargs': {},
+          },
+        },
+      );
+      final data = response.data;
+      if (data is Map && data['error'] != null) {
+        final errorMap = data['error'] as Map;
+        final errorData = errorMap['data'] as Map?;
+        final message =
+            (errorData?['message'] ?? errorMap['message'] ?? 'Request failed')
+                .toString();
+
+        // If backend module has not been deployed/restarted on Odoo server yet:
+        if (message.contains('does not exist') ||
+            message.contains('has no attribute')) {
+          debugPrint(
+            '⚠️ [Odoo] timeless_delete_account method not found on server. Attempting fallback deactivation...',
+          );
+          final fallbackSuccess = await _fallbackDeleteAccount();
+          if (fallbackSuccess) {
+            try {
+              await logout();
+            } catch (_) {}
+            return {'success': true, 'status': 'deleted'};
+          }
+        }
+
+        return {
+          'success': false,
+          'message': message,
+        };
+      }
+      if (data is Map && data['result'] != null) {
+        final result = Map<String, dynamic>.from(data['result'] as Map);
+        if (result['success'] == true) {
+          try {
+            await logout();
+          } catch (e) {
+            debugPrint('Error logging out after account deletion: $e');
+          }
+        }
+        return result;
+      }
+      return {'success': false, 'message': 'Invalid response from server'};
+    } catch (e) {
+      return {'success': false, 'message': e.toString()};
+    }
+  }
+
+  Future<bool> _fallbackDeleteAccount() async {
+    final partnerId = _partnerId;
+    final userId = _uid;
+
+    if (userId != null) {
+      try {
+        final userResp = await _callKw(
+          model: 'res.users',
+          method: 'write',
+          args: [
+            [userId],
+            {'active': false},
+          ],
+          kwargs: {},
+        );
+        if (userResp == true) return true;
+      } catch (_) {}
+    }
+
+    if (partnerId != null) {
+      try {
+        final partnerResp = await _callKw(
+          model: 'res.partner',
+          method: 'write',
+          args: [
+            [partnerId],
+            {'active': false},
+          ],
+          kwargs: {},
+        );
+        if (partnerResp == true) return true;
+      } catch (_) {}
+
+      try {
+        final anonResp = await _callKw(
+          model: 'res.partner',
+          method: 'write',
+          args: [
+            [partnerId],
+            {
+              'name': 'Deleted Account',
+              'phone': '',
+              'mobile': '',
+            },
+          ],
+          kwargs: {},
+        );
+        if (anonResp == true) return true;
+      } catch (_) {}
+    }
+    return false;
   }
 
   @override

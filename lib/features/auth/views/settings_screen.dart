@@ -653,7 +653,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _showDeleteAccountSheet() {
-    final reasonController = TextEditingController();
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -735,29 +734,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                       ),
                     ],
-                  ),
-                  const SizedBox(height: 20),
-                  TextField(
-                    controller: reasonController,
-                    maxLines: 3,
-                    style: GoogleFonts.inter(
-                      fontSize: 13,
-                      color: const Color(0xFF1C1C1E),
-                    ),
-                    decoration: InputDecoration(
-                      hintText: 'Optional: tell us why you\u2019re leaving',
-                      hintStyle: GoogleFonts.inter(
-                        color: const Color(0xFFA09D96),
-                        fontSize: 13,
-                      ),
-                      filled: true,
-                      fillColor: const Color(0xFFF8F6F2),
-                      contentPadding: const EdgeInsets.all(14),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide.none,
-                      ),
-                    ),
                   ),
                   const SizedBox(height: 28),
                   SizedBox(
@@ -986,13 +962,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     icon: Icons.logout_rounded,
                     onTap: _showLogoutConfirmationSheet,
                   ),
-                  // const Divider(color: Color(0xFFF0EDE6), height: 1),
-                  // _buildSettingsTile(
-                  //   title: 'Delete Account',
-                  //   icon: Icons.delete_outline_rounded,
-                  //   color: AppTheme.error,
-                  //   onTap: _showDeleteAccountSheet,
-                  // ),
+                  const Divider(color: Color(0xFFF0EDE6), height: 1),
+                  _buildSettingsTile(
+                    title: 'Delete Account',
+                    icon: Icons.delete_outline_rounded,
+                    color: AppTheme.error,
+                    onTap: _showDeleteAccountSheet,
+                  ),
                   const Divider(color: Color(0xFFF0EDE6), height: 1),
                   const SizedBox(height: 32),
                   Text(
