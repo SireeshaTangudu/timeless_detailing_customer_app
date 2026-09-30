@@ -514,7 +514,13 @@ class FirebaseNotificationService {
 
   static Future<void> initialize({BaseOdooService? odooService}) async {
     try {
-      await Firebase.initializeApp();
+      // Safe double-init: FirebaseCore throws if already initialized in the
+      // same Isolate. Guard so callers can always call initialize().
+      try {
+        await Firebase.initializeApp();
+      } on FirebaseException catch (_) {
+      } catch (_) {
+      }
 
       // Background messaging handler
       FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);

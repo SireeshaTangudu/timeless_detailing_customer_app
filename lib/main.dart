@@ -17,6 +17,7 @@ import 'package:timeless_detailing_customer_app/features/subscriptions/controlle
 import 'package:timeless_detailing_customer_app/features/quotations/controllers/quotations_controller.dart';
 import 'package:timeless_detailing_customer_app/core/theme/theme_controller.dart';
 
+import 'package:firebase_core/firebase_core.dart';
 import 'package:timeless_detailing_customer_app/core/services/network_connectivity_service.dart';
 import 'package:timeless_detailing_customer_app/core/services/firebase_notification_service.dart';
 import 'package:timeless_detailing_customer_app/core/services/currency_service.dart';
@@ -50,17 +51,28 @@ Future<void> bootstrap() async {
   await CurrencyService.instance.init();
 
   // =========================================================================
+  // FIREBASE INITIALIZATION - must be synchronous BEFORE runApp() so the
+  // native iOS Firebase SDK (swizzled into AppDelegate) finds a configured
+  // app immediately and does not log "No app has been configured yet".
+  // =========================================================================
+  try {
+    await Firebase.initializeApp();
+  } catch (e) {
+    debugPrint('Firebase.initializeApp() warning (non-fatal): $e');
+  }
+
+  // =========================================================================
   // ODOO INTEGRATION CONFIGURATION FROM APPCONFIG
   // =========================================================================
   final config = AppConfig.instance;
   final odooService = OdooApiService(baseUrl: config.baseUrl, db: config.db);
 
-  // Initialize Firebase & FCM asynchronously so runApp is NEVER blocked on startup
-  FirebaseNotificationService.initialize(odooService: odooService).catchError((
-    e,
-  ) {
-    debugPrint('⚠️ FirebaseNotificationService initialize error: $e');
-  });
+  // Initialize remaining Firebase/FCM setup (permissions, listeners, token sync)
+  try {
+    await FirebaseNotificationService.initialize(odooService: odooService);
+  } catch (e) {
+    debugPrint('FirebaseNotificationService initialize error: $e');
+  }
 
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(

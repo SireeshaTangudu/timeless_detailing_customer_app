@@ -1,0 +1,6 @@
+#include? "Pods/Target Support Files/Pods-Runner/Pods-Runner.release-uat.xcconfig"
+#include "Generated.xcconfig"
+
+PRODUCT_BUNDLE_IDENTIFIER = com.timelessdetail.customer.uat
+APP_DISPLAY_NAME = Timeless Detailing UAT
+FLUTTER_TARGET = lib/main_uat.dart

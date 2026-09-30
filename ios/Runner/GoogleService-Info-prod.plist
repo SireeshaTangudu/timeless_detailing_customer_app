@@ -9,7 +9,7 @@
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>com.timelessdetail.customer.uat</string>
+	<string>com.timelessdetail.customer</string>
 	<key>PROJECT_ID</key>
 	<string>timeless-detailing-dev</string>
 	<key>STORAGE_BUCKET</key>
@@ -25,6 +25,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:393735256043:ios:3a163ef54c4b2fc9b88bae</string>
+	<string>1:393735256043:ios:fccba39740de024db88bae</string>
 </dict>
 </plist>
