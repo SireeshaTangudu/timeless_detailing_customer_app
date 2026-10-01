@@ -111,3 +111,4 @@ flutter_launcher_icons:
   ios: true
   image_path: "assets/images/app_logo.png"
   remove_alpha_ios: true
+  background_color_ios: "#FFFFFF" 

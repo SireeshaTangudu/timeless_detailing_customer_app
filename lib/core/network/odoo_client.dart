@@ -114,6 +114,7 @@ abstract class BaseOdooService {
   Future<List<Map<String, dynamic>>> getWarranties({int? partnerId});
   Future<List<Map<String, dynamic>>> getSubscriptions({int? partnerId});
   Future<List<Map<String, dynamic>>> getQuotations({int? partnerId});
+  Future<Map<String, dynamic>?> getAppointmentTypeDetails(int appointmentTypeId);
   Future<List<Cookie>> getCookies();
 }
 
@@ -1455,6 +1456,37 @@ class OdooApiService implements BaseOdooService {
       return null;
     } catch (e) {
       print('Endpoint 3 (appointment.type/get_bookable_slots) error: $e');
+      return null;
+    }
+  }
+
+  /// Read Appointment Type details (`appointment.type/read`)
+  @override
+  Future<Map<String, dynamic>?> getAppointmentTypeDetails(
+    int appointmentTypeId,
+  ) async {
+    try {
+      final response = await _callKw(
+        model: 'appointment.type',
+        method: 'read',
+        args: [
+          [appointmentTypeId],
+          ['name', 'max_schedule_days'],
+        ],
+        kwargs: {},
+      );
+
+      if (response is List && response.isNotEmpty) {
+        final first = response.first;
+        if (first is Map<String, dynamic>) {
+          return first;
+        } else if (first is Map) {
+          return Map<String, dynamic>.from(first);
+        }
+      }
+      return null;
+    } catch (e) {
+      debugPrint('Error reading appointment.type ($appointmentTypeId): $e');
       return null;
     }
   }

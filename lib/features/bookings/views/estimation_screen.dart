@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:ui' as ui;
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -259,6 +260,7 @@ class _EstimationScreenState extends State<EstimationScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      enableDrag: false,
       backgroundColor: Colors.transparent,
       builder: (ctx) => StatefulBuilder(
         builder: (modalContext, setModalState) {
@@ -1433,19 +1435,37 @@ class _SignaturePadWidgetState extends State<SignaturePadWidget> {
       final paint = Paint()
         ..color = const Color(0xFF1D1813)
         ..strokeCap = ui.StrokeCap.round
+        ..strokeJoin = ui.StrokeJoin.round
+        ..style = PaintingStyle.stroke
         ..strokeWidth = 3.0;
 
       // Fill background
       canvas.drawColor(Colors.white, ui.BlendMode.src);
 
-      for (final stroke in _strokes) {
-        for (int i = 0; i < stroke.length - 1; i++) {
-          canvas.drawLine(stroke[i], stroke[i + 1], paint);
+      void drawStroke(List<Offset> stroke) {
+        if (stroke.isEmpty) return;
+        if (stroke.length == 1) {
+          canvas.drawCircle(
+            stroke.first,
+            1.5,
+            Paint()
+              ..color = const Color(0xFF1D1813)
+              ..style = PaintingStyle.fill,
+          );
+          return;
         }
+        final path = Path();
+        path.moveTo(stroke[0].dx, stroke[0].dy);
+        for (int i = 1; i < stroke.length; i++) {
+          path.lineTo(stroke[i].dx, stroke[i].dy);
+        }
+        canvas.drawPath(path, paint);
       }
-      for (int i = 0; i < _currentStroke.length - 1; i++) {
-        canvas.drawLine(_currentStroke[i], _currentStroke[i + 1], paint);
+
+      for (final stroke in _strokes) {
+        drawStroke(stroke);
       }
+      drawStroke(_currentStroke);
 
       final picture = recorder.endRecording();
       final img = await picture.toImage(400, 180);
@@ -1477,26 +1497,39 @@ class _SignaturePadWidgetState extends State<SignaturePadWidget> {
         borderRadius: BorderRadius.circular(12),
         child: Stack(
           children: [
-            GestureDetector(
-              onPanStart: (details) {
-                setState(() {
-                  _currentStroke = [details.localPosition];
-                });
+            RawGestureDetector(
+              gestures: {
+                EagerGestureRecognizer:
+                    GestureRecognizerFactoryWithHandlers<EagerGestureRecognizer>(
+                  () => EagerGestureRecognizer(),
+                  (EagerGestureRecognizer instance) {},
+                ),
               },
-              onPanUpdate: (details) {
-                setState(() {
-                  _currentStroke.add(details.localPosition);
-                });
-              },
-              onPanEnd: (details) {
-                setState(() {
-                  _strokes.add(List.from(_currentStroke));
-                  _currentStroke.clear();
-                });
-              },
-              child: CustomPaint(
-                size: Size.infinite,
-                painter: _SignaturePainter(_strokes, _currentStroke),
+              behavior: HitTestBehavior.opaque,
+              child: Listener(
+                behavior: HitTestBehavior.opaque,
+                onPointerDown: (event) {
+                  setState(() {
+                    _currentStroke = [event.localPosition];
+                  });
+                },
+                onPointerMove: (event) {
+                  setState(() {
+                    _currentStroke.add(event.localPosition);
+                  });
+                },
+                onPointerUp: (event) {
+                  setState(() {
+                    if (_currentStroke.isNotEmpty) {
+                      _strokes.add(List.from(_currentStroke));
+                      _currentStroke.clear();
+                    }
+                  });
+                },
+                child: CustomPaint(
+                  size: Size.infinite,
+                  painter: _SignaturePainter(_strokes, _currentStroke),
+                ),
               ),
             ),
             if (isEmpty)
@@ -1530,16 +1563,34 @@ class _SignaturePainter extends CustomPainter {
     final paint = Paint()
       ..color = const Color(0xFF1D1813)
       ..strokeCap = ui.StrokeCap.round
+      ..strokeJoin = ui.StrokeJoin.round
+      ..style = PaintingStyle.stroke
       ..strokeWidth = 3.0;
 
-    for (final stroke in strokes) {
-      for (int i = 0; i < stroke.length - 1; i++) {
-        canvas.drawLine(stroke[i], stroke[i + 1], paint);
+    void drawStroke(List<Offset> stroke) {
+      if (stroke.isEmpty) return;
+      if (stroke.length == 1) {
+        canvas.drawCircle(
+          stroke.first,
+          1.5,
+          Paint()
+            ..color = const Color(0xFF1D1813)
+            ..style = PaintingStyle.fill,
+        );
+        return;
       }
+      final path = Path();
+      path.moveTo(stroke[0].dx, stroke[0].dy);
+      for (int i = 1; i < stroke.length; i++) {
+        path.lineTo(stroke[i].dx, stroke[i].dy);
+      }
+      canvas.drawPath(path, paint);
     }
-    for (int i = 0; i < currentStroke.length - 1; i++) {
-      canvas.drawLine(currentStroke[i], currentStroke[i + 1], paint);
+
+    for (final stroke in strokes) {
+      drawStroke(stroke);
     }
+    drawStroke(currentStroke);
   }
 
   @override

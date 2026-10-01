@@ -101,12 +101,32 @@ class FirebaseNotificationService {
     }
     try {
       FirebaseMessaging messaging = FirebaseMessaging.instance;
+
+      if (defaultTargetPlatform == TargetPlatform.iOS) {
+        String? apnsToken = await messaging.getAPNSToken();
+        int attempts = 0;
+        while (apnsToken == null && attempts < 10) {
+          await Future.delayed(const Duration(milliseconds: 500));
+          apnsToken = await messaging.getAPNSToken();
+          attempts++;
+        }
+        if (apnsToken != null) {
+          debugPrint('🍏 [FirebaseNotificationService] APNs Token ready: $apnsToken');
+        } else {
+          debugPrint('⚠️ [FirebaseNotificationService] APNs token still null after retry.');
+        }
+      }
+
       fcmToken = await messaging.getToken();
       if (fcmToken != null) {
         debugPrint('\n======================================================');
         debugPrint('🔥 FCM TOKEN 🔥:');
         debugPrint('$fcmToken');
         debugPrint('======================================================\n');
+        try {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('cached_fcm_token', fcmToken!);
+        } catch (_) {}
       } else {
         debugPrint('⚠️ FCM Token returned null.');
       }

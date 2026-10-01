@@ -44,9 +44,69 @@ class _BookServiceScreenState extends State<BookServiceScreen> {
 
   late DateTime _selectedDate = _getNextWeekday(DateTime.now().add(const Duration(days: 1)));
   String _selectedTimeSlot = '9:00 AM';
+  int _maxScheduleDays = 45;
 
   final ImagePicker _picker = ImagePicker();
   final List<XFile> _attachedImages = [];
+
+  Future<int?> _resolveAppointmentTypeId() async {
+    final servicesController = Provider.of<ServicesController>(
+      context,
+      listen: false,
+    );
+
+    int? apptTypeId = widget.initialService.appointmentTypeId;
+    final prodId = widget.initialService.odooProductId;
+
+    if (apptTypeId == null && prodId != null) {
+      final matchedVar =
+          servicesController.findVariantByProductId(prodId) ??
+          await servicesController.fetchVariantById(prodId);
+      if (matchedVar != null) {
+        apptTypeId = matchedVar.appointmentType?.id;
+      }
+    }
+
+    if (apptTypeId == null) {
+      final templateId =
+          widget.initialService.odooProductId ??
+          int.tryParse(widget.initialService.id);
+      if (templateId != null) {
+        final variants = servicesController.getVariantsForTemplate(templateId);
+        if (variants.isNotEmpty) {
+          final firstVar = variants.first;
+          apptTypeId = firstVar.appointmentType?.id;
+        }
+      }
+    }
+    return apptTypeId;
+  }
+
+  Future<void> _fetchMaxScheduleDays() async {
+    try {
+      final apptTypeId = await _resolveAppointmentTypeId();
+      if (!mounted) return;
+      if (apptTypeId != null) {
+        final bookingsController = Provider.of<BookingsController>(
+          context,
+          listen: false,
+        );
+        final days = await bookingsController.fetchAppointmentMaxScheduleDays(
+          apptTypeId,
+        );
+        if (mounted && days > 0) {
+          setState(() {
+            _maxScheduleDays = days;
+          });
+          debugPrint(
+            '📅 [BookServiceScreen] Loaded maxScheduleDays = $_maxScheduleDays for appointmentTypeId=$apptTypeId',
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('⚠️ [BookServiceScreen] Error loading maxScheduleDays: $e');
+    }
+  }
 
   Future<void> _fetchOdooBookableSlots(DateTime date) async {
     final controller = Provider.of<BookingsController>(context, listen: false);
@@ -259,6 +319,7 @@ class _BookServiceScreenState extends State<BookServiceScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
+        _fetchMaxScheduleDays();
         _fetchOdooBookableSlots(_selectedDate);
       }
     });
@@ -551,28 +612,89 @@ class _BookServiceScreenState extends State<BookServiceScreen> {
                       const SizedBox(height: 20),
 
                       // Select Date Label & Picker
-                      Text(
-                        'Select Date',
-                        style: GoogleFonts.inter(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                          color: const Color(0xFF3A2F1E),
-                        ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Select Date',
+                            style: GoogleFonts.inter(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              color: const Color(0xFF3A2F1E),
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFC4913F).withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              'Next $_maxScheduleDays days bookable',
+                              style: GoogleFonts.inter(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: const Color(0xFFC4913F),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 8),
                       InkWell(
                         onTap: () async {
+                          // Ensure latest maxScheduleDays is fetched
+                          final apptTypeId = await _resolveAppointmentTypeId();
+                          if (apptTypeId != null && context.mounted) {
+                            final bookingsController =
+                                Provider.of<BookingsController>(
+                              context,
+                              listen: false,
+                            );
+                            final days = await bookingsController
+                                .fetchAppointmentMaxScheduleDays(apptTypeId);
+                            if (days > 0 && mounted) {
+                              setState(() {
+                                _maxScheduleDays = days;
+                              });
+                            }
+                          }
+
+                          if (!context.mounted) return;
+
+                          final now = DateTime.now();
+                          final firstDate = DateTime(now.year, now.month, now.day);
+                          final lastDate = firstDate.add(
+                            Duration(days: _maxScheduleDays),
+                          );
+
+                          DateTime initialDate = _selectedDate;
+                          if (initialDate.isBefore(firstDate)) {
+                            initialDate = firstDate;
+                          } else if (initialDate.isAfter(lastDate)) {
+                            initialDate = lastDate;
+                          }
+
                           final date = await showDatePicker(
                             context: context,
-                            initialDate: _selectedDate,
-                            firstDate: DateTime.now(),
-                            lastDate: DateTime.now().add(
-                              const Duration(days: 60),
-                            ),
+                            initialDate: initialDate,
+                            firstDate: firstDate,
+                            lastDate: lastDate,
                             selectableDayPredicate: (DateTime day) {
                               // Disable Saturday (6) and Sunday (7)
-                              return day.weekday != DateTime.saturday &&
-                                  day.weekday != DateTime.sunday;
+                              if (day.weekday == DateTime.saturday ||
+                                  day.weekday == DateTime.sunday) {
+                                return false;
+                              }
+                              // Disable days beyond max_schedule_days
+                              final diff = day.difference(firstDate).inDays;
+                              if (diff < 0 || diff > _maxScheduleDays) {
+                                return false;
+                              }
+                              return true;
                             },
                             builder: (context, child) {
                               return Theme(
@@ -588,7 +710,7 @@ class _BookServiceScreenState extends State<BookServiceScreen> {
                               );
                             },
                           );
-                          if (date != null) {
+                          if (date != null && mounted) {
                             setState(() {
                               _selectedDate = date;
                             });

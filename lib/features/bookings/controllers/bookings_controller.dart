@@ -146,6 +146,28 @@ class BookingsController extends ChangeNotifier {
     }
   }
 
+  final Map<int, int> _maxScheduleDaysCache = {};
+
+  /// Fetch Max Schedule Days for Appointment Type (`appointment.type/read`)
+  Future<int> fetchAppointmentMaxScheduleDays(int appointmentTypeId) async {
+    if (_maxScheduleDaysCache.containsKey(appointmentTypeId)) {
+      return _maxScheduleDaysCache[appointmentTypeId]!;
+    }
+    try {
+      final data = await _odooService.getAppointmentTypeDetails(appointmentTypeId);
+      if (data != null && data['max_schedule_days'] != null) {
+        final days = (data['max_schedule_days'] as num).toInt();
+        if (days > 0) {
+          _maxScheduleDaysCache[appointmentTypeId] = days;
+          return days;
+        }
+      }
+    } catch (e) {
+      debugPrint('Error in fetchAppointmentMaxScheduleDays for $appointmentTypeId: $e');
+    }
+    return 45; // Default fallback
+  }
+
   /// Endpoint 3: Get Bookable Slots (`appointment.type/get_bookable_slots`)
   Future<List<BookableSlot>> fetchBookableSlots({
     required int appointmentTypeId,

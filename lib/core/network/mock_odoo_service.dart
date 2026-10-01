@@ -1193,6 +1193,17 @@ class MockOdooService implements BaseOdooService {
   }
 
   @override
+  Future<Map<String, dynamic>?> getAppointmentTypeDetails(
+    int appointmentTypeId,
+  ) async {
+    return {
+      'id': appointmentTypeId,
+      'name': 'Protection',
+      'max_schedule_days': 45,
+    };
+  }
+
+  @override
   Future<List<Cookie>> getCookies() async {
     return [];
   }

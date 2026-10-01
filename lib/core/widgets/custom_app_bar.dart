@@ -22,7 +22,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.trailing,
     this.showBackButton = true,
     this.backIcon = Icons.arrow_back_sharp,
-    this.padding = const EdgeInsets.fromLTRB(24, 16, 24, 12),
+    this.padding = const EdgeInsets.fromLTRB(24, 12, 24, 10),
     this.backgroundColor,
     this.titleStyle,
     this.subtitleStyle,
@@ -34,9 +34,9 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Size get preferredSize {
-    if (_hasTitle && _hasSubtitle) return const Size.fromHeight(160);
-    if (_hasTitle || _hasSubtitle) return const Size.fromHeight(124);
-    return const Size.fromHeight(66);
+    if (_hasTitle && _hasSubtitle) return const Size.fromHeight(165);
+    if (_hasTitle || _hasSubtitle) return const Size.fromHeight(135);
+    return const Size.fromHeight(70);
   }
 
   @override
@@ -103,24 +103,28 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                     ),
                 ],
               ),
-              if (_hasTitle || _hasSubtitle) const SizedBox(height: 20),
+              if (_hasTitle || _hasSubtitle) const SizedBox(height: 14),
 
               // Title Below Back Button (Matching Figma Spec)
               if (_hasTitle)
                 Text(
                   title!,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   style: titleStyle ??
                       GoogleFonts.inter(
-                        fontSize: 33,
+                        fontSize: 30,
                         fontWeight: FontWeight.w400,
                         color: const Color(0xFF3A2F1E),
                         height: 1.15,
                       ),
                 ),
               if (_hasSubtitle) ...[
-                if (_hasTitle) const SizedBox(height: 6),
+                if (_hasTitle) const SizedBox(height: 4),
                 Text(
                   subtitle!,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   style: subtitleStyle ??
                       GoogleFonts.inter(
                         fontSize: 13,
