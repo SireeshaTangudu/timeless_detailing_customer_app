@@ -55,6 +55,20 @@ class TimelessCoverageLine {
       productDisplayName: pName,
     );
   }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'sequence': sequence,
+    'view': view,
+    'view_image_url': viewImageUrl,
+    'panel_key': panelKey,
+    'title': title,
+    'icon': icon,
+    'x_percent': xPercent,
+    'y_percent': yPercent,
+    'description': description,
+    'product_id': productId != null ? {'id': productId, 'display_name': productDisplayName} : null,
+  };
 }
 
 class DetailService {
@@ -285,6 +299,62 @@ class DetailService {
       'mobileCategoryName': mobileCategoryName,
       'mobileImage': mobileImage,
     };
+  }
+
+  Map<String, dynamic> toCacheMap() {
+    return {
+      'id': id,
+      'name': name,
+      'description': description,
+      'price': price,
+      'durationHours': durationHours,
+      'imageUrl': imageUrl,
+      'category': category,
+      'whatsIncluded': whatsIncluded,
+      'odooProductId': odooProductId,
+      'appointmentTypeId': appointmentTypeId,
+      'appointmentResourceId': appointmentResourceId,
+      'assetImagePath': assetImagePath,
+      'mobileCategoryId': mobileCategoryId,
+      'mobileCategoryName': mobileCategoryName,
+      'mobileImage': mobileImage,
+      'coverageLines': coverageLines.map((c) => c.toJson()).toList(),
+      'variants': variants.map((v) => v.toJson()).toList(),
+    };
+  }
+
+  factory DetailService.fromCacheMap(Map<String, dynamic> json) {
+    return DetailService(
+      id: json['id']?.toString() ?? '',
+      name: json['name']?.toString() ?? '',
+      description: json['description']?.toString() ?? '',
+      price: (json['price'] as num?)?.toDouble() ?? 0.0,
+      durationHours: (json['durationHours'] as num?)?.toDouble() ?? 1.0,
+      imageUrl: json['imageUrl']?.toString() ?? '',
+      category: json['category']?.toString() ?? 'General',
+      whatsIncluded: json['whatsIncluded'] is List
+          ? (json['whatsIncluded'] as List).map((e) => e.toString()).toList()
+          : [],
+      odooProductId: json['odooProductId'] as int?,
+      appointmentTypeId: json['appointmentTypeId'] as int?,
+      appointmentResourceId: json['appointmentResourceId'] as int?,
+      assetImagePath: json['assetImagePath']?.toString(),
+      mobileCategoryId: json['mobileCategoryId'] as int?,
+      mobileCategoryName: json['mobileCategoryName']?.toString(),
+      mobileImage: json['mobileImage']?.toString(),
+      coverageLines: json['coverageLines'] is List
+          ? (json['coverageLines'] as List)
+              .whereType<Map<String, dynamic>>()
+              .map((c) => TimelessCoverageLine.fromJson(c))
+              .toList()
+          : [],
+      variants: json['variants'] is List
+          ? (json['variants'] as List)
+              .whereType<Map<String, dynamic>>()
+              .map((v) => ProductVariant.fromJson(v))
+              .toList()
+          : [],
+    );
   }
 }
 

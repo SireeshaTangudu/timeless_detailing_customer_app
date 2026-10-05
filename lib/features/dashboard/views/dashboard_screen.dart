@@ -106,6 +106,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _fetchLatestNotification();
+      if (mounted) {
+        try {
+          final servicesController = Provider.of<ServicesController>(context, listen: false);
+          servicesController.initData();
+          final bookingsController = Provider.of<BookingsController>(context, listen: false);
+          bookingsController.loadBookings();
+        } catch (e) {
+          debugPrint('⚠️ Error initializing dashboard controllers on mount: $e');
+        }
+      }
     });
   }
 

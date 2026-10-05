@@ -86,6 +86,11 @@ class ProductVariantValue {
       name: json['name']?.toString() ?? '',
     );
   }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'name': name,
+  };
 }
 
 class ProductVariant {
@@ -154,11 +159,11 @@ class ProductVariant {
     AppointmentResource? apptResource;
     final rawRes = json['appointment_resource_id'] ?? json['appointment_resource_ids'];
     if (rawRes is Map) {
-      apptResource = AppointmentResource.fromJson(Map<String, dynamic>.from(rawRes as Map));
+      apptResource = AppointmentResource.fromJson(Map<String, dynamic>.from(rawRes));
     } else if (rawRes is List && rawRes.isNotEmpty) {
       final first = rawRes[0];
       if (first is Map) {
-        apptResource = AppointmentResource.fromJson(Map<String, dynamic>.from(first as Map));
+        apptResource = AppointmentResource.fromJson(Map<String, dynamic>.from(first));
       } else {
         final id = first is int ? first : int.tryParse(first.toString()) ?? 0;
         final name = rawRes.length > 1 ? rawRes[1].toString() : '';
@@ -205,4 +210,18 @@ class ProductVariant {
       featureLines: features,
     );
   }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'name': name,
+    'display_name': displayName,
+    'lst_price': lstPrice,
+    'product_template_variant_value_ids': variantValues.map((v) => v.toJson()).toList(),
+    'appointment_type_id': appointmentType?.toJson(),
+    'appointment_resource_id': appointmentResource?.toJson(),
+    'timeless_page_tagline': pageTagline,
+    'timeless_page_intro': pageIntro,
+    'timeless_page_conclusion': pageConclusion,
+    'timeless_feature_line_ids': featureLines,
+  };
 }

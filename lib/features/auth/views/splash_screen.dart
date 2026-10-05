@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:timeless_detailing_customer_app/core/theme/app_theme.dart';
 import 'package:timeless_detailing_customer_app/core/theme/app_typography.dart';
 import 'package:timeless_detailing_customer_app/features/auth/controllers/auth_controller.dart';
+import 'package:timeless_detailing_customer_app/features/services/controllers/services_controller.dart';
 import 'package:timeless_detailing_customer_app/features/auth/views/onboarding_screen.dart';
 import 'package:timeless_detailing_customer_app/features/dashboard/views/main_navigation_scaffold.dart';
 import 'package:timeless_detailing_customer_app/core/widgets/custom_loader.dart';
@@ -52,6 +53,12 @@ class _SplashScreenState extends State<SplashScreen>
 
     final auth = Provider.of<AuthController>(context, listen: false);
     _authFuture = auth.checkAuthStatus();
+
+    // Trigger categories and services pre-fetch in background during splash
+    try {
+      final servicesCtrl = Provider.of<ServicesController>(context, listen: false);
+      servicesCtrl.initData();
+    } catch (_) {}
 
     _navigateWhenReady();
   }
