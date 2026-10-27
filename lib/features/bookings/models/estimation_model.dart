@@ -126,6 +126,18 @@ class EstimationModel {
   final String? subscriptionPlanName;
   final double? recurringTotal;
   final String? subscriptionState;
+  final String? estimator;
+  final String? orderNo;
+  final String? vehicleColour;
+  final int? kilometers;
+  final String? insurer;
+  final String? insurerFax;
+  final String? claimNo;
+  final String? assessor;
+  final bool? isAuthorised;
+  final double? towing;
+  final String? contact;
+  final String? fax;
 
   const EstimationModel({
     required this.id,
@@ -153,7 +165,33 @@ class EstimationModel {
     this.subscriptionPlanName,
     this.recurringTotal,
     this.subscriptionState,
+    this.estimator,
+    this.orderNo,
+    this.vehicleColour,
+    this.kilometers,
+    this.insurer,
+    this.insurerFax,
+    this.claimNo,
+    this.assessor,
+    this.isAuthorised,
+    this.towing,
+    this.contact,
+    this.fax,
   });
+
+  bool get hasAdditionalQuotationInfo =>
+      (estimator != null && estimator!.isNotEmpty) ||
+      (orderNo != null && orderNo!.isNotEmpty) ||
+      (vehicleColour != null && vehicleColour!.isNotEmpty) ||
+      (kilometers != null && kilometers! > 0) ||
+      (insurer != null && insurer!.isNotEmpty) ||
+      (insurerFax != null && insurerFax!.isNotEmpty) ||
+      (claimNo != null && claimNo!.isNotEmpty) ||
+      (assessor != null && assessor!.isNotEmpty) ||
+      isAuthorised != null ||
+      (towing != null && towing! > 0) ||
+      (contact != null && contact!.isNotEmpty) ||
+      (fax != null && fax!.isNotEmpty);
 
   bool get isQuotationSent =>
       state == 'sent' ||
@@ -343,6 +381,9 @@ class EstimationModel {
       final vMap = json['vehicle_id'] as Map;
       vehicleVin = vMap['vin']?.toString();
     }
+    if ((vehicleVin == null || vehicleVin.isEmpty) && json['timeless_vin'] != null) {
+      vehicleVin = json['timeless_vin']?.toString();
+    }
 
     if (vehicleNameStr.isEmpty) {
       vehicleNameStr = 'Client Vehicle';
@@ -397,6 +438,52 @@ class EstimationModel {
     final String? subState = (json['subscription_state'] != null && json['subscription_state'] != false)
         ? json['subscription_state'].toString()
         : null;
+
+    String? parseStr(dynamic val) {
+      if (val == null || val == false) return null;
+      if (val is List && val.length > 1 && val[1] is String) {
+        return val[1].toString().trim();
+      }
+      if (val is Map && val['name'] != null) {
+        return val['name'].toString().trim();
+      }
+      final s = val.toString().trim();
+      if (s.isEmpty || s == 'false' || s == 'null') return null;
+      return s;
+    }
+
+    int? parseInt(dynamic val) {
+      if (val == null || val == false) return null;
+      if (val is num) return val.toInt();
+      return int.tryParse(val.toString());
+    }
+
+    double? parseDbl(dynamic val) {
+      if (val == null || val == false) return null;
+      if (val is num) return val.toDouble();
+      return double.tryParse(val.toString());
+    }
+
+    bool? parseBool(dynamic val) {
+      if (val == null) return null;
+      if (val is bool) return val;
+      if (val == 1 || val == 'true') return true;
+      if (val == 0 || val == 'false') return false;
+      return null;
+    }
+
+    final String? estimatorVal = parseStr(json['timeless_estimator']);
+    final String? orderNoVal = parseStr(json['timeless_order_no']);
+    final String? vehicleColourVal = parseStr(json['timeless_vehicle_colour']);
+    final int? kmVal = parseInt(json['timeless_km']);
+    final String? insurerVal = parseStr(json['timeless_insurer']);
+    final String? insurerFaxVal = parseStr(json['timeless_insurer_fax']);
+    final String? claimNoVal = parseStr(json['timeless_claim_no']);
+    final String? assessorVal = parseStr(json['timeless_assessor']);
+    final bool? isAuthorisedVal = parseBool(json['timeless_authorised']);
+    final double? towingVal = parseDbl(json['timeless_towing']);
+    final String? contactVal = parseStr(json['timeless_contact']);
+    final String? faxVal = parseStr(json['timeless_fax']);
 
     return EstimationModel(
       id: nameStr,
@@ -456,6 +543,18 @@ class EstimationModel {
       subscriptionPlanName: planName,
       recurringTotal: recTotal,
       subscriptionState: subState,
+      estimator: estimatorVal,
+      orderNo: orderNoVal,
+      vehicleColour: vehicleColourVal,
+      kilometers: kmVal,
+      insurer: insurerVal,
+      insurerFax: insurerFaxVal,
+      claimNo: claimNoVal,
+      assessor: assessorVal,
+      isAuthorised: isAuthorisedVal,
+      towing: towingVal,
+      contact: contactVal,
+      fax: faxVal,
     );
   }
 

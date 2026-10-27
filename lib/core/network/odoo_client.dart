@@ -114,7 +114,9 @@ abstract class BaseOdooService {
   Future<List<Map<String, dynamic>>> getWarranties({int? partnerId});
   Future<List<Map<String, dynamic>>> getSubscriptions({int? partnerId});
   Future<List<Map<String, dynamic>>> getQuotations({int? partnerId});
-  Future<Map<String, dynamic>?> getAppointmentTypeDetails(int appointmentTypeId);
+  Future<Map<String, dynamic>?> getAppointmentTypeDetails(
+    int appointmentTypeId,
+  );
   Future<List<Cookie>> getCookies();
 }
 
@@ -403,8 +405,12 @@ class OdooApiService implements BaseOdooService {
         // Extract currency settings from login response
         if (result['currencies'] != null && result['currencies'] is Map) {
           try {
-            final currenciesMap = Map<String, dynamic>.from(result['currencies'] as Map);
-            await CurrencyService.instance.updateFromLoginResponse(currenciesMap);
+            final currenciesMap = Map<String, dynamic>.from(
+              result['currencies'] as Map,
+            );
+            await CurrencyService.instance.updateFromLoginResponse(
+              currenciesMap,
+            );
           } catch (e) {
             debugPrint('Error parsing currencies from login response: $e');
           }
@@ -532,7 +538,9 @@ class OdooApiService implements BaseOdooService {
       debugPrint('Odoo signup CSRF token: $csrfToken');
 
       if (csrfToken == null || csrfToken.isEmpty) {
-        debugPrint('Warning: CSRF token not found in /web/signup HTML response.');
+        debugPrint(
+          'Warning: CSRF token not found in /web/signup HTML response.',
+        );
       }
 
       // 2. Perform POST registration with CSRF token included
@@ -1744,11 +1752,7 @@ class OdooApiService implements BaseOdooService {
                 'display_name': {},
                 'lst_price': {},
                 'currency_id': {
-                  'fields': {
-                    'id': {},
-                    'name': {},
-                    'symbol': {},
-                  },
+                  'fields': {'id': {}, 'name': {}, 'symbol': {}},
                 },
                 'timeless_hide_price': {},
               },
@@ -1787,9 +1791,7 @@ class OdooApiService implements BaseOdooService {
         method: 'web_search_read',
         args: [],
         kwargs: {
-          'context': {
-            'active_test': false,
-          },
+          'context': {'active_test': false},
           'domain': [
             ['appointment_booker_id', '=', partnerId],
             ['appointment_type_id', '!=', false],
@@ -1824,11 +1826,7 @@ class OdooApiService implements BaseOdooService {
                 'display_name': {},
                 'lst_price': {},
                 'currency_id': {
-                  'fields': {
-                    'id': {},
-                    'name': {},
-                    'symbol': {},
-                  },
+                  'fields': {'id': {}, 'name': {}, 'symbol': {}},
                 },
                 'timeless_hide_price': {},
               },
@@ -1838,11 +1836,7 @@ class OdooApiService implements BaseOdooService {
                 'id': {},
                 'name': {},
                 'stage_id': {
-                  'fields': {
-                    'id': {},
-                    'name': {},
-                    'fold': {},
-                  },
+                  'fields': {'id': {}, 'name': {}, 'fold': {}},
                 },
               },
             },
@@ -1894,11 +1888,7 @@ class OdooApiService implements BaseOdooService {
                 'id': {},
                 'name': {},
                 'stage_id': {
-                  'fields': {
-                    'id': {},
-                    'name': {},
-                    'fold': {},
-                  },
+                  'fields': {'id': {}, 'name': {}, 'fold': {}},
                 },
               },
             },
@@ -1909,11 +1899,7 @@ class OdooApiService implements BaseOdooService {
                 'display_name': {},
                 'lst_price': {},
                 'currency_id': {
-                  'fields': {
-                    'id': {},
-                    'name': {},
-                    'symbol': {},
-                  },
+                  'fields': {'id': {}, 'name': {}, 'symbol': {}},
                 },
                 'timeless_hide_price': {},
               },
@@ -1993,10 +1979,7 @@ class OdooApiService implements BaseOdooService {
             'task_count': {},
             'label_tasks': {},
             'stage_id': {
-              'fields': {
-                'id': {},
-                'name': {},
-              },
+              'fields': {'id': {}, 'name': {}},
             },
           },
           'order': 'name desc',
@@ -2026,12 +2009,7 @@ class OdooApiService implements BaseOdooService {
         args: [],
         kwargs: {
           'domain': [],
-          'specification': {
-            'id': {},
-            'name': {},
-            'sequence': {},
-            'fold': {},
-          },
+          'specification': {'id': {}, 'name': {}, 'sequence': {}, 'fold': {}},
           'order': 'sequence asc',
         },
       );
@@ -2159,7 +2137,9 @@ class OdooApiService implements BaseOdooService {
           final firstTask = records.first;
           if (firstTask is Map && firstTask['project_id'] is Map) {
             final realProjId = firstTask['project_id']['id'];
-            if (realProjId is int && realProjId > 0 && realProjId != projectId) {
+            if (realProjId is int &&
+                realProjId > 0 &&
+                realProjId != projectId) {
               final projectTasks = await getProjectTasks(realProjId);
               if (projectTasks.isNotEmpty) {
                 return projectTasks;
@@ -2368,10 +2348,7 @@ class OdooApiService implements BaseOdooService {
             'access_url': {},
             'access_token': {},
             'invoice_ids': {
-              'fields': {
-                'id': {},
-                'name': {},
-              },
+              'fields': {'id': {}, 'name': {}},
             },
             'warranty_ids': {
               'fields': {
@@ -2406,14 +2383,36 @@ class OdooApiService implements BaseOdooService {
                 'amount_total': {},
               },
             },
+            'timeless_damage_report': {},
+            'timeless_estimator': {},
+            'timeless_contact': {},
+            'timeless_fax': {},
+            'timeless_excess': {},
+            'timeless_betterment': {},
+            'timeless_towing': {},
+            'timeless_vehicle_colour': {},
+            'timeless_engine_no': {},
+            'timeless_km': {},
+            'timeless_insurer': {},
+            'timeless_insurer_phone': {},
+            'timeless_insurer_fax': {},
+            'timeless_claim_no': {},
+            'timeless_order_no': {},
+            'timeless_assessor': {},
+            'timeless_dr_date': {},
+            'timeless_print_date': {},
+            'timeless_authorised': {},
           },
         },
       );
       if (response is List && response.isNotEmpty) {
         return Map<String, dynamic>.from(response.first as Map);
       } else if (response is Map) {
-        if (response['result'] is List && (response['result'] as List).isNotEmpty) {
-          return Map<String, dynamic>.from((response['result'] as List).first as Map);
+        if (response['result'] is List &&
+            (response['result'] as List).isNotEmpty) {
+          return Map<String, dynamic>.from(
+            (response['result'] as List).first as Map,
+          );
         }
         return Map<String, dynamic>.from(response);
       }
@@ -2620,7 +2619,9 @@ class OdooApiService implements BaseOdooService {
   /// STEP 15b: Decline Quotation (`sale.order/action_timeless_portal_decline`)
   @override
   Future<bool> declineQuotation(int orderId, {String? declineReason}) async {
-    debugPrint('🔵 [OdooApiService] declineQuotation called for sale.order=$orderId');
+    debugPrint(
+      '🔵 [OdooApiService] declineQuotation called for sale.order=$orderId',
+    );
     if (orderId <= 0) return false;
     final message = (declineReason != null && declineReason.trim().isNotEmpty)
         ? declineReason.trim()
@@ -2632,14 +2633,16 @@ class OdooApiService implements BaseOdooService {
         args: [
           [orderId],
         ],
-        kwargs: {
-          'decline_message': message,
-        },
+        kwargs: {'decline_message': message},
       );
-      debugPrint('🟢 [OdooApiService] Declined quotation sale.order $orderId via action_timeless_portal_decline: $response');
+      debugPrint(
+        '🟢 [OdooApiService] Declined quotation sale.order $orderId via action_timeless_portal_decline: $response',
+      );
       return true;
     } catch (e) {
-      debugPrint('⚠️ [OdooApiService] Error executing action_timeless_portal_decline for sale.order $orderId: $e');
+      debugPrint(
+        '⚠️ [OdooApiService] Error executing action_timeless_portal_decline for sale.order $orderId: $e',
+      );
       try {
         await _callKw(
           model: 'sale.order',
@@ -2649,10 +2652,14 @@ class OdooApiService implements BaseOdooService {
           ],
           kwargs: {},
         );
-        debugPrint('🟢 [OdooApiService] Declined quotation sale.order $orderId via action_cancel fallback');
+        debugPrint(
+          '🟢 [OdooApiService] Declined quotation sale.order $orderId via action_cancel fallback',
+        );
         return true;
       } catch (cancelErr) {
-        debugPrint('⚠️ [OdooApiService] Error executing action_cancel fallback: $cancelErr');
+        debugPrint(
+          '⚠️ [OdooApiService] Error executing action_cancel fallback: $cancelErr',
+        );
         try {
           await _callKw(
             model: 'sale.order',
@@ -2661,15 +2668,20 @@ class OdooApiService implements BaseOdooService {
               [orderId],
             ],
             kwargs: {
-              'body': '<p><b>Quotation Declined</b><br/>Decline Reason: $message</p>',
+              'body':
+                  '<p><b>Quotation Declined</b><br/>Decline Reason: $message</p>',
               'message_type': 'comment',
               'subtype_xmlid': 'mail.mt_comment',
             },
           );
-          debugPrint('🟢 [OdooApiService] Posted decline message to sale.order $orderId');
+          debugPrint(
+            '🟢 [OdooApiService] Posted decline message to sale.order $orderId',
+          );
           return true;
         } catch (msgErr) {
-          debugPrint('🔴 [OdooApiService] Could not decline quotation: $msgErr');
+          debugPrint(
+            '🔴 [OdooApiService] Could not decline quotation: $msgErr',
+          );
           return false;
         }
       }
@@ -2797,10 +2809,14 @@ class OdooApiService implements BaseOdooService {
     try {
       final pid = partnerId ?? _partnerId ?? _uid;
       if (pid == null) {
-        debugPrint('⚠️ [OdooApiService] partnerId is null for getUserNotifications');
+        debugPrint(
+          '⚠️ [OdooApiService] partnerId is null for getUserNotifications',
+        );
         return [];
       }
-      debugPrint('🔵 [OdooApiService] getUserNotifications called for partnerId=$pid');
+      debugPrint(
+        '🔵 [OdooApiService] getUserNotifications called for partnerId=$pid',
+      );
 
       // 1. Primary: web_search_read on timeless.notification using exact Odoo payload
       try {
@@ -2819,23 +2835,13 @@ class OdooApiService implements BaseOdooService {
               'res_model': {},
               'res_id': {},
               'partner_id': {
-                'fields': {
-                  'id': {},
-                  'name': {},
-                  'display_name': {},
-                },
+                'fields': {'id': {}, 'name': {}, 'display_name': {}},
               },
               'project_id': {
-                'fields': {
-                  'id': {},
-                  'name': {},
-                  'display_name': {},
-                },
+                'fields': {'id': {}, 'name': {}, 'display_name': {}},
               },
               'sale_order_id': {
-                'fields': {
-                  'display_name': {},
-                },
+                'fields': {'display_name': {}},
               },
               'is_read': {},
               'create_date': {},
@@ -2852,9 +2858,7 @@ class OdooApiService implements BaseOdooService {
         debugPrint(
           '🟢 [OdooApiService] getUserNotifications web_search_read returned ${records.length} records for partnerId=$pid',
         );
-        return records
-            .map((r) => Map<String, dynamic>.from(r as Map))
-            .toList();
+        return records.map((r) => Map<String, dynamic>.from(r as Map)).toList();
       } catch (e) {
         debugPrint(
           '🟡 [OdooApiService] timeless.notification web_search_read with partner_id domain failed: $e',
@@ -3599,10 +3603,7 @@ class OdooApiService implements BaseOdooService {
           }
         }
 
-        return {
-          'success': false,
-          'message': message,
-        };
+        return {'success': false, 'message': message};
       }
       if (data is Map && data['result'] != null) {
         final result = Map<String, dynamic>.from(data['result'] as Map);
@@ -3660,11 +3661,7 @@ class OdooApiService implements BaseOdooService {
           method: 'write',
           args: [
             [partnerId],
-            {
-              'name': 'Deleted Account',
-              'phone': '',
-              'mobile': '',
-            },
+            {'name': 'Deleted Account', 'phone': '', 'mobile': ''},
           ],
           kwargs: {},
         );
@@ -3786,7 +3783,8 @@ class OdooApiService implements BaseOdooService {
 
       final errObj = response.data?['error'] ?? sessionResp.data?['error'];
       if (errObj != null) {
-        final msg = errObj['data']?['message'] ??
+        final msg =
+            errObj['data']?['message'] ??
             errObj['message'] ??
             'Password change failed. Please verify your current password.';
         throw Exception(msg);
@@ -3837,6 +3835,44 @@ class OdooApiService implements BaseOdooService {
                 'price_unit': {},
                 'price_subtotal': {},
                 'price_total': {},
+              },
+            },
+            'timeless_damage_report': {},
+            'timeless_estimator': {},
+            'timeless_contact': {},
+            'timeless_fax': {},
+            'timeless_excess': {},
+            'timeless_betterment': {},
+            'timeless_towing': {},
+            'timeless_vehicle_colour': {},
+            'timeless_engine_no': {},
+            'timeless_km': {},
+            'timeless_vin': {},
+            'timeless_insurer': {},
+            'timeless_insurer_phone': {},
+            'timeless_insurer_fax': {},
+            'timeless_claim_no': {},
+            'timeless_order_no': {},
+            'timeless_assessor': {},
+            'timeless_dr_date': {},
+            'timeless_print_date': {},
+            'timeless_authorised': {},
+            'partner_id': {
+              'fields': {
+                'id': {},
+                'name': {},
+                'street': {},
+                'street2': {},
+                'city': {},
+                'zip': {},
+                'state_id': {
+                  'fields': {'id': {}, 'name': {}},
+                },
+                'country_id': {
+                  'fields': {'id': {}, 'name': {}},
+                },
+                'phone': {},
+                'email': {},
               },
             },
           },
@@ -3895,10 +3931,16 @@ class OdooApiService implements BaseOdooService {
       final List records = (response is Map && response['records'] is List)
           ? response['records'] as List
           : [];
-      final list = records.map((r) => Map<String, dynamic>.from(r as Map)).toList();
+      final list = records
+          .map((r) => Map<String, dynamic>.from(r as Map))
+          .toList();
       list.sort((a, b) {
-        final idA = (a['id'] is int) ? a['id'] as int : (int.tryParse(a['id']?.toString() ?? '') ?? 0);
-        final idB = (b['id'] is int) ? b['id'] as int : (int.tryParse(b['id']?.toString() ?? '') ?? 0);
+        final idA = (a['id'] is int)
+            ? a['id'] as int
+            : (int.tryParse(a['id']?.toString() ?? '') ?? 0);
+        final idB = (b['id'] is int)
+            ? b['id'] as int
+            : (int.tryParse(b['id']?.toString() ?? '') ?? 0);
         if (idA != idB) return idB.compareTo(idA);
 
         final dateA = a['invoice_date']?.toString() ?? '';
@@ -3931,10 +3973,7 @@ class OdooApiService implements BaseOdooService {
             'id': {},
             'name': {},
             'product_id': {
-              'fields': {
-                'id': {},
-                'display_name': {},
-              },
+              'fields': {'id': {}, 'display_name': {}},
             },
             'vehicle_make': {},
             'vehicle_model': {},
@@ -3943,10 +3982,7 @@ class OdooApiService implements BaseOdooService {
             'warranty_end': {},
             'status': {},
             'sale_order_id': {
-              'fields': {
-                'id': {},
-                'name': {},
-              },
+              'fields': {'id': {}, 'name': {}},
             },
           },
           'order': 'warranty_end desc',
@@ -3993,11 +4029,7 @@ class OdooApiService implements BaseOdooService {
             'is_subscription': {},
             'subscription_state': {},
             'plan_id': {
-              'fields': {
-                'id': {},
-                'name': {},
-                'display_name': {},
-              },
+              'fields': {'id': {}, 'name': {}, 'display_name': {}},
             },
             'start_date': {},
             'end_date': {},
@@ -4005,31 +4037,18 @@ class OdooApiService implements BaseOdooService {
             'recurring_total': {},
             'amount_total': {},
             'currency_id': {
-              'fields': {
-                'id': {},
-                'name': {},
-                'symbol': {},
-              },
+              'fields': {'id': {}, 'name': {}, 'symbol': {}},
             },
             'invoice_ids': {
-              'fields': {
-                'id': {},
-                'name': {},
-              },
+              'fields': {'id': {}, 'name': {}},
             },
             'subscription_id': {
-              'fields': {
-                'id': {},
-                'name': {},
-              },
+              'fields': {'id': {}, 'name': {}},
             },
             'order_line': {
               'fields': {
                 'product_id': {
-                  'fields': {
-                    'id': {},
-                    'display_name': {},
-                  },
+                  'fields': {'id': {}, 'display_name': {}},
                 },
                 'name': {},
                 'product_uom_qty': {},
@@ -4069,10 +4088,18 @@ class OdooApiService implements BaseOdooService {
           'domain': pid != null
               ? [
                   ['partner_id', '=', pid],
-                  ['state', 'in', ['sent', 'sale', 'cancel']],
+                  [
+                    'state',
+                    'in',
+                    ['sent', 'sale', 'cancel'],
+                  ],
                 ]
               : [
-                  ['state', 'in', ['sent', 'sale', 'cancel']],
+                  [
+                    'state',
+                    'in',
+                    ['sent', 'sale', 'cancel'],
+                  ],
                 ],
           'specification': {
             'id': {},
@@ -4087,18 +4114,12 @@ class OdooApiService implements BaseOdooService {
             'is_subscription': {},
             'subscription_state': {},
             'plan_id': {
-              'fields': {
-                'id': {},
-                'name': {},
-              },
+              'fields': {'id': {}, 'name': {}},
             },
             'next_invoice_date': {},
             'recurring_total': {},
             'partner_id': {
-              'fields': {
-                'id': {},
-                'name': {},
-              },
+              'fields': {'id': {}, 'name': {}},
             },
           },
           'order': 'date_order desc',

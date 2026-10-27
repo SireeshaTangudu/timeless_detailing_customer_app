@@ -19,6 +19,18 @@ class QuotationModel {
   final double recurringTotal;
   final int? partnerId;
   final String? partnerName;
+  final String? estimator;
+  final String? orderNo;
+  final String? vehicleColour;
+  final int? kilometers;
+  final String? insurer;
+  final String? insurerFax;
+  final String? claimNo;
+  final String? assessor;
+  final bool? isAuthorised;
+  final double? towing;
+  final String? contact;
+  final String? fax;
 
   const QuotationModel({
     required this.id,
@@ -38,6 +50,18 @@ class QuotationModel {
     required this.recurringTotal,
     this.partnerId,
     this.partnerName,
+    this.estimator,
+    this.orderNo,
+    this.vehicleColour,
+    this.kilometers,
+    this.insurer,
+    this.insurerFax,
+    this.claimNo,
+    this.assessor,
+    this.isAuthorised,
+    this.towing,
+    this.contact,
+    this.fax,
   });
 
   factory QuotationModel.fromJson(Map<String, dynamic> json) {
@@ -59,6 +83,39 @@ class QuotationModel {
       return null;
     }
 
+    String? parseStr(dynamic val) {
+      if (val == null || val == false) return null;
+      if (val is List && val.length > 1 && val[1] is String) {
+        return val[1].toString().trim();
+      }
+      if (val is Map && val['name'] != null) {
+        return val['name'].toString().trim();
+      }
+      final s = val.toString().trim();
+      if (s.isEmpty || s == 'false' || s == 'null') return null;
+      return s;
+    }
+
+    int? parseInt(dynamic val) {
+      if (val == null || val == false) return null;
+      if (val is num) return val.toInt();
+      return int.tryParse(val.toString());
+    }
+
+    double? parseDbl(dynamic val) {
+      if (val == null || val == false) return null;
+      if (val is num) return val.toDouble();
+      return double.tryParse(val.toString());
+    }
+
+    bool? parseBool(dynamic val) {
+      if (val == null) return null;
+      if (val is bool) return val;
+      if (val == 1 || val == 'true') return true;
+      if (val == 0 || val == 'false') return false;
+      return null;
+    }
+
     return QuotationModel(
       id: (json['id'] as num?)?.toInt() ?? 0,
       name: json['name']?.toString() ?? '',
@@ -77,6 +134,18 @@ class QuotationModel {
       recurringTotal: (json['recurring_total'] as num?)?.toDouble() ?? 0.0,
       partnerId: parseId(json['partner_id']),
       partnerName: parseName(json['partner_id']),
+      estimator: parseStr(json['timeless_estimator']),
+      orderNo: parseStr(json['timeless_order_no']),
+      vehicleColour: parseStr(json['timeless_vehicle_colour']),
+      kilometers: parseInt(json['timeless_km']),
+      insurer: parseStr(json['timeless_insurer']),
+      insurerFax: parseStr(json['timeless_insurer_fax']),
+      claimNo: parseStr(json['timeless_claim_no']),
+      assessor: parseStr(json['timeless_assessor']),
+      isAuthorised: parseBool(json['timeless_authorised']),
+      towing: parseDbl(json['timeless_towing']),
+      contact: parseStr(json['timeless_contact']),
+      fax: parseStr(json['timeless_fax']),
     );
   }
 

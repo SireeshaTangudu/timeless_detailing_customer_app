@@ -786,6 +786,12 @@ class _EstimationScreenState extends State<EstimationScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _buildLightDetailRow('Quotation Ref', data.id),
+                if (data.orderNo != null &&
+                    data.orderNo!.isNotEmpty &&
+                    data.orderNo != data.id) ...[
+                  const SizedBox(height: 12),
+                  _buildLightDetailRow('Order No', data.orderNo!),
+                ],
                 const SizedBox(height: 12),
                 _buildLightDetailRow('Selected Car', data.vehicleName),
                 if (data.vehicleRegistration != null &&
@@ -799,6 +805,15 @@ class _EstimationScreenState extends State<EstimationScreen> {
                 if (data.vehicleVin != null && data.vehicleVin!.isNotEmpty) ...[
                   const SizedBox(height: 12),
                   _buildLightDetailRow('VIN', data.vehicleVin!),
+                ],
+                if (data.vehicleColour != null &&
+                    data.vehicleColour!.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  _buildLightDetailRow('Vehicle Colour', data.vehicleColour!),
+                ],
+                if (data.kilometers != null && data.kilometers! > 0) ...[
+                  const SizedBox(height: 12),
+                  _buildLightDetailRow('Mileage', '${data.kilometers} km'),
                 ],
                 const SizedBox(height: 12),
                 _buildLightDetailRow('Service', data.serviceName),
@@ -820,6 +835,56 @@ class _EstimationScreenState extends State<EstimationScreen> {
                     data.validityDate!.isNotEmpty) ...[
                   const SizedBox(height: 12),
                   _buildLightDetailRow('Valid Until', data.validityDate!),
+                ],
+                if (data.hasAdditionalQuotationInfo) ...[
+                  const SizedBox(height: 14),
+                  CustomPaint(
+                    size: const Size(double.infinity, 1),
+                    painter: DashedLinePainter(color: const Color(0xFFE5DFD5)),
+                  ),
+                  const SizedBox(height: 14),
+                  if (data.estimator != null && data.estimator!.isNotEmpty) ...[
+                    _buildLightDetailRow('Estimator', data.estimator!),
+                    const SizedBox(height: 12),
+                  ],
+                  if (data.isAuthorised != null) ...[
+                    _buildLightDetailRow(
+                      'Authorised',
+                      data.isAuthorised == true ? 'Yes' : 'No',
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                  if (data.insurer != null && data.insurer!.isNotEmpty) ...[
+                    _buildLightDetailRow('Insurer', data.insurer!),
+                    const SizedBox(height: 12),
+                  ],
+                  if (data.claimNo != null && data.claimNo!.isNotEmpty) ...[
+                    _buildLightDetailRow('Claim No', data.claimNo!),
+                    const SizedBox(height: 12),
+                  ],
+                  if (data.assessor != null && data.assessor!.isNotEmpty) ...[
+                    _buildLightDetailRow('Assessor', data.assessor!),
+                    const SizedBox(height: 12),
+                  ],
+                  if (data.towing != null && data.towing! > 0) ...[
+                    _buildLightDetailRow(
+                      'Towing',
+                      '${data.currencySymbol} ${data.towing!.toStringAsFixed(2)}',
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                  if (data.contact != null && data.contact!.isNotEmpty) ...[
+                    _buildLightDetailRow('Contact', data.contact!),
+                    const SizedBox(height: 12),
+                  ],
+                  if (data.fax != null && data.fax!.isNotEmpty) ...[
+                    _buildLightDetailRow('Fax', data.fax!),
+                    const SizedBox(height: 12),
+                  ],
+                  if (data.insurerFax != null && data.insurerFax!.isNotEmpty) ...[
+                    _buildLightDetailRow('Insurer Fax', data.insurerFax!),
+                    const SizedBox(height: 12),
+                  ],
                 ],
 
                 if (data.lineItems.isNotEmpty) ...[

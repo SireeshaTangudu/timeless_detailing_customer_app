@@ -61,6 +61,21 @@ class Booking {
   final String? warrantyLabel;
   final DateTime? invoiceDueDate;
 
+  // Additional Timeless Quotation / Invoice fields
+  final String? estimator;
+  final String? orderNo;
+  final String? vehicleColour;
+  final int? kilometers;
+  final String? vehicleVin;
+  final String? insurer;
+  final String? insurerFax;
+  final String? claimNo;
+  final String? assessor;
+  final bool? isAuthorised;
+  final double? towing;
+  final String? contact;
+  final String? fax;
+
   const Booking({
     required this.id,
     required this.service,
@@ -108,10 +123,39 @@ class Booking {
     this.invoicePaymentState,
     this.warrantyLabel,
     this.invoiceDueDate,
+    this.estimator,
+    this.orderNo,
+    this.vehicleColour,
+    this.kilometers,
+    this.vehicleVin,
+    this.insurer,
+    this.insurerFax,
+    this.claimNo,
+    this.assessor,
+    this.isAuthorised,
+    this.towing,
+    this.contact,
+    this.fax,
   });
+
+  bool get hasAdditionalInvoiceInfo =>
+      (estimator != null && estimator!.isNotEmpty) ||
+      (orderNo != null && orderNo!.isNotEmpty) ||
+      (vehicleColour != null && vehicleColour!.isNotEmpty) ||
+      (kilometers != null && kilometers! > 0) ||
+      (vehicleVin != null && vehicleVin!.isNotEmpty) ||
+      (insurer != null && insurer!.isNotEmpty) ||
+      (insurerFax != null && insurerFax!.isNotEmpty) ||
+      (claimNo != null && claimNo!.isNotEmpty) ||
+      (assessor != null && assessor!.isNotEmpty) ||
+      isAuthorised != null ||
+      (towing != null && towing! > 0) ||
+      (contact != null && contact!.isNotEmpty) ||
+      (fax != null && fax!.isNotEmpty);
 
   String get vehicleMake => bookingVehicleMake ?? (vehicleName.contains(' ') ? vehicleName.split(' ').first : vehicleName);
   String get vehicleModel => bookingVehicleModel ?? (vehicleName.contains(' ') ? vehicleName.split(' ').sublist(1).join(' ') : '');
+  String get vehicleRegistration => vehicleLicensePlate;
 
   // Returns human readable status title
   String get statusTitle {
@@ -419,6 +463,26 @@ class Booking {
 
     final status = parseStatus(json['appointment_status']?.toString() ?? json['state']?.toString(), json['active'] as bool?);
 
+    String? parseOdooStr(dynamic val) {
+      if (val == null || val == false) return null;
+      final s = val.toString().trim();
+      return (s.isEmpty || s == 'false' || s == 'null') ? null : s;
+    }
+
+    final String? estimatorVal = parseOdooStr(json['timeless_estimator']);
+    final String? orderNoVal = parseOdooStr(json['timeless_order_no']);
+    final String? vehicleColourVal = parseOdooStr(json['timeless_vehicle_colour']);
+    final int? kmVal = json['timeless_km'] is num ? (json['timeless_km'] as num).toInt() : int.tryParse(json['timeless_km']?.toString() ?? '');
+    final String? vinVal = parseOdooStr(json['timeless_vin'] ?? json['vehicle_vin']);
+    final String? insurerVal = parseOdooStr(json['timeless_insurer']);
+    final String? insurerFaxVal = parseOdooStr(json['timeless_insurer_fax']);
+    final String? claimNoVal = parseOdooStr(json['timeless_claim_no']);
+    final String? assessorVal = parseOdooStr(json['timeless_assessor']);
+    final bool? isAuthorisedVal = json['timeless_authorised'] is bool ? json['timeless_authorised'] as bool : (json['timeless_authorised'] == 1 || json['timeless_authorised'] == 'true' ? true : (json['timeless_authorised'] == 0 || json['timeless_authorised'] == 'false' ? false : null));
+    final double? towingVal = json['timeless_towing'] is num ? (json['timeless_towing'] as num).toDouble() : double.tryParse(json['timeless_towing']?.toString() ?? '');
+    final String? contactVal = parseOdooStr(json['timeless_contact']);
+    final String? faxVal = parseOdooStr(json['timeless_fax']);
+
     return Booking(
       id: json['id']?.toString() ?? '',
       service: finalService,
@@ -453,6 +517,19 @@ class Booking {
       appointmentTypeName: apptTypeName,
       opportunityName: oppName,
       timelessProjects: timelessProjectsList,
+      estimator: estimatorVal,
+      orderNo: orderNoVal,
+      vehicleColour: vehicleColourVal,
+      kilometers: kmVal,
+      vehicleVin: vinVal,
+      insurer: insurerVal,
+      insurerFax: insurerFaxVal,
+      claimNo: claimNoVal,
+      assessor: assessorVal,
+      isAuthorised: isAuthorisedVal,
+      towing: towingVal,
+      contact: contactVal,
+      fax: faxVal,
     );
   }
 
@@ -578,6 +655,53 @@ class Booking {
         ? (parsedServiceLines[0]['price'] as double)
         : origTotal;
 
+    String? parseStr(dynamic val) {
+      if (val == null || val == false) return null;
+      if (val is List && val.length > 1 && val[1] is String) {
+        return val[1].toString().trim();
+      }
+      if (val is Map && val['name'] != null) {
+        return val['name'].toString().trim();
+      }
+      final s = val.toString().trim();
+      if (s.isEmpty || s == 'false' || s == 'null') return null;
+      return s;
+    }
+
+    int? parseInt(dynamic val) {
+      if (val == null || val == false) return null;
+      if (val is num) return val.toInt();
+      return int.tryParse(val.toString());
+    }
+
+    double? parseDbl(dynamic val) {
+      if (val == null || val == false) return null;
+      if (val is num) return val.toDouble();
+      return double.tryParse(val.toString());
+    }
+
+    bool? parseBool(dynamic val) {
+      if (val == null) return null;
+      if (val is bool) return val;
+      if (val == 1 || val == 'true') return true;
+      if (val == 0 || val == 'false') return false;
+      return null;
+    }
+
+    final String? estimatorVal = parseStr(json['timeless_estimator'] ?? summary['timeless_estimator'] ?? snapshot['timeless_estimator']);
+    final String? orderNoVal = parseStr(json['timeless_order_no'] ?? summary['timeless_order_no'] ?? snapshot['timeless_order_no']);
+    final String? vehicleColourVal = parseStr(json['timeless_vehicle_colour'] ?? summary['timeless_vehicle_colour'] ?? snapshot['timeless_vehicle_colour']);
+    final int? kmVal = parseInt(json['timeless_km'] ?? summary['timeless_km'] ?? snapshot['timeless_km']);
+    final String? vinVal = parseStr(json['timeless_vin'] ?? summary['timeless_vin'] ?? snapshot['timeless_vin']);
+    final String? insurerVal = parseStr(json['timeless_insurer'] ?? summary['timeless_insurer'] ?? snapshot['timeless_insurer']);
+    final String? insurerFaxVal = parseStr(json['timeless_insurer_fax'] ?? summary['timeless_insurer_fax'] ?? snapshot['timeless_insurer_fax']);
+    final String? claimNoVal = parseStr(json['timeless_claim_no'] ?? summary['timeless_claim_no'] ?? snapshot['timeless_claim_no']);
+    final String? assessorVal = parseStr(json['timeless_assessor'] ?? summary['timeless_assessor'] ?? snapshot['timeless_assessor']);
+    final bool? isAuthorisedVal = parseBool(json['timeless_authorised'] ?? summary['timeless_authorised'] ?? snapshot['timeless_authorised']);
+    final double? towingVal = parseDbl(json['timeless_towing'] ?? summary['timeless_towing'] ?? snapshot['timeless_towing']);
+    final String? contactVal = parseStr(json['timeless_contact'] ?? summary['timeless_contact'] ?? snapshot['timeless_contact']);
+    final String? faxVal = parseStr(json['timeless_fax'] ?? summary['timeless_fax'] ?? snapshot['timeless_fax']);
+
     return Booking(
       id: json['id']?.toString() ?? '',
       service: DetailService(
@@ -620,6 +744,19 @@ class Booking {
       invoicePaymentState: payState,
       warrantyLabel: warrantyLabel,
       invoiceDueDate: DateTime.tryParse(dueDateStr),
+      estimator: estimatorVal,
+      orderNo: orderNoVal,
+      vehicleColour: vehicleColourVal,
+      kilometers: kmVal,
+      vehicleVin: vinVal,
+      insurer: insurerVal,
+      insurerFax: insurerFaxVal,
+      claimNo: claimNoVal,
+      assessor: assessorVal,
+      isAuthorised: isAuthorisedVal,
+      towing: towingVal,
+      contact: contactVal,
+      fax: faxVal,
     );
   }
 
@@ -646,6 +783,36 @@ class Booking {
     String? appointmentResourceName,
     String? appointmentTypeName,
     String? opportunityName,
+    String? estimator,
+    String? orderNo,
+    String? vehicleColour,
+    int? kilometers,
+    String? vehicleVin,
+    String? insurer,
+    String? insurerFax,
+    String? claimNo,
+    String? assessor,
+    bool? isAuthorised,
+    double? towing,
+    String? contact,
+    String? fax,
+    bool? isDownPaymentInvoice,
+    double? percentageAmountPaid,
+    double? amountPaid,
+    double? thisInvoiceAmount,
+    double? amountUntaxed,
+    double? taxAmount,
+    String? amountPaidOn,
+    double? pendingAmount,
+    String? carDropOffStatus,
+    List<Map<String, dynamic>>? addOns,
+    List<Map<String, dynamic>>? allServiceLines,
+    int? invoiceId,
+    String? invoiceAccessUrl,
+    String? invoiceAccessToken,
+    String? invoicePaymentState,
+    String? warrantyLabel,
+    DateTime? invoiceDueDate,
   }) {
     return Booking(
       id: id ?? this.id,
@@ -670,6 +837,36 @@ class Booking {
       appointmentResourceName: appointmentResourceName ?? this.appointmentResourceName,
       appointmentTypeName: appointmentTypeName ?? this.appointmentTypeName,
       opportunityName: opportunityName ?? this.opportunityName,
+      isDownPaymentInvoice: isDownPaymentInvoice ?? this.isDownPaymentInvoice,
+      percentageAmountPaid: percentageAmountPaid ?? this.percentageAmountPaid,
+      amountPaid: amountPaid ?? this.amountPaid,
+      thisInvoiceAmount: thisInvoiceAmount ?? this.thisInvoiceAmount,
+      amountUntaxed: amountUntaxed ?? this.amountUntaxed,
+      taxAmount: taxAmount ?? this.taxAmount,
+      amountPaidOn: amountPaidOn ?? this.amountPaidOn,
+      pendingAmount: pendingAmount ?? this.pendingAmount,
+      carDropOffStatus: carDropOffStatus ?? this.carDropOffStatus,
+      addOns: addOns ?? this.addOns,
+      allServiceLines: allServiceLines ?? this.allServiceLines,
+      invoiceId: invoiceId ?? this.invoiceId,
+      invoiceAccessUrl: invoiceAccessUrl ?? this.invoiceAccessUrl,
+      invoiceAccessToken: invoiceAccessToken ?? this.invoiceAccessToken,
+      invoicePaymentState: invoicePaymentState ?? this.invoicePaymentState,
+      warrantyLabel: warrantyLabel ?? this.warrantyLabel,
+      invoiceDueDate: invoiceDueDate ?? this.invoiceDueDate,
+      estimator: estimator ?? this.estimator,
+      orderNo: orderNo ?? this.orderNo,
+      vehicleColour: vehicleColour ?? this.vehicleColour,
+      kilometers: kilometers ?? this.kilometers,
+      vehicleVin: vehicleVin ?? this.vehicleVin,
+      insurer: insurer ?? this.insurer,
+      insurerFax: insurerFax ?? this.insurerFax,
+      claimNo: claimNo ?? this.claimNo,
+      assessor: assessor ?? this.assessor,
+      isAuthorised: isAuthorised ?? this.isAuthorised,
+      towing: towing ?? this.towing,
+      contact: contact ?? this.contact,
+      fax: fax ?? this.fax,
     );
   }
 }

@@ -524,6 +524,34 @@ class _UpcomingAppointmentDetailsScreenState
                                                 ),
                                                 const SizedBox(height: 12),
                                               ],
+                                              if (b.vehicleRegistration.isNotEmpty) ...[
+                                                _buildLightDetailRow(
+                                                  'Registration Number',
+                                                  b.vehicleRegistration,
+                                                ),
+                                                const SizedBox(height: 12),
+                                              ],
+                                              if (b.vehicleVin != null && b.vehicleVin!.isNotEmpty) ...[
+                                                _buildLightDetailRow(
+                                                  'VIN',
+                                                  b.vehicleVin!,
+                                                ),
+                                                const SizedBox(height: 12),
+                                              ],
+                                              if (b.vehicleColour != null && b.vehicleColour!.isNotEmpty) ...[
+                                                _buildLightDetailRow(
+                                                  'Vehicle Colour',
+                                                  b.vehicleColour!,
+                                                ),
+                                                const SizedBox(height: 12),
+                                              ],
+                                              if (b.kilometers != null && b.kilometers! > 0) ...[
+                                                _buildLightDetailRow(
+                                                  'Mileage',
+                                                  '${b.kilometers} km',
+                                                ),
+                                                const SizedBox(height: 12),
+                                              ],
                                               _buildLightDetailRow(
                                                 'Service',
                                                 serviceTitle,
@@ -553,6 +581,67 @@ class _UpcomingAppointmentDetailsScreenState
                                                 'Created On',
                                                 slotTimeStr,
                                               ),
+                                              if (b.hasAdditionalInvoiceInfo) ...[
+                                                const SizedBox(height: 14),
+                                                CustomPaint(
+                                                  size: const Size(
+                                                    double.infinity,
+                                                    1,
+                                                  ),
+                                                  painter: DashedLinePainter(
+                                                    color: const Color(
+                                                      0xFFE5DFD5,
+                                                    ),
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 14),
+                                                if (b.orderNo != null && b.orderNo!.isNotEmpty) ...[
+                                                  _buildLightDetailRow('Order No', b.orderNo!),
+                                                  const SizedBox(height: 12),
+                                                ],
+                                                if (b.estimator != null && b.estimator!.isNotEmpty) ...[
+                                                  _buildLightDetailRow('Estimator', b.estimator!),
+                                                  const SizedBox(height: 12),
+                                                ],
+                                                if (b.isAuthorised != null) ...[
+                                                  _buildLightDetailRow(
+                                                    'Authorised',
+                                                    b.isAuthorised == true ? 'Yes' : 'No',
+                                                  ),
+                                                  const SizedBox(height: 12),
+                                                ],
+                                                if (b.insurer != null && b.insurer!.isNotEmpty) ...[
+                                                  _buildLightDetailRow('Insurer', b.insurer!),
+                                                  const SizedBox(height: 12),
+                                                ],
+                                                if (b.claimNo != null && b.claimNo!.isNotEmpty) ...[
+                                                  _buildLightDetailRow('Claim No', b.claimNo!),
+                                                  const SizedBox(height: 12),
+                                                ],
+                                                if (b.assessor != null && b.assessor!.isNotEmpty) ...[
+                                                  _buildLightDetailRow('Assessor', b.assessor!),
+                                                  const SizedBox(height: 12),
+                                                ],
+                                                if (b.towing != null && b.towing! > 0) ...[
+                                                  _buildLightDetailRow(
+                                                    'Towing',
+                                                    CurrencyService.instance.format(b.towing!),
+                                                  ),
+                                                  const SizedBox(height: 12),
+                                                ],
+                                                if (b.contact != null && b.contact!.isNotEmpty) ...[
+                                                  _buildLightDetailRow('Contact', b.contact!),
+                                                  const SizedBox(height: 12),
+                                                ],
+                                                if (b.fax != null && b.fax!.isNotEmpty) ...[
+                                                  _buildLightDetailRow('Fax', b.fax!),
+                                                  const SizedBox(height: 12),
+                                                ],
+                                                if (b.insurerFax != null && b.insurerFax!.isNotEmpty) ...[
+                                                  _buildLightDetailRow('Insurer Fax', b.insurerFax!),
+                                                  const SizedBox(height: 12),
+                                                ],
+                                              ],
 
                                               const SizedBox(height: 20),
 
@@ -873,6 +962,18 @@ class _UpcomingAppointmentDetailsScreenState
                   _buildLightDetailRow('Vehicle Model', vModel),
                   const SizedBox(height: 12),
                   _buildLightDetailRow('Registration Number', vReg),
+                  if (b.vehicleVin != null && b.vehicleVin!.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    _buildLightDetailRow('VIN', b.vehicleVin!),
+                  ],
+                  if (b.vehicleColour != null && b.vehicleColour!.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    _buildLightDetailRow('Vehicle Colour', b.vehicleColour!),
+                  ],
+                  if (b.kilometers != null && b.kilometers! > 0) ...[
+                    const SizedBox(height: 12),
+                    _buildLightDetailRow('Mileage', '${b.kilometers} km'),
+                  ],
                   const SizedBox(height: 12),
                   if (b.allServiceLines.length > 1) ...[
                     Text(
@@ -963,6 +1064,61 @@ class _UpcomingAppointmentDetailsScreenState
                   _buildLightDetailRow('Service Date', fullDateStr),
                   const SizedBox(height: 12),
                   _buildLightDetailRow('Slot', slotTimeStr),
+
+                  if (b.hasAdditionalInvoiceInfo) ...[
+                    const SizedBox(height: 14),
+                    CustomPaint(
+                      size: const Size(double.infinity, 1),
+                      painter: DashedLinePainter(color: const Color(0xFFE5DFD5)),
+                    ),
+                    const SizedBox(height: 14),
+                    if (b.orderNo != null && b.orderNo!.isNotEmpty) ...[
+                      _buildLightDetailRow('Order No', b.orderNo!),
+                      const SizedBox(height: 12),
+                    ],
+                    if (b.estimator != null && b.estimator!.isNotEmpty) ...[
+                      _buildLightDetailRow('Estimator', b.estimator!),
+                      const SizedBox(height: 12),
+                    ],
+                    if (b.isAuthorised != null) ...[
+                      _buildLightDetailRow(
+                        'Authorised',
+                        b.isAuthorised == true ? 'Yes' : 'No',
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+                    if (b.insurer != null && b.insurer!.isNotEmpty) ...[
+                      _buildLightDetailRow('Insurer', b.insurer!),
+                      const SizedBox(height: 12),
+                    ],
+                    if (b.claimNo != null && b.claimNo!.isNotEmpty) ...[
+                      _buildLightDetailRow('Claim No', b.claimNo!),
+                      const SizedBox(height: 12),
+                    ],
+                    if (b.assessor != null && b.assessor!.isNotEmpty) ...[
+                      _buildLightDetailRow('Assessor', b.assessor!),
+                      const SizedBox(height: 12),
+                    ],
+                    if (b.towing != null && b.towing! > 0) ...[
+                      _buildLightDetailRow(
+                        'Towing',
+                        CurrencyService.instance.format(b.towing!),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+                    if (b.contact != null && b.contact!.isNotEmpty) ...[
+                      _buildLightDetailRow('Contact', b.contact!),
+                      const SizedBox(height: 12),
+                    ],
+                    if (b.fax != null && b.fax!.isNotEmpty) ...[
+                      _buildLightDetailRow('Fax', b.fax!),
+                      const SizedBox(height: 12),
+                    ],
+                    if (b.insurerFax != null && b.insurerFax!.isNotEmpty) ...[
+                      _buildLightDetailRow('Insurer Fax', b.insurerFax!),
+                      const SizedBox(height: 12),
+                    ],
+                  ],
 
                   const SizedBox(height: 20),
 

@@ -6,8 +6,8 @@ void main() async {
     environment: Environment.uat,
     appName: 'Timeless Detailing UAT',
     baseUrl:
-        'https://micahharipersad-timeless-detailing-staging-38183938.dev.odoo.com',
-    db: 'micahharipersad-timeless-detailing-staging-38183938',
+        'https://micahharipersad-timeless-detailing-staging-40117418.dev.odoo.com',
+    db: 'micahharipersad-timeless-detailing-staging-40117418',
   );
   await bootstrap();
 }

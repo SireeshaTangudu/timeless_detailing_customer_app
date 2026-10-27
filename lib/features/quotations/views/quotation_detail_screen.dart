@@ -101,6 +101,117 @@ class QuotationDetailScreen extends StatelessWidget {
                               value: quotation.partnerName!,
                             ),
                           ],
+                          if (quotation.orderNo != null &&
+                              quotation.orderNo!.isNotEmpty &&
+                              quotation.orderNo != quotation.name) ...[
+                            const SizedBox(height: 12),
+                            _buildDetailRow(
+                              icon: Icons.confirmation_number_outlined,
+                              label: 'Order No',
+                              value: quotation.orderNo!,
+                            ),
+                          ],
+                          if (quotation.estimator != null &&
+                              quotation.estimator!.isNotEmpty) ...[
+                            const SizedBox(height: 12),
+                            _buildDetailRow(
+                              icon: Icons.badge_outlined,
+                              label: 'Estimator',
+                              value: quotation.estimator!,
+                            ),
+                          ],
+                          if (quotation.isAuthorised != null) ...[
+                            const SizedBox(height: 12),
+                            _buildDetailRow(
+                              icon: Icons.verified_outlined,
+                              label: 'Authorised',
+                              value: quotation.isAuthorised == true ? 'Yes' : 'No',
+                            ),
+                          ],
+                          if (quotation.vehicleColour != null &&
+                              quotation.vehicleColour!.isNotEmpty) ...[
+                            const SizedBox(height: 12),
+                            _buildDetailRow(
+                              icon: Icons.color_lens_outlined,
+                              label: 'Vehicle Colour',
+                              value: quotation.vehicleColour!,
+                            ),
+                          ],
+                          if (quotation.kilometers != null &&
+                              quotation.kilometers! > 0) ...[
+                            const SizedBox(height: 12),
+                            _buildDetailRow(
+                              icon: Icons.speed_outlined,
+                              label: 'Mileage',
+                              value: '${quotation.kilometers} km',
+                            ),
+                          ],
+                          if (quotation.insurer != null &&
+                              quotation.insurer!.isNotEmpty) ...[
+                            const SizedBox(height: 12),
+                            _buildDetailRow(
+                              icon: Icons.security_outlined,
+                              label: 'Insurer',
+                              value: quotation.insurer!,
+                            ),
+                          ],
+                          if (quotation.claimNo != null &&
+                              quotation.claimNo!.isNotEmpty) ...[
+                            const SizedBox(height: 12),
+                            _buildDetailRow(
+                              icon: Icons.description_outlined,
+                              label: 'Claim No',
+                              value: quotation.claimNo!,
+                            ),
+                          ],
+                          if (quotation.assessor != null &&
+                              quotation.assessor!.isNotEmpty) ...[
+                            const SizedBox(height: 12),
+                            _buildDetailRow(
+                              icon: Icons.assignment_ind_outlined,
+                              label: 'Assessor',
+                              value: quotation.assessor!,
+                            ),
+                          ],
+                          if (quotation.towing != null &&
+                              quotation.towing! > 0) ...[
+                            const SizedBox(height: 12),
+                            _buildDetailRow(
+                              icon: Icons.local_shipping_outlined,
+                              label: 'Towing',
+                              value: CurrencyService.instance.format(
+                                quotation.towing!,
+                                currencyId: quotation.currencyId,
+                              ),
+                            ),
+                          ],
+                          if (quotation.contact != null &&
+                              quotation.contact!.isNotEmpty) ...[
+                            const SizedBox(height: 12),
+                            _buildDetailRow(
+                              icon: Icons.contact_phone_outlined,
+                              label: 'Contact',
+                              value: quotation.contact!,
+                            ),
+                          ],
+                          if (quotation.fax != null &&
+                              quotation.fax!.isNotEmpty) ...[
+                            const SizedBox(height: 12),
+                            _buildDetailRow(
+                              icon: Icons.print_outlined,
+                              label: 'Fax',
+                              value: quotation.fax!,
+                            ),
+                          ],
+                          if (quotation.insurerFax != null &&
+                              quotation.insurerFax!.isNotEmpty) ...[
+                            const SizedBox(height: 12),
+                            _buildDetailRow(
+                              icon: Icons.print_outlined,
+                              label: 'Insurer Fax',
+                              value: quotation.insurerFax!,
+                            ),
+                          ],
                         ],
                       ),
                     ),
