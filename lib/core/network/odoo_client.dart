@@ -3949,13 +3949,39 @@ class OdooApiService implements BaseOdooService {
 
     try {
       final prefs = await SharedPreferences.getInstance();
-      final userEmail = _savedUserInfo?['email'] ??
+      String? userEmail = _savedUserInfo?['email'] ??
           prefs.getString('user_email') ??
           prefs.getString('username') ??
-          await _storage.read(key: 'username');
+          await _storage.read(key: 'username').catchError((_) => null);
 
-      // 1. Verify current password first by testing authentication against Odoo
+      // If userEmail is not available locally but _uid is known, fetch login from res.users
+      if ((userEmail == null || userEmail.isEmpty) && _uid != null && _uid! > 0) {
+        try {
+          final userRes = await _callKw(
+            model: 'res.users',
+            method: 'read',
+            args: [
+              [_uid],
+              ['login', 'email'],
+            ],
+            kwargs: {},
+          );
+          if (userRes is List && userRes.isNotEmpty && userRes[0] is Map) {
+            userEmail = userRes[0]['login']?.toString() ??
+                userRes[0]['email']?.toString();
+          }
+        } catch (e) {
+          debugPrint(
+            '⚠️ [OdooApiService] Could not fetch user login for verification: $e',
+          );
+        }
+      }
+
+      // 1. Verify current password first by authenticating against Odoo
       if (userEmail != null && userEmail.isNotEmpty) {
+        debugPrint(
+          '🔍 [OdooApiService] Pre-verifying current password for $userEmail...',
+        );
         try {
           final authCheck = await _dio!.post(
             '/web/session/authenticate',
@@ -3968,9 +3994,17 @@ class OdooApiService implements BaseOdooService {
                 'password': oldPassword,
               },
             },
+            options: Options(
+              validateStatus: (status) => status != null && status < 500,
+            ),
           );
-          final authResult = authCheck.data?['result'];
-          if (authResult == null ||
+
+          final authData = authCheck.data;
+          final authResult = authData is Map ? authData['result'] : null;
+          final authError = authData is Map ? authData['error'] : null;
+
+          if (authError != null ||
+              authResult == null ||
               authResult['uid'] == null ||
               authResult['uid'] == false) {
             debugPrint(
@@ -3980,116 +4014,197 @@ class OdooApiService implements BaseOdooService {
               'The current password you provided is incorrect. Your password was not changed.',
             );
           }
-        } on DioException catch (dioE) {
-          debugPrint('⚠️ [OdooApiService] Auth pre-check network warning: $dioE');
-        }
-      }
 
-      // 2. Call Odoo web/session/change_password
-      final sessionResp = await _dio!.post(
-        '/web/session/change_password',
-        data: {
-          "jsonrpc": "2.0",
-          "method": "call",
-          "params": {
-            "fields": [
-              {"name": "old_pwd", "value": oldPassword},
-              {"name": "new_password", "value": newPassword},
-              {"name": "confirm_pwd", "value": newPassword},
-            ],
-          },
-        },
-      );
-
-      final sessionData = sessionResp.data;
-      if (sessionData != null) {
-        // Check for JSON-RPC error
-        if (sessionData['error'] != null) {
-          final errObj = sessionData['error'];
-          final errMsg = (errObj['data']?['message'] ??
-                  errObj['message'] ??
-                  '')
-              .toString();
-          if (errMsg.toLowerCase().contains('access denied') ||
-              errMsg.toLowerCase().contains('incorrect') ||
-              errMsg.toLowerCase().contains('old password')) {
-            throw Exception(
-              'The current password you provided is incorrect. Your password was not changed.',
-            );
+          if (authResult['uid'] is int) {
+            _uid = authResult['uid'] as int;
           }
-          throw Exception(
-            errMsg.isNotEmpty ? errMsg : 'Password change failed.',
-          );
-        }
-
-        // Check for error inside Odoo result map (e.g. {"result": {"error": "..."}})
-        final result = sessionData['result'];
-        if (result is Map &&
-            result.containsKey('error') &&
-            result['error'] != null) {
-          final errMsg = result['error'].toString();
-          if (errMsg.toLowerCase().contains('incorrect') ||
-              errMsg.toLowerCase().contains('old password') ||
-              errMsg.toLowerCase().contains('access denied')) {
-            throw Exception(
-              'The current password you provided is incorrect. Your password was not changed.',
-            );
+          if (authResult['session_id'] != null) {
+            _sessionId = authResult['session_id'].toString();
           }
-          throw Exception(errMsg);
-        }
-
-        // Success: result is true or a valid map without error
-        if (result == true || (result is Map && result['error'] == null)) {
           debugPrint(
-            '🟢 [OdooApiService] Password changed successfully via /web/session/change_password',
+            '🟢 [OdooApiService] Current password verified successfully.',
           );
-          await _storage.write(key: 'password', value: newPassword);
-          await prefs.remove('password');
-          return true;
+        } on DioException catch (dioE) {
+          debugPrint('⚠️ [OdooApiService] Auth pre-check Dio warning: $dioE');
         }
       }
 
-      // 3. Fallback: call res.users change_password method
-      final response = await _dio!.post(
-        '/web/dataset/call_kw',
-        data: {
-          "jsonrpc": "2.0",
-          "method": "call",
-          "params": {
-            "model": "res.users",
-            "method": "change_password",
-            "args": [oldPassword, newPassword],
-            "kwargs": {},
-          },
-        },
-      );
+      bool changed = false;
 
-      if (response.data != null) {
-        if (response.data['error'] != null) {
-          final errObj = response.data['error'];
-          final msg = (errObj['data']?['message'] ??
-                  errObj['message'] ??
-                  '')
-              .toString();
-          if (msg.toLowerCase().contains('access denied') ||
-              msg.toLowerCase().contains('incorrect') ||
-              msg.toLowerCase().contains('old password')) {
+      // Strategy 1: Call res.users.change_password with [[_uid], oldPassword, newPassword]
+      // This is the standard Odoo record method signature for res.users
+      if (!changed && _uid != null && _uid! > 0) {
+        try {
+          debugPrint(
+            '🔵 [OdooApiService] Strategy 1: res.users.change_password with [[_uid], old, new]',
+          );
+          final res = await _callKw(
+            model: 'res.users',
+            method: 'change_password',
+            args: [
+              [_uid],
+              oldPassword,
+              newPassword,
+            ],
+            kwargs: {},
+          );
+          debugPrint('🟢 [OdooApiService] Strategy 1 succeeded: $res');
+          changed = true;
+        } catch (e) {
+          final errStr = e.toString().toLowerCase();
+          if (errStr.contains('access denied') ||
+              errStr.contains('accessdenied') ||
+              errStr.contains('incorrect') ||
+              errStr.contains('old password')) {
             throw Exception(
               'The current password you provided is incorrect. Your password was not changed.',
             );
           }
-          throw Exception(msg.isNotEmpty ? msg : 'Password change failed.');
+          debugPrint(
+            '⚠️ [OdooApiService] Strategy 1 failed: $e. Trying Strategy 2...',
+          );
         }
+      }
 
-        debugPrint(
-          '🟢 [OdooApiService] Password changed successfully via res.users change_password',
-        );
+      // Strategy 2: Call res.users.change_password with [oldPassword, newPassword]
+      // Used by some Odoo versions/modules decorated with @api.model
+      if (!changed) {
+        try {
+          debugPrint(
+            '🔵 [OdooApiService] Strategy 2: res.users.change_password with [old, new]',
+          );
+          final res = await _callKw(
+            model: 'res.users',
+            method: 'change_password',
+            args: [oldPassword, newPassword],
+            kwargs: {},
+          );
+          debugPrint('🟢 [OdooApiService] Strategy 2 succeeded: $res');
+          changed = true;
+        } catch (e) {
+          final errStr = e.toString().toLowerCase();
+          if (errStr.contains('access denied') ||
+              errStr.contains('accessdenied') ||
+              errStr.contains('incorrect') ||
+              errStr.contains('old password')) {
+            throw Exception(
+              'The current password you provided is incorrect. Your password was not changed.',
+            );
+          }
+          debugPrint(
+            '⚠️ [OdooApiService] Strategy 2 failed: $e. Trying Strategy 3...',
+          );
+        }
+      }
+
+      // Strategy 3: Update password directly via res.users.write (safe after pre-auth verification)
+      if (!changed && _uid != null && _uid! > 0) {
+        try {
+          debugPrint(
+            '🔵 [OdooApiService] Strategy 3: res.users.write password directly',
+          );
+          final res = await _callKw(
+            model: 'res.users',
+            method: 'write',
+            args: [
+              [_uid],
+              {'password': newPassword},
+            ],
+            kwargs: {},
+          );
+          if (res == true) {
+            debugPrint('🟢 [OdooApiService] Strategy 3 succeeded');
+            changed = true;
+          }
+        } catch (e) {
+          debugPrint(
+            '⚠️ [OdooApiService] Strategy 3 failed: $e. Trying Strategy 4...',
+          );
+        }
+      }
+
+      // Strategy 4: Fallback to /web/session/change_password (safely guarded against 404)
+      if (!changed) {
+        try {
+          debugPrint(
+            '🔵 [OdooApiService] Strategy 4: /web/session/change_password',
+          );
+          final sessionResp = await _dio!.post(
+            '/web/session/change_password',
+            data: {
+              "jsonrpc": "2.0",
+              "method": "call",
+              "params": {
+                "fields": [
+                  {"name": "old_pwd", "value": oldPassword},
+                  {"name": "new_password", "value": newPassword},
+                  {"name": "confirm_pwd", "value": newPassword},
+                ],
+              },
+            },
+            options: Options(
+              validateStatus: (status) => status != null && status < 500,
+            ),
+          );
+
+          if (sessionResp.statusCode == 200 && sessionResp.data != null) {
+            final sessionData = sessionResp.data;
+            if (sessionData is Map && sessionData['error'] != null) {
+              final errObj = sessionData['error'];
+              final errMsg = (errObj['data']?['message'] ??
+                      errObj['message'] ??
+                      '')
+                  .toString();
+              if (errMsg.toLowerCase().contains('access denied') ||
+                  errMsg.toLowerCase().contains('incorrect') ||
+                  errMsg.toLowerCase().contains('old password')) {
+                throw Exception(
+                  'The current password you provided is incorrect. Your password was not changed.',
+                );
+              }
+            } else if (sessionData is Map) {
+              final result = sessionData['result'];
+              if (result is Map &&
+                  result.containsKey('error') &&
+                  result['error'] != null) {
+                final errMsg = result['error'].toString();
+                if (errMsg.toLowerCase().contains('incorrect') ||
+                    errMsg.toLowerCase().contains('old password') ||
+                    errMsg.toLowerCase().contains('access denied')) {
+                  throw Exception(
+                    'The current password you provided is incorrect. Your password was not changed.',
+                  );
+                }
+              } else if (result == true ||
+                  (result is Map && result['error'] == null)) {
+                debugPrint(
+                  '🟢 [OdooApiService] Password changed successfully via /web/session/change_password',
+                );
+                changed = true;
+              }
+            }
+          }
+        } catch (e) {
+          if (e.toString().contains('incorrect') ||
+              e.toString().contains('Access Denied')) {
+            rethrow;
+          }
+          debugPrint(
+            '⚠️ [OdooApiService] Strategy 4 route not available or failed: $e',
+          );
+        }
+      }
+
+      if (changed) {
+        debugPrint('🟢 [OdooApiService] Password changed successfully!');
         await _storage.write(key: 'password', value: newPassword);
         await prefs.remove('password');
         return true;
       }
 
-      return false;
+      throw Exception(
+        'Failed to change password. Please check your credentials and try again.',
+      );
     } catch (e) {
       debugPrint("Change password error: $e");
       rethrow;
