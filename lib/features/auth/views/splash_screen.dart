@@ -54,12 +54,6 @@ class _SplashScreenState extends State<SplashScreen>
     final auth = Provider.of<AuthController>(context, listen: false);
     _authFuture = auth.checkAuthStatus();
 
-    // Trigger categories and services pre-fetch in background during splash
-    try {
-      final servicesCtrl = Provider.of<ServicesController>(context, listen: false);
-      servicesCtrl.initData();
-    } catch (_) {}
-
     _navigateWhenReady();
   }
 
@@ -89,6 +83,12 @@ class _SplashScreenState extends State<SplashScreen>
     // Guest sessions must not auto-login on cold start.
     if (auth.isAuthenticated && !auth.isGuest) {
       debugPrint('🟢 [SplashScreen] User authenticated, navigating to MainNavigationScaffold');
+      // Pre-fetch categories and services now that session is active and verified
+      try {
+        final servicesCtrl = Provider.of<ServicesController>(context, listen: false);
+        servicesCtrl.initData();
+      } catch (_) {}
+
       Navigator.pushReplacement(
         context,
         FadeSlidePageRoute(page: const MainNavigationScaffold()),

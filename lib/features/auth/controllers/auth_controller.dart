@@ -73,20 +73,17 @@ class AuthController extends ChangeNotifier {
           await prefs.setBool('is_guest_mode', false);
         } catch (_) {}
 
-        // Fetch full profile info upon success
-        final partnerIdStr = _odooService.currentPartnerId?.toString() ?? 'current';
-        _userProfile = await _odooService.getCustomerProfile(partnerIdStr);
+        // Instant response: Use profile info already returned from login
+        _userProfile = _odooService.savedUserInfo;
         _isAuthenticated = true;
-
-        // Automatically sync FCM token to Odoo device token after login
-        try {
-          await FirebaseNotificationService.syncFcmTokenToOdoo(_odooService);
-        } catch (e) {
-          debugPrint('Error syncing FCM token post-login: $e');
-        }
-
         _isLoading = false;
         notifyListeners();
+
+        // Background non-blocking sync: full profile refresh and FCM token sync
+        final partnerIdStr =
+            _odooService.currentPartnerId?.toString() ?? 'current';
+        _backgroundSyncPostLogin(partnerIdStr);
+
         return true;
       } else {
         _errorMessage = 'Invalid email or password.';
@@ -102,6 +99,28 @@ class AuthController extends ChangeNotifier {
       notifyListeners();
       return false;
     }
+  }
+
+  void _backgroundSyncPostLogin(String partnerIdStr) {
+    Future.microtask(() async {
+      try {
+        final profile = await _odooService
+            .getCustomerProfile(partnerIdStr)
+            .timeout(const Duration(seconds: 4), onTimeout: () => null);
+        if (profile != null) {
+          _userProfile = profile;
+          notifyListeners();
+        }
+      } catch (e) {
+        debugPrint('Post-login background profile refresh warning: $e');
+      }
+
+      try {
+        await FirebaseNotificationService.syncFcmTokenToOdoo(_odooService);
+      } catch (e) {
+        debugPrint('Post-login background FCM sync warning: $e');
+      }
+    });
   }
 
   Future<void> signup(
@@ -285,7 +304,12 @@ class AuthController extends ChangeNotifier {
 
       final isLoggedIn = await _odooService.checkAuthStatus().timeout(
         const Duration(seconds: 5),
-        onTimeout: () => false,
+        onTimeout: () {
+          debugPrint(
+            '⚠️ [AuthController] checkAuthStatus timed out; falling back to cached login state',
+          );
+          return _odooService.isLoggedIn;
+        },
       );
 
       if (isLoggedIn) {

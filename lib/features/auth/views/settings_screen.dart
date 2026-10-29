@@ -225,14 +225,35 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           horizontal: 14,
                           vertical: 12,
                         ),
-                        errorText: oldPwdError,
-                        errorStyle: GoogleFonts.inter(
-                          color: const Color(0xFFEF5350),
-                          fontSize: 11,
-                        ),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide.none,
+                          borderSide: oldPwdError != null
+                              ? const BorderSide(
+                                  color: Color(0xFFEF5350),
+                                  width: 1.2,
+                                )
+                              : BorderSide.none,
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: oldPwdError != null
+                              ? const BorderSide(
+                                  color: Color(0xFFEF5350),
+                                  width: 1.2,
+                                )
+                              : BorderSide.none,
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: oldPwdError != null
+                              ? const BorderSide(
+                                  color: Color(0xFFEF5350),
+                                  width: 1.5,
+                                )
+                              : const BorderSide(
+                                  color: Color(0xFFC4913F),
+                                  width: 1.2,
+                                ),
                         ),
                         suffixIcon: IconButton(
                           icon: Icon(
@@ -247,6 +268,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                       ),
                     ),
+                    if (oldPwdError != null) ...[
+                      const SizedBox(height: 6),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Padding(
+                            padding: EdgeInsets.only(top: 2.0),
+                            child: Icon(
+                              Icons.error_outline,
+                              size: 14,
+                              color: Color(0xFFEF5350),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              oldPwdError!,
+                              style: GoogleFonts.inter(
+                                color: const Color(0xFFEF5350),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                     const SizedBox(height: 14),
                     Text(
                       'New Password',
@@ -272,8 +320,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           if (confirmPasswordController.text.isNotEmpty) {
                             confirmPwdError =
                                 (confirmPasswordController.text != val)
-                                ? 'Passwords do not match'
-                                : null;
+                                    ? 'New password and confirm password do not match'
+                                    : null;
                           }
                         });
                       },
@@ -289,14 +337,35 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           horizontal: 14,
                           vertical: 12,
                         ),
-                        errorText: newPwdError,
-                        errorStyle: GoogleFonts.inter(
-                          color: const Color(0xFFEF5350),
-                          fontSize: 11,
-                        ),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide.none,
+                          borderSide: newPwdError != null
+                              ? const BorderSide(
+                                  color: Color(0xFFEF5350),
+                                  width: 1.2,
+                                )
+                              : BorderSide.none,
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: newPwdError != null
+                              ? const BorderSide(
+                                  color: Color(0xFFEF5350),
+                                  width: 1.2,
+                                )
+                              : BorderSide.none,
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: newPwdError != null
+                              ? const BorderSide(
+                                  color: Color(0xFFEF5350),
+                                  width: 1.5,
+                                )
+                              : const BorderSide(
+                                  color: Color(0xFFC4913F),
+                                  width: 1.2,
+                                ),
                         ),
                         suffixIcon: IconButton(
                           icon: Icon(
@@ -311,6 +380,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                       ),
                     ),
+                    if (newPwdError != null) ...[
+                      const SizedBox(height: 6),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Padding(
+                            padding: EdgeInsets.only(top: 2.0),
+                            child: Icon(
+                              Icons.error_outline,
+                              size: 14,
+                              color: Color(0xFFEF5350),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              newPwdError!,
+                              style: GoogleFonts.inter(
+                                color: const Color(0xFFEF5350),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                     const SizedBox(height: 14),
                     Text(
                       'Confirm New Password',
@@ -331,7 +427,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       onChanged: (val) {
                         setSheetState(() {
                           if (val != newPasswordController.text) {
-                            confirmPwdError = 'Passwords do not match';
+                            confirmPwdError =
+                                'New password and confirm password do not match';
                           } else {
                             confirmPwdError = null;
                           }
@@ -349,14 +446,35 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           horizontal: 14,
                           vertical: 12,
                         ),
-                        errorText: confirmPwdError,
-                        errorStyle: GoogleFonts.inter(
-                          color: const Color(0xFFEF5350),
-                          fontSize: 11,
-                        ),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide.none,
+                          borderSide: confirmPwdError != null
+                              ? const BorderSide(
+                                  color: Color(0xFFEF5350),
+                                  width: 1.2,
+                                )
+                              : BorderSide.none,
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: confirmPwdError != null
+                              ? const BorderSide(
+                                  color: Color(0xFFEF5350),
+                                  width: 1.2,
+                                )
+                              : BorderSide.none,
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: confirmPwdError != null
+                              ? const BorderSide(
+                                  color: Color(0xFFEF5350),
+                                  width: 1.5,
+                                )
+                              : const BorderSide(
+                                  color: Color(0xFFC4913F),
+                                  width: 1.2,
+                                ),
                         ),
                         suffixIcon: IconButton(
                           icon: Icon(
@@ -372,6 +490,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                       ),
                     ),
+                    if (confirmPwdError != null) ...[
+                      const SizedBox(height: 6),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Padding(
+                            padding: EdgeInsets.only(top: 2.0),
+                            child: Icon(
+                              Icons.error_outline,
+                              size: 14,
+                              color: Color(0xFFEF5350),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              confirmPwdError!,
+                              style: GoogleFonts.inter(
+                                color: const Color(0xFFEF5350),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                     const SizedBox(height: 24),
                     SizedBox(
                       width: double.infinity,
@@ -380,39 +525,64 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         onPressed: isSubmitting
                             ? null
                             : () async {
-                                final oldPwd = oldPasswordController.text
-                                    .trim();
-                                final newPwd = newPasswordController.text
-                                    .trim();
-                                final confirmPwd = confirmPasswordController
-                                    .text
-                                    .trim();
+                                final oldPwd = oldPasswordController.text;
+                                final newPwd = newPasswordController.text;
+                                final confirmPwd =
+                                    confirmPasswordController.text;
 
                                 setSheetState(() {
-                                  oldPwdError = oldPwd.isEmpty
-                                      ? 'Current password is required'
-                                      : null;
+                                  if (oldPwd.isEmpty) {
+                                    oldPwdError =
+                                        'Current password is required';
+                                  } else {
+                                    oldPwdError = null;
+                                  }
+
                                   if (newPwd.isEmpty) {
                                     newPwdError = 'New password is required';
                                   } else if (newPwd.length < 6) {
                                     newPwdError =
                                         'Password must be at least 6 characters';
+                                  } else if (newPwd == oldPwd) {
+                                    newPwdError =
+                                        'New password cannot be the same as current password';
                                   } else {
                                     newPwdError = null;
                                   }
+
                                   if (confirmPwd.isEmpty) {
                                     confirmPwdError =
                                         'Please confirm new password';
                                   } else if (newPwd != confirmPwd) {
-                                    confirmPwdError = 'Passwords do not match';
+                                    confirmPwdError =
+                                        'New password and confirm password do not match';
                                   } else {
                                     confirmPwdError = null;
                                   }
                                 });
 
+                                final messenger = ScaffoldMessenger.of(context);
+
                                 if (oldPwdError != null ||
                                     newPwdError != null ||
                                     confirmPwdError != null) {
+                                  final firstError = confirmPwdError ??
+                                      newPwdError ??
+                                      oldPwdError ??
+                                      'Please fill in all fields correctly';
+                                  messenger.showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        firstError,
+                                        style: GoogleFonts.inter(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      backgroundColor: AppTheme.error,
+                                      duration: const Duration(seconds: 3),
+                                    ),
+                                  );
                                   return;
                                 }
 
@@ -421,7 +591,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   context,
                                   rootNavigator: true,
                                 );
-                                final messenger = ScaffoldMessenger.of(context);
                                 final auth = Provider.of<AuthController>(
                                   context,
                                   listen: false,
@@ -455,7 +624,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                     ),
                                   );
                                 } else {
-                                  setSheetState(() => isSubmitting = false);
+                                  setSheetState(() {
+                                    isSubmitting = false;
+                                    final err = (auth.errorMessage ?? '')
+                                        .toLowerCase();
+                                    if (err.contains('current') ||
+                                        err.contains('old') ||
+                                        err.contains('incorrect') ||
+                                        err.contains('denied') ||
+                                        err.contains('invalid')) {
+                                      oldPwdError =
+                                          'Incorrect current password. Please try again.';
+                                    } else {
+                                      oldPwdError = auth.errorMessage ??
+                                          'Incorrect current password. Please try again.';
+                                    }
+                                  });
                                   messenger.showSnackBar(
                                     SnackBar(
                                       content: Text(
@@ -463,6 +647,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                             'Failed to change password. Please verify your current password.',
                                         style: GoogleFonts.inter(
                                           color: Colors.white,
+                                          fontWeight: FontWeight.w600,
                                         ),
                                       ),
                                       backgroundColor: AppTheme.error,

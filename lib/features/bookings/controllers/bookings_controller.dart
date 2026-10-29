@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timeless_detailing_customer_app/core/network/odoo_client.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/models/booking_model.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/models/bookable_slot_model.dart';
@@ -13,6 +15,8 @@ class BookingsController extends ChangeNotifier {
   bool _isLoading = false;
   bool _isLoadingSlots = false;
   String? _errorMessage;
+
+  static const String _kCachedBookingsKey = 'cached_user_bookings_records';
 
   BookingsController(this._odooService) {
     loadBookings();
@@ -43,11 +47,88 @@ class BookingsController extends ChangeNotifier {
         notesLower.contains('confirmed');
   }
 
+  /// Instantly loads cached bookings from SharedPreferences (0ms display)
+  Future<void> _loadCachedBookings() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_kCachedBookingsKey);
+      if (raw != null && raw.isNotEmpty) {
+        final List list = jsonDecode(raw);
+        final List<Booking> cached = _parseBookingRecords(list);
+        if (cached.isNotEmpty) {
+          _bookings = cached;
+          _isLoading = false;
+          debugPrint('⚡ [BookingsController] Loaded ${_bookings.length} bookings from cache');
+          notifyListeners();
+        }
+      }
+    } catch (e) {
+      debugPrint('⚠️ [BookingsController] Error reading cached bookings: $e');
+    }
+  }
+
+  /// Persists booking records to SharedPreferences
+  Future<void> _saveCachedBookings(List records) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_kCachedBookingsKey, jsonEncode(records));
+    } catch (e) {
+      debugPrint('⚠️ [BookingsController] Error saving bookings to cache: $e');
+    }
+  }
+
+  List<Booking> _parseBookingRecords(List records) {
+    final List<Booking> fetchedBookings = [];
+    for (var rec in records) {
+      final map = Map<String, dynamic>.from(rec as Map);
+      final apptType = map['appointment_type_id'];
+      final apptResources = map['appointment_resource_ids'];
+      String serviceName = map['name']?.toString() ?? 'Car Detailing';
+      int apptTypeId = 1;
+
+      if (apptResources is List && apptResources.isNotEmpty) {
+        final firstRes = apptResources.first;
+        if (firstRes is Map && firstRes['name'] != null) {
+          serviceName = firstRes['name'].toString();
+        } else if (firstRes is List && firstRes.length >= 2) {
+          serviceName = firstRes[1].toString();
+        }
+      } else if (apptType is Map && apptType['name'] != null) {
+        serviceName = apptType['name'].toString();
+        if (apptType['id'] is int) apptTypeId = apptType['id'];
+      } else if (apptType is List && apptType.length >= 2) {
+        if (apptType[0] is int) apptTypeId = apptType[0];
+        serviceName = apptType[1].toString();
+      }
+
+      final detailService = DetailService(
+        id: apptTypeId.toString(),
+        name: serviceName,
+        description: '',
+        price: 0.0,
+        durationHours: (map['duration'] as num?)?.toDouble() ?? 1.0,
+        imageUrl: '',
+        category: 'Detailing',
+        whatsIncluded: [],
+      );
+      fetchedBookings.add(Booking.fromOdooJson(map, detailService));
+    }
+    return fetchedBookings;
+  }
+
   /// Endpoint 5: Get User Bookings (`calendar.event/web_search_read`)
   Future<void> loadBookings({int? partnerId}) async {
-    _isLoading = true;
-    _errorMessage = null;
-    notifyListeners();
+    // 1. Instantly load cached bookings if memory is empty
+    if (_bookings.isEmpty) {
+      await _loadCachedBookings();
+    }
+
+    // Only show loading spinner/shimmer if we have NO cached bookings
+    if (_bookings.isEmpty) {
+      _isLoading = true;
+      _errorMessage = null;
+      notifyListeners();
+    }
 
     final id = partnerId ?? _odooService.currentPartnerId ?? _odooService.currentUid;
     if (id == null) {
@@ -58,60 +139,33 @@ class BookingsController extends ChangeNotifier {
     }
 
     try {
-      final res = await _odooService.getUserBookings(id);
+      // 2. Fetch fresh bookings and invoices in parallel via Future.wait
+      final results = await Future.wait([
+        _odooService.getUserBookings(id),
+        _odooService.getUserInvoices(partnerId: id).catchError((invErr) {
+          debugPrint('Error loading user invoices in loadBookings: $invErr');
+          return <Map<String, dynamic>>[];
+        }),
+      ]);
+
+      final res = results[0] as Map<String, dynamic>;
       final List records = res['records'] is List ? res['records'] as List : [];
 
-      final List<Booking> fetchedBookings = [];
-      for (var rec in records) {
-        final map = Map<String, dynamic>.from(rec as Map);
-        final apptType = map['appointment_type_id'];
-        final apptResources = map['appointment_resource_ids'];
-        String serviceName = map['name']?.toString() ?? 'Car Detailing';
-        int apptTypeId = 1;
+      _bookings = _parseBookingRecords(records);
+      _saveCachedBookings(records);
 
-        if (apptResources is List && apptResources.isNotEmpty) {
-          final firstRes = apptResources.first;
-          if (firstRes is Map && firstRes['name'] != null) {
-            serviceName = firstRes['name'].toString();
-          } else if (firstRes is List && firstRes.length >= 2) {
-            serviceName = firstRes[1].toString();
-          }
-        } else if (apptType is Map && apptType['name'] != null) {
-          serviceName = apptType['name'].toString();
-          if (apptType['id'] is int) apptTypeId = apptType['id'];
-        } else if (apptType is List && apptType.length >= 2) {
-          if (apptType[0] is int) apptTypeId = apptType[0];
-          serviceName = apptType[1].toString();
-        }
-
-        final detailService = DetailService(
-          id: apptTypeId.toString(),
-          name: serviceName,
-          description: '',
-          price: 0.0,
-          durationHours: (map['duration'] as num?)?.toDouble() ?? 1.0,
-          imageUrl: '',
-          category: 'Detailing',
-          whatsIncluded: [],
-        );
-        fetchedBookings.add(Booking.fromOdooJson(map, detailService));
-      }
-      _bookings = fetchedBookings;
-      
-      // Also fetch user invoices via account.move/web_search_read for invoice features
-      try {
-        _userInvoices = await _odooService.getUserInvoices(partnerId: id);
-        _sortInvoices();
-      } catch (invErr) {
-        debugPrint('Error loading user invoices in loadBookings: $invErr');
-      }
+      final invList = results[1] as List;
+      _userInvoices = invList.map((i) => Map<String, dynamic>.from(i as Map)).toList();
+      _sortInvoices();
 
       _isLoading = false;
+      _errorMessage = null;
       notifyListeners();
     } catch (e) {
       debugPrint('loadBookings error: $e');
-      _errorMessage = 'Failed to load bookings.';
-      _bookings = [];
+      if (_bookings.isEmpty) {
+        _errorMessage = 'Failed to load bookings.';
+      }
       _isLoading = false;
       notifyListeners();
     }

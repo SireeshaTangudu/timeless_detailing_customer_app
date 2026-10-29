@@ -253,9 +253,17 @@ class OdooApiService implements BaseOdooService {
           prefs.getString('username') ??
           prefs.getString('user_email') ??
           await _storage.read(key: 'username').catchError((_) => null);
-      final savedPass =
-          prefs.getString('password') ??
+      String? savedPass =
           await _storage.read(key: 'password').catchError((_) => null);
+      if (savedPass == null || savedPass.isEmpty) {
+        savedPass = prefs.getString('password');
+        if (savedPass != null && savedPass.isNotEmpty) {
+          await _storage
+              .write(key: 'password', value: savedPass)
+              .catchError((_) {});
+          await prefs.remove('password');
+        }
+      }
 
       if (savedUser != null &&
           savedUser.isNotEmpty &&
@@ -469,7 +477,7 @@ class OdooApiService implements BaseOdooService {
             final prefs = await SharedPreferences.getInstance();
             await prefs.setBool('is_logged_in', true);
             await prefs.setString('username', email);
-            await prefs.setString('password', password);
+            await prefs.remove('password'); // Security: Do not store plaintext password in SharedPreferences
             if (_uid != null) await prefs.setInt('uid', _uid!);
             if (_partnerId != null) await prefs.setInt('partner_id', _partnerId!);
             await prefs.setString('session_id', _sessionId ?? '');
@@ -923,14 +931,13 @@ class OdooApiService implements BaseOdooService {
       final bool prefLoggedIn = prefs.getBool('is_logged_in') ?? false;
       final String? prefEmail =
           prefs.getString('username') ?? prefs.getString('user_email');
-      final String? prefPassword = prefs.getString('password');
       final int? prefUid = prefs.getInt('uid');
       final int? prefPartnerId = prefs.getInt('partner_id');
       final String? prefName = prefs.getString('user_name');
       final String? prefPhone = prefs.getString('user_phone');
       final String? prefSessionId = prefs.getString('session_id');
 
-      // Also read from secure storage as fallback
+      // Also read from secure storage (encrypted)
       final savedUidStr = await _storage
           .read(key: 'uid')
           .catchError((_) => null);
@@ -940,12 +947,27 @@ class OdooApiService implements BaseOdooService {
       final savedEmail =
           await _storage.read(key: 'username').catchError((_) => null) ??
           await _storage.read(key: 'user_email').catchError((_) => null);
-      final savedPassword = await _storage
+
+      // Read password securely from FlutterSecureStorage; migrate if legacy plaintext exists
+      String? savedPassword = await _storage
           .read(key: 'password')
           .catchError((_) => null);
+      if (savedPassword == null || savedPassword.isEmpty) {
+        final legacyPass = prefs.getString('password');
+        if (legacyPass != null && legacyPass.isNotEmpty) {
+          savedPassword = legacyPass;
+          await _storage
+              .write(key: 'password', value: legacyPass)
+              .catchError((_) {});
+          await prefs.remove('password');
+        }
+      } else {
+        // Clean up legacy plaintext password if still present in prefs
+        await prefs.remove('password');
+      }
 
       final String? effectiveEmail = prefEmail ?? savedEmail;
-      final String? effectivePassword = prefPassword ?? savedPassword;
+      final String? effectivePassword = savedPassword;
       final int? effectiveUid = (prefUid != null && prefUid > 0)
           ? prefUid
           : int.tryParse(savedUidStr ?? '');
@@ -955,21 +977,23 @@ class OdooApiService implements BaseOdooService {
             await _storage.read(key: 'partner_id').catchError((_) => null) ??
                 '',
           );
-      final bool isLoggedIn =
-          prefLoggedIn ||
-          (isLoggedInFlag == 'true') ||
-          (effectiveEmail != null && effectiveEmail.isNotEmpty);
+      final bool hasSavedCredentials =
+          (prefLoggedIn ||
+              (isLoggedInFlag == 'true') ||
+              (effectiveEmail != null && effectiveEmail.isNotEmpty)) &&
+          (effectiveEmail != null && effectiveEmail.isNotEmpty) &&
+          (effectivePassword != null && effectivePassword.isNotEmpty);
 
-      if (!isLoggedIn) {
+      if (!hasSavedCredentials) {
+        debugPrint('ℹ️ [OdooApiService] checkAuthStatus: No saved credentials found.');
         return false;
       }
 
       // If the saved credentials belong to the guest service account or guest mode is flagged,
       // purge the session on cold start so the app starts on splash -> onboarding / login screen.
       final isGuest = prefs.getBool('is_guest_mode') ?? false;
-      final bool isGuestAccount = effectiveEmail != null &&
-          effectiveEmail.trim().toLowerCase() ==
-              AppConfig.instance.guestEmail.trim().toLowerCase();
+      final bool isGuestAccount = effectiveEmail.trim().toLowerCase() ==
+          AppConfig.instance.guestEmail.trim().toLowerCase();
 
       if (isGuest || isGuestAccount) {
         debugPrint(
@@ -995,25 +1019,118 @@ class OdooApiService implements BaseOdooService {
       _savedUserInfo = {
         'id': _partnerId ?? _uid ?? 1,
         'name': savedName ?? 'Customer',
-        'email': effectiveEmail ?? '',
+        'email': effectiveEmail,
         'phone': savedPhone ?? '',
       };
 
-      // Background silent re-auth to refresh session cookies (non-blocking for fast splash load)
-      if (effectiveEmail != null &&
-          effectivePassword != null &&
-          effectiveEmail.isNotEmpty &&
-          effectivePassword.isNotEmpty) {
-        login(effectiveEmail, effectivePassword).catchError((e) {
-          debugPrint('Silent re-auth background error: $e');
-          return false;
-        });
+      // VERIFY SESSION DIRECTLY WITH ODOO SERVER
+      debugPrint('🔍 [OdooApiService] Verifying active session with Odoo server...');
+      bool sessionVerified = false;
+
+      try {
+        // Step 1: Check existing session cookie via /web/session/get_session_info
+        final response = await _dio!.post(
+          '/web/session/get_session_info',
+          data: {
+            'jsonrpc': '2.0',
+            'method': 'call',
+            'params': {},
+          },
+          options: Options(
+            sendTimeout: const Duration(seconds: 4),
+            receiveTimeout: const Duration(seconds: 4),
+          ),
+        );
+
+        final result = response.data?['result'];
+        if (result != null && result['uid'] != null && result['uid'] != false) {
+          final serverUid = result['uid'] as int;
+          if (_uid == null || serverUid == _uid) {
+            _uid = serverUid;
+            if (result['partner_id'] != null) {
+              if (result['partner_id'] is int) {
+                _partnerId = result['partner_id'];
+              } else if (result['partner_id'] is List &&
+                  (result['partner_id'] as List).isNotEmpty) {
+                _partnerId = result['partner_id'][0] as int;
+              }
+            }
+            if (result['session_id'] != null) {
+              _sessionId = result['session_id'].toString();
+            }
+            sessionVerified = true;
+            debugPrint(
+              '🟢 [OdooApiService] Session is active and valid on server (UID=$serverUid)!',
+            );
+          }
+        }
+      } catch (e) {
+        debugPrint(
+          '🟡 [OdooApiService] /web/session/get_session_info check failed/expired: $e',
+        );
       }
 
-      return true;
+      // Step 2: If existing session cookie is invalid or expired, re-authenticate with Odoo
+      if (!sessionVerified) {
+        debugPrint(
+          '🔑 [OdooApiService] Existing session cookie invalid or expired. Re-authenticating with Odoo server...',
+        );
+        try {
+          final loginOk = await login(effectiveEmail, effectivePassword);
+          if (loginOk) {
+            sessionVerified = true;
+            debugPrint(
+              '🟢 [OdooApiService] Re-authentication successful! Session refreshed.',
+            );
+          } else {
+            // Credentials rejected by Odoo (password changed or account blocked/deactivated)
+            debugPrint(
+              '🔴 [OdooApiService] Odoo rejected credentials. Clearing stale session.',
+            );
+            await _clearSession();
+            return false;
+          }
+        } on DioException catch (dioErr) {
+          final isNetworkError =
+              dioErr.type == DioExceptionType.connectionTimeout ||
+              dioErr.type == DioExceptionType.receiveTimeout ||
+              dioErr.type == DioExceptionType.sendTimeout ||
+              dioErr.type == DioExceptionType.connectionError ||
+              dioErr.error is SocketException;
+
+          if (isNetworkError) {
+            debugPrint(
+              '⚠️ [OdooApiService] Network unreachable during session verification ($dioErr). Allowing cached session.',
+            );
+            return true;
+          } else {
+            debugPrint(
+              '🔴 [OdooApiService] Server error during session verification: $dioErr',
+            );
+            if (dioErr.response?.statusCode == 401 ||
+                dioErr.response?.statusCode == 403) {
+              await _clearSession();
+              return false;
+            }
+            return true;
+          }
+        } catch (e) {
+          debugPrint('⚠️ [OdooApiService] Re-auth unexpected error: $e');
+          final errStr = e.toString().toLowerCase();
+          if (errStr.contains('invalid') ||
+              errStr.contains('password') ||
+              errStr.contains('access denied')) {
+            await _clearSession();
+            return false;
+          }
+          return true;
+        }
+      }
+
+      return sessionVerified;
     } catch (e) {
-      debugPrint('checkAuthStatus error: $e');
-      return true;
+      debugPrint('🔴 [OdooApiService] checkAuthStatus fatal error: $e');
+      return false;
     }
   }
 
@@ -1022,7 +1139,16 @@ class OdooApiService implements BaseOdooService {
       await _cookieJar?.deleteAll();
       await _storage.deleteAll();
       final prefs = await SharedPreferences.getInstance();
-      await prefs.clear();
+      await prefs.remove('is_logged_in');
+      await prefs.remove('username');
+      await prefs.remove('user_email');
+      await prefs.remove('password');
+      await prefs.remove('uid');
+      await prefs.remove('partner_id');
+      await prefs.remove('session_id');
+      await prefs.remove('user_name');
+      await prefs.remove('user_phone');
+      await prefs.remove('is_guest_mode');
     } catch (_) {}
     _uid = null;
     _partnerId = null;
@@ -3822,29 +3948,44 @@ class OdooApiService implements BaseOdooService {
     if (_dio == null) throw Exception('Not authenticated');
 
     try {
-      // 1. Call res.users change_password method
-      final response = await _dio!.post(
-        '/web/dataset/call_kw',
-        data: {
-          "jsonrpc": "2.0",
-          "method": "call",
-          "params": {
-            "model": "res.users",
-            "method": "change_password",
-            "args": [oldPassword, newPassword],
-            "kwargs": {},
-          },
-        },
-      );
+      final prefs = await SharedPreferences.getInstance();
+      final userEmail = _savedUserInfo?['email'] ??
+          prefs.getString('user_email') ??
+          prefs.getString('username') ??
+          await _storage.read(key: 'username');
 
-      if (response.data != null && response.data['error'] == null) {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('user_password', newPassword);
-        await _storage.write(key: 'user_password', value: newPassword);
-        return true;
+      // 1. Verify current password first by testing authentication against Odoo
+      if (userEmail != null && userEmail.isNotEmpty) {
+        try {
+          final authCheck = await _dio!.post(
+            '/web/session/authenticate',
+            data: {
+              'jsonrpc': '2.0',
+              'method': 'call',
+              'params': {
+                'db': db,
+                'login': userEmail,
+                'password': oldPassword,
+              },
+            },
+          );
+          final authResult = authCheck.data?['result'];
+          if (authResult == null ||
+              authResult['uid'] == null ||
+              authResult['uid'] == false) {
+            debugPrint(
+              '🔴 [OdooApiService] Current password verification failed for $userEmail',
+            );
+            throw Exception(
+              'The current password you provided is incorrect. Your password was not changed.',
+            );
+          }
+        } on DioException catch (dioE) {
+          debugPrint('⚠️ [OdooApiService] Auth pre-check network warning: $dioE');
+        }
       }
 
-      // 2. Fallback: web/session/change_password
+      // 2. Call Odoo web/session/change_password
       final sessionResp = await _dio!.post(
         '/web/session/change_password',
         data: {
@@ -3860,20 +4001,92 @@ class OdooApiService implements BaseOdooService {
         },
       );
 
-      if (sessionResp.data != null && sessionResp.data['error'] == null) {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('user_password', newPassword);
-        await _storage.write(key: 'user_password', value: newPassword);
-        return true;
+      final sessionData = sessionResp.data;
+      if (sessionData != null) {
+        // Check for JSON-RPC error
+        if (sessionData['error'] != null) {
+          final errObj = sessionData['error'];
+          final errMsg = (errObj['data']?['message'] ??
+                  errObj['message'] ??
+                  '')
+              .toString();
+          if (errMsg.toLowerCase().contains('access denied') ||
+              errMsg.toLowerCase().contains('incorrect') ||
+              errMsg.toLowerCase().contains('old password')) {
+            throw Exception(
+              'The current password you provided is incorrect. Your password was not changed.',
+            );
+          }
+          throw Exception(
+            errMsg.isNotEmpty ? errMsg : 'Password change failed.',
+          );
+        }
+
+        // Check for error inside Odoo result map (e.g. {"result": {"error": "..."}})
+        final result = sessionData['result'];
+        if (result is Map &&
+            result.containsKey('error') &&
+            result['error'] != null) {
+          final errMsg = result['error'].toString();
+          if (errMsg.toLowerCase().contains('incorrect') ||
+              errMsg.toLowerCase().contains('old password') ||
+              errMsg.toLowerCase().contains('access denied')) {
+            throw Exception(
+              'The current password you provided is incorrect. Your password was not changed.',
+            );
+          }
+          throw Exception(errMsg);
+        }
+
+        // Success: result is true or a valid map without error
+        if (result == true || (result is Map && result['error'] == null)) {
+          debugPrint(
+            '🟢 [OdooApiService] Password changed successfully via /web/session/change_password',
+          );
+          await _storage.write(key: 'password', value: newPassword);
+          await prefs.remove('password');
+          return true;
+        }
       }
 
-      final errObj = response.data?['error'] ?? sessionResp.data?['error'];
-      if (errObj != null) {
-        final msg =
-            errObj['data']?['message'] ??
-            errObj['message'] ??
-            'Password change failed. Please verify your current password.';
-        throw Exception(msg);
+      // 3. Fallback: call res.users change_password method
+      final response = await _dio!.post(
+        '/web/dataset/call_kw',
+        data: {
+          "jsonrpc": "2.0",
+          "method": "call",
+          "params": {
+            "model": "res.users",
+            "method": "change_password",
+            "args": [oldPassword, newPassword],
+            "kwargs": {},
+          },
+        },
+      );
+
+      if (response.data != null) {
+        if (response.data['error'] != null) {
+          final errObj = response.data['error'];
+          final msg = (errObj['data']?['message'] ??
+                  errObj['message'] ??
+                  '')
+              .toString();
+          if (msg.toLowerCase().contains('access denied') ||
+              msg.toLowerCase().contains('incorrect') ||
+              msg.toLowerCase().contains('old password')) {
+            throw Exception(
+              'The current password you provided is incorrect. Your password was not changed.',
+            );
+          }
+          throw Exception(msg.isNotEmpty ? msg : 'Password change failed.');
+        }
+
+        debugPrint(
+          '🟢 [OdooApiService] Password changed successfully via res.users change_password',
+        );
+        await _storage.write(key: 'password', value: newPassword);
+        await prefs.remove('password');
+        return true;
       }
 
       return false;
