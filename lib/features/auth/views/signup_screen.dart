@@ -7,6 +7,7 @@ import 'package:timeless_detailing_customer_app/core/widgets/custom_app_bar.dart
 import 'package:timeless_detailing_customer_app/features/auth/controllers/auth_controller.dart';
 import 'package:timeless_detailing_customer_app/features/dashboard/views/main_navigation_scaffold.dart';
 import 'package:timeless_detailing_customer_app/core/widgets/custom_loader.dart';
+import 'package:timeless_detailing_customer_app/core/widgets/legal_compliance_notice.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -165,13 +166,14 @@ class _SignupScreenState extends State<SignupScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        const SizedBox(height: 22),
+                        const SizedBox(height: 12),
 
                         // Full Name
                         _buildFieldLabel('Full Name'),
                         TextFormField(
                           controller: _nameController,
-                          onTapOutside: (event) => FocusScope.of(context).unfocus(),
+                          onTapOutside: (event) =>
+                              FocusScope.of(context).unfocus(),
                           style: GoogleFonts.inter(
                             fontSize: 14,
                             color: const Color(0xFF1C1C1E),
@@ -201,7 +203,8 @@ class _SignupScreenState extends State<SignupScreen> {
                         TextFormField(
                           controller: _emailController,
                           keyboardType: TextInputType.emailAddress,
-                          onTapOutside: (event) => FocusScope.of(context).unfocus(),
+                          onTapOutside: (event) =>
+                              FocusScope.of(context).unfocus(),
                           style: GoogleFonts.inter(
                             fontSize: 14,
                             color: const Color(0xFF1C1C1E),
@@ -236,7 +239,8 @@ class _SignupScreenState extends State<SignupScreen> {
                         TextFormField(
                           controller: _phoneController,
                           keyboardType: TextInputType.phone,
-                          onTapOutside: (event) => FocusScope.of(context).unfocus(),
+                          onTapOutside: (event) =>
+                              FocusScope.of(context).unfocus(),
                           style: GoogleFonts.inter(
                             fontSize: 14,
                             color: const Color(0xFF1C1C1E),
@@ -263,7 +267,8 @@ class _SignupScreenState extends State<SignupScreen> {
                         TextFormField(
                           controller: _passwordController,
                           obscureText: _obscurePassword,
-                          onTapOutside: (event) => FocusScope.of(context).unfocus(),
+                          onTapOutside: (event) =>
+                              FocusScope.of(context).unfocus(),
                           style: GoogleFonts.inter(
                             fontSize: 14,
                             color: const Color(0xFF1C1C1E),
@@ -307,7 +312,8 @@ class _SignupScreenState extends State<SignupScreen> {
                         TextFormField(
                           controller: _confirmPasswordController,
                           obscureText: _obscureConfirmPassword,
-                          onTapOutside: (event) => FocusScope.of(context).unfocus(),
+                          onTapOutside: (event) =>
+                              FocusScope.of(context).unfocus(),
                           style: GoogleFonts.inter(
                             fontSize: 14,
                             color: const Color(0xFF1C1C1E),
@@ -348,7 +354,7 @@ class _SignupScreenState extends State<SignupScreen> {
                             ),
                           ),
                         ),
-                        const SizedBox(height: 36),
+                        const SizedBox(height: 20),
 
                         // Create Account Button
                         Consumer<AuthController>(
@@ -356,7 +362,9 @@ class _SignupScreenState extends State<SignupScreen> {
                             return SizedBox(
                               height: 50,
                               child: ElevatedButton(
-                                onPressed: auth.isLoading ? null : _handleSignup,
+                                onPressed: auth.isLoading
+                                    ? null
+                                    : _handleSignup,
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: AppTheme.primary,
                                   foregroundColor: Colors.white,
@@ -382,6 +390,8 @@ class _SignupScreenState extends State<SignupScreen> {
                             );
                           },
                         ),
+                        const SizedBox(height: 10),
+                        const LegalComplianceNotice(),
                         const SizedBox(height: 24),
                       ],
                     ),

@@ -9,6 +9,8 @@ import 'estimation_screen.dart';
 import 'package:timeless_detailing_customer_app/core/widgets/custom_shimmer_loading.dart';
 import '../../../core/widgets/custom_loader.dart';
 import 'package:timeless_detailing_customer_app/core/services/currency_service.dart';
+import 'package:timeless_detailing_customer_app/features/auth/controllers/auth_controller.dart';
+import 'package:timeless_detailing_customer_app/core/widgets/guest_sign_in_sheet.dart';
 
 class BookingsHistoryScreen extends StatefulWidget {
   final VoidCallback? onMenuTap;
@@ -27,12 +29,47 @@ class _BookingsHistoryScreenState extends State<BookingsHistoryScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<BookingsController>(context, listen: false).loadBookings();
+      final auth = Provider.of<AuthController>(context, listen: false);
+      if (!auth.isGuest) {
+        Provider.of<BookingsController>(context, listen: false).loadBookings();
+      }
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    final auth = Provider.of<AuthController>(context);
+    if (auth.isGuest) {
+      return Scaffold(
+        backgroundColor: const Color(0xFFF7F5F0),
+        body: SafeArea(
+          child: Column(
+            children: [
+              CustomAppBar(
+                title: 'My Orders and Bookings',
+                backIcon: Icons.arrow_back_sharp,
+                onBackPressed: () {
+                  if (Navigator.canPop(context)) {
+                    Navigator.pop(context);
+                  } else if (widget.onMenuTap != null) {
+                    widget.onMenuTap!();
+                  }
+                },
+              ),
+              const Expanded(
+                child: GuestRestrictedTabPlaceholder(
+                  title: 'Account Required',
+                  message:
+                      'Please sign in or create an account to view your upcoming bookings, detailing appointments, and order history.',
+                  icon: Icons.calendar_month_outlined,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     final controller = Provider.of<BookingsController>(context);
 
     // Filter bookings based on selected tab

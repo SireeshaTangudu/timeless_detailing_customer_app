@@ -11,6 +11,8 @@ import 'package:timeless_detailing_customer_app/features/services/controllers/se
 import 'package:timeless_detailing_customer_app/core/widgets/custom_app_bar.dart';
 import 'package:timeless_detailing_customer_app/core/utils/app_animations.dart';
 import 'package:timeless_detailing_customer_app/core/services/currency_service.dart';
+import 'package:timeless_detailing_customer_app/features/auth/controllers/auth_controller.dart';
+import 'package:timeless_detailing_customer_app/core/widgets/guest_sign_in_sheet.dart';
 
 class CarFocusPoint {
   final String id;
@@ -400,6 +402,16 @@ class _ServiceInteractiveDetailScreenState
             height: 38,
             child: AnimatedPressable(
               onTap: () {
+                final auth = Provider.of<AuthController>(context, listen: false);
+                if (auth.isGuest) {
+                  showGuestSignInSheet(
+                    context,
+                    title: 'Sign In to Book',
+                    message:
+                        'Sign in or register to select an appointment slot and book this detailing service.',
+                  );
+                  return;
+                }
                 final ProductVariant? selectedVar = allVariants.isNotEmpty
                     ? allVariants.firstWhere(
                         (v) => v.id == _selectedVariantId,
@@ -429,6 +441,16 @@ class _ServiceInteractiveDetailScreenState
               },
               child: ElevatedButton(
                 onPressed: () {
+                  final auth = Provider.of<AuthController>(context, listen: false);
+                  if (auth.isGuest) {
+                    showGuestSignInSheet(
+                      context,
+                      title: 'Sign In to Book',
+                      message:
+                          'Sign in or register to select an appointment slot and book this detailing service.',
+                    );
+                    return;
+                  }
                   final ProductVariant? selectedVar = allVariants.isNotEmpty
                       ? allVariants.firstWhere(
                           (v) => v.id == _selectedVariantId,

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timeless_detailing_customer_app/core/network/odoo_client.dart';
 import 'package:timeless_detailing_customer_app/core/config/app_config.dart';
 import 'package:timeless_detailing_customer_app/features/services/models/service_model.dart';
@@ -25,6 +26,9 @@ class MockOdooService implements BaseOdooService {
 
   @override
   int? get currentUid => 26;
+
+  @override
+  bool get isLoggedIn => true;
 
   // Mock In-Memory Data Store
   final List<DetailService> _mockServices = [
@@ -847,6 +851,12 @@ class MockOdooService implements BaseOdooService {
     String platform = 'android',
     String? previousToken,
   }) async {
+    final prefs = await SharedPreferences.getInstance();
+    final isGuest = prefs.getBool('is_guest_mode') ?? false;
+    if (isGuest) {
+      debugPrint('🛡️ [MockOdooService] Suppressing registerDeviceToken: Guest session active.');
+      return false;
+    }
     return true;
   }
 
@@ -855,6 +865,12 @@ class MockOdooService implements BaseOdooService {
     String? token,
     int? deviceId,
   }) async {
+    final prefs = await SharedPreferences.getInstance();
+    final isGuest = prefs.getBool('is_guest_mode') ?? false;
+    if (isGuest) {
+      debugPrint('🛡️ [MockOdooService] Suppressing deactivateDeviceToken: Guest session active.');
+      return false;
+    }
     return true;
   }
 

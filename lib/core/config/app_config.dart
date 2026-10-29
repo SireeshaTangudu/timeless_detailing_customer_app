@@ -7,6 +7,12 @@ class AppConfig {
   final String baseUrl;
   final String db;
 
+  final String privacyPolicyUrl;
+  final String termsUrl;
+  final String popiaUrl;
+  final String guestEmail;
+  final String guestPassword;
+
   static late AppConfig _instance;
 
   AppConfig._({
@@ -14,7 +20,16 @@ class AppConfig {
     required this.appName,
     required this.baseUrl,
     required this.db,
-  });
+    String? privacyPolicyUrl,
+    String? termsUrl,
+    String? popiaUrl,
+    String? guestEmail,
+    String? guestPassword,
+  })  : privacyPolicyUrl = privacyPolicyUrl ?? '$baseUrl/privacy-policy',
+        termsUrl = termsUrl ?? '$baseUrl/terms-and-conditions',
+        popiaUrl = popiaUrl ?? '$baseUrl/privacy-policy',
+        guestEmail = guestEmail ?? 'guest@timelessdetailing.com',
+        guestPassword = guestPassword ?? 'TimelessGuest2026!';
 
   /// Initialize environment config before launching the app.
   static void init({
@@ -22,12 +37,22 @@ class AppConfig {
     required String appName,
     required String baseUrl,
     required String db,
+    String? privacyPolicyUrl,
+    String? termsUrl,
+    String? popiaUrl,
+    String? guestEmail,
+    String? guestPassword,
   }) {
     _instance = AppConfig._(
       environment: environment,
       appName: appName,
       baseUrl: baseUrl,
       db: db,
+      privacyPolicyUrl: privacyPolicyUrl,
+      termsUrl: termsUrl,
+      popiaUrl: popiaUrl,
+      guestEmail: guestEmail,
+      guestPassword: guestPassword,
     );
   }
 

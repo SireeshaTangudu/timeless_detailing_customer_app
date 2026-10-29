@@ -23,6 +23,7 @@ import 'package:timeless_detailing_customer_app/features/tracking/views/projects
 import 'package:timeless_detailing_customer_app/features/warranties/views/warranties_screen.dart';
 import 'package:timeless_detailing_customer_app/features/subscriptions/views/subscriptions_screen.dart';
 import 'package:timeless_detailing_customer_app/features/quotations/views/quotations_screen.dart';
+import 'package:timeless_detailing_customer_app/core/widgets/guest_sign_in_sheet.dart';
 
 class MainNavigationScaffold extends StatefulWidget {
   const MainNavigationScaffold({super.key});
@@ -95,7 +96,7 @@ class _MainNavigationScaffoldState extends State<MainNavigationScaffold>
     required int index,
     VoidCallback? customOnTap,
   }) {
-    final isSelected = customOnTap == null && _currentIndex == index;
+    final isSelected = index >= 0 && _currentIndex == index;
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       child: Material(
@@ -224,7 +225,19 @@ class _MainNavigationScaffoldState extends State<MainNavigationScaffold>
             children: [
               // User Profile Header in Side Drawer
               GestureDetector(
-                onTap: () => _onSelectItem(3),
+                onTap: () {
+                  if (auth.isGuest) {
+                    Navigator.pop(context);
+                    showGuestSignInSheet(
+                      context,
+                      title: 'Sign In to Your Account',
+                      message:
+                          'Sign in or register to manage your personal profile, vehicle garage, and bookings.',
+                    );
+                  } else {
+                    _onSelectItem(3);
+                  }
+                },
                 child: Container(
                   width: double.infinity,
                   padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
@@ -254,12 +267,19 @@ class _MainNavigationScaffoldState extends State<MainNavigationScaffold>
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              auth.userEmail.isNotEmpty
-                                  ? auth.userEmail
-                                  : 'Customer Account',
+                              auth.isGuest
+                                  ? 'Tap to Sign In / Register'
+                                  : (auth.userEmail.isNotEmpty
+                                      ? auth.userEmail
+                                      : 'Customer Account'),
                               style: GoogleFonts.inter(
                                 fontSize: 12,
-                                color: const Color(0xFF7A7A7E),
+                                color: auth.isGuest
+                                    ? AppTheme.primary
+                                    : const Color(0xFF7A7A7E),
+                                fontWeight: auth.isGuest
+                                    ? FontWeight.w600
+                                    : FontWeight.normal,
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -267,6 +287,12 @@ class _MainNavigationScaffoldState extends State<MainNavigationScaffold>
                           ],
                         ),
                       ),
+                      if (auth.isGuest)
+                        const Icon(
+                          Icons.arrow_forward_ios,
+                          size: 14,
+                          color: AppTheme.primary,
+                        ),
                     ],
                   ),
                 ),
@@ -289,6 +315,22 @@ class _MainNavigationScaffoldState extends State<MainNavigationScaffold>
                         activeIcon: Icons.calendar_month,
                         title: 'Bookings',
                         index: 2,
+                        customOnTap: () {
+                          Navigator.pop(context);
+                          if (auth.isGuest) {
+                            showGuestSignInSheet(
+                              context,
+                              title: 'Sign In to View Bookings',
+                              message:
+                                  'Sign in or register to manage your appointments, vehicle services, and booking history.',
+                            );
+                            return;
+                          }
+                          _tabController.animateTo(2);
+                          setState(() {
+                            _currentIndex = 2;
+                          });
+                        },
                       ),
                       _buildDrawerItem(
                         icon: Icons.request_quote_outlined,
@@ -297,6 +339,15 @@ class _MainNavigationScaffoldState extends State<MainNavigationScaffold>
                         index: -1,
                         customOnTap: () {
                           Navigator.pop(context);
+                          if (auth.isGuest) {
+                            showGuestSignInSheet(
+                              context,
+                              title: 'Sign In to View Quotations',
+                              message:
+                                  'Sign in or register to view price estimates and customized quotations.',
+                            );
+                            return;
+                          }
                           Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -314,6 +365,15 @@ class _MainNavigationScaffoldState extends State<MainNavigationScaffold>
                         index: -1,
                         customOnTap: () {
                           Navigator.pop(context);
+                          if (auth.isGuest) {
+                            showGuestSignInSheet(
+                              context,
+                              title: 'Sign In to View Invoices',
+                              message:
+                                  'Sign in or register to view and download your detailing invoices and payment receipts.',
+                            );
+                            return;
+                          }
                           Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -330,6 +390,15 @@ class _MainNavigationScaffoldState extends State<MainNavigationScaffold>
                         index: -1,
                         customOnTap: () {
                           Navigator.pop(context);
+                          if (auth.isGuest) {
+                            showGuestSignInSheet(
+                              context,
+                              title: 'Sign In to Track Vehicles',
+                              message:
+                                  'Sign in or register to follow real-time detailing stages and project updates.',
+                            );
+                            return;
+                          }
                           Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -346,6 +415,15 @@ class _MainNavigationScaffoldState extends State<MainNavigationScaffold>
                         index: -1,
                         customOnTap: () {
                           Navigator.pop(context);
+                          if (auth.isGuest) {
+                            showGuestSignInSheet(
+                              context,
+                              title: 'Sign In to View Warranties',
+                              message:
+                                  'Sign in or register to verify coating and film warranty certificates.',
+                            );
+                            return;
+                          }
                           Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -362,6 +440,15 @@ class _MainNavigationScaffoldState extends State<MainNavigationScaffold>
                         index: -1,
                         customOnTap: () {
                           Navigator.pop(context);
+                          if (auth.isGuest) {
+                            showGuestSignInSheet(
+                              context,
+                              title: 'Sign In to View Subscriptions',
+                              message:
+                                  'Sign in or register to manage your active maintenance memberships and packages.',
+                            );
+                            return;
+                          }
                           Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -377,6 +464,22 @@ class _MainNavigationScaffoldState extends State<MainNavigationScaffold>
                         activeIcon: Icons.person,
                         title: 'Profile',
                         index: 3,
+                        customOnTap: () {
+                          Navigator.pop(context);
+                          if (auth.isGuest) {
+                            showGuestSignInSheet(
+                              context,
+                              title: 'Sign In to Your Account',
+                              message:
+                                  'Sign in or register to manage your personal profile, vehicle garage, and preferences.',
+                            );
+                            return;
+                          }
+                          _tabController.animateTo(3);
+                          setState(() {
+                            _currentIndex = 3;
+                          });
+                        },
                       ),
                     ],
                   ),
@@ -385,7 +488,7 @@ class _MainNavigationScaffoldState extends State<MainNavigationScaffold>
 
               const Divider(color: Color(0xFFEBE7DF), height: 1),
 
-              // Logout Option
+              // Logout / Sign In Option
               Padding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 12,
@@ -396,17 +499,21 @@ class _MainNavigationScaffoldState extends State<MainNavigationScaffold>
                   borderRadius: BorderRadius.circular(12),
                   clipBehavior: Clip.antiAlias,
                   child: ListTile(
-                    leading: const Icon(
-                      Icons.logout,
-                      color: Color(0xFFE74C3C),
+                    leading: Icon(
+                      auth.isGuest ? Icons.login : Icons.logout,
+                      color: auth.isGuest
+                          ? AppTheme.primary
+                          : const Color(0xFFE74C3C),
                       size: 22,
                     ),
                     title: Text(
-                      'Logout',
+                      auth.isGuest ? 'Sign In / Register' : 'Logout',
                       style: GoogleFonts.inter(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
-                        color: const Color(0xFFE74C3C),
+                        color: auth.isGuest
+                            ? AppTheme.primary
+                            : const Color(0xFFE74C3C),
                       ),
                     ),
                     shape: RoundedRectangleBorder(
@@ -417,11 +524,11 @@ class _MainNavigationScaffoldState extends State<MainNavigationScaffold>
                         context,
                         rootNavigator: true,
                       );
-                      final auth = Provider.of<AuthController>(
+                      final authCtrl = Provider.of<AuthController>(
                         context,
                         listen: false,
                       );
-                      auth.logout();
+                      authCtrl.logout();
 
                       navigator.pushAndRemoveUntil(
                         MaterialPageRoute(

@@ -8,6 +8,12 @@ void main() async {
     baseUrl:
         'https://micahharipersad-timeless-detailing-staging-40117418.dev.odoo.com',
     db: 'micahharipersad-timeless-detailing-staging-40117418',
+    privacyPolicyUrl:
+        'https://micahharipersad-timeless-detailing.odoo.com/privacy-policy',
+    termsUrl:
+        'https://micahharipersad-timeless-detailing.odoo.com/terms-and-conditions',
+    popiaUrl:
+        'https://micahharipersad-timeless-detailing.odoo.com/privacy-policy',
   );
   await bootstrap();
 }

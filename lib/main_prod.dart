@@ -7,6 +7,12 @@ void main() async {
     appName: 'Timeless Detail',
     baseUrl: 'https://micahharipersad-timeless-detailing.odoo.com',
     db: 'micahharipersad-timeless-detailing-main-38183883',
+    privacyPolicyUrl:
+        'https://micahharipersad-timeless-detailing.odoo.com/privacy-policy',
+    termsUrl:
+        'https://micahharipersad-timeless-detailing.odoo.com/terms-and-conditions',
+    popiaUrl:
+        'https://micahharipersad-timeless-detailing.odoo.com/privacy-policy',
   );
   await bootstrap();
 }

@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'dart:convert';
-import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import 'package:dio/io.dart';
@@ -18,6 +17,7 @@ import 'package:timeless_detailing_customer_app/features/bookings/models/bookabl
 import 'package:timeless_detailing_customer_app/features/tracking/models/project_model.dart';
 import 'package:timeless_detailing_customer_app/core/services/firebase_notification_service.dart';
 import 'package:timeless_detailing_customer_app/core/services/currency_service.dart';
+import 'package:timeless_detailing_customer_app/core/config/app_config.dart';
 
 abstract class BaseOdooService {
   String get baseUrl;
@@ -48,6 +48,7 @@ abstract class BaseOdooService {
   Map<String, dynamic>? get savedUserInfo;
   int? get currentPartnerId;
   int? get currentUid;
+  bool get isLoggedIn;
 
   // Mobile API Integration Endpoints
   Future<List<ProductCategory>> getProductCategories();
@@ -154,6 +155,9 @@ class OdooApiService implements BaseOdooService {
 
   @override
   int? get currentUid => _uid;
+
+  @override
+  bool get isLoggedIn => _uid != null && _uid! > 0;
 
   /// Initialize the API client with instance URL, persistent cookies and headers
   Future<void> initialize() async {
@@ -383,6 +387,21 @@ class OdooApiService implements BaseOdooService {
     try {
       await _ensureInitialized();
 
+      // If logging in with real credentials after a guest session, purge guest cookies first
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final isGuest = prefs.getBool('is_guest_mode') ?? false;
+        if (isGuest && email.trim().toLowerCase() != AppConfig.instance.guestEmail.trim().toLowerCase()) {
+          debugPrint('🧹 [OdooApiService] Purging guest session cookies before user login...');
+          await _cookieJar?.deleteAll();
+          _sessionId = null;
+          _uid = null;
+          _partnerId = null;
+          _savedUserInfo = null;
+          await prefs.setBool('is_guest_mode', false);
+        }
+      } catch (_) {}
+
       final response = await _dio!.post(
         '/web/session/authenticate',
         data: {
@@ -440,40 +459,46 @@ class OdooApiService implements BaseOdooService {
           'phone': userPhone,
         };
 
-        // Save session state to SharedPreferences and SecureStorage for 100% reliable persistence
-        try {
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setBool('is_logged_in', true);
-          await prefs.setString('username', email);
-          await prefs.setString('password', password);
-          if (_uid != null) await prefs.setInt('uid', _uid!);
-          if (_partnerId != null) await prefs.setInt('partner_id', _partnerId!);
-          await prefs.setString('session_id', _sessionId ?? '');
-          await prefs.setString('user_name', userName);
-          await prefs.setString('user_email', email);
-          await prefs.setString('user_phone', userPhone);
-        } catch (e) {
-          debugPrint('SharedPreferences save error: $e');
-        }
+        final bool isGuestLogin = email.trim().toLowerCase() ==
+            AppConfig.instance.guestEmail.trim().toLowerCase();
 
-        try {
-          await _storage.write(key: 'instance_url', value: baseUrl);
-          await _storage.write(key: 'database', value: db);
-          await _storage.write(key: 'username', value: email);
-          await _storage.write(key: 'password', value: password);
-          await _storage.write(key: 'is_logged_in', value: 'true');
-          await _storage.write(key: 'uid', value: _uid.toString());
-          if (_partnerId != null) {
-            await _storage.write(
-              key: 'partner_id',
-              value: _partnerId.toString(),
-            );
+        // Save session state to SharedPreferences and SecureStorage ONLY for real registered users!
+        // Guest browsing sessions are strictly ephemeral and must not auto-login on app restart.
+        if (!isGuestLogin) {
+          try {
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setBool('is_logged_in', true);
+            await prefs.setString('username', email);
+            await prefs.setString('password', password);
+            if (_uid != null) await prefs.setInt('uid', _uid!);
+            if (_partnerId != null) await prefs.setInt('partner_id', _partnerId!);
+            await prefs.setString('session_id', _sessionId ?? '');
+            await prefs.setString('user_name', userName);
+            await prefs.setString('user_email', email);
+            await prefs.setString('user_phone', userPhone);
+          } catch (e) {
+            debugPrint('SharedPreferences save error: $e');
           }
-          await _storage.write(key: 'session_id', value: _sessionId ?? '');
-          await _storage.write(key: 'user_name', value: userName);
-          await _storage.write(key: 'user_email', value: email);
-          await _storage.write(key: 'user_phone', value: userPhone);
-        } catch (_) {}
+
+          try {
+            await _storage.write(key: 'instance_url', value: baseUrl);
+            await _storage.write(key: 'database', value: db);
+            await _storage.write(key: 'username', value: email);
+            await _storage.write(key: 'password', value: password);
+            await _storage.write(key: 'is_logged_in', value: 'true');
+            await _storage.write(key: 'uid', value: _uid.toString());
+            if (_partnerId != null) {
+              await _storage.write(
+                key: 'partner_id',
+                value: _partnerId.toString(),
+              );
+            }
+            await _storage.write(key: 'session_id', value: _sessionId ?? '');
+            await _storage.write(key: 'user_name', value: userName);
+            await _storage.write(key: 'user_email', value: email);
+            await _storage.write(key: 'user_phone', value: userPhone);
+          } catch (_) {}
+        }
 
         return true;
       }
@@ -496,6 +521,22 @@ class OdooApiService implements BaseOdooService {
   ) async {
     try {
       await _ensureInitialized();
+
+      // Clear any guest session cookies before requesting /web/signup,
+      // otherwise Odoo detects an active session and redirects away from the registration form.
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final isGuest = prefs.getBool('is_guest_mode') ?? false;
+        if (isGuest) {
+          debugPrint('🧹 [OdooApiService] Purging guest cookies before signup...');
+          await _cookieJar?.deleteAll();
+          _sessionId = null;
+          _uid = null;
+          _partnerId = null;
+          _savedUserInfo = null;
+          await prefs.setBool('is_guest_mode', false);
+        }
+      } catch (_) {}
 
       debugPrint('Odoo signup: fetching CSRF token from /web/signup...');
       // 1. Fetch CSRF token via GET request first with HTML headers
@@ -745,6 +786,17 @@ class OdooApiService implements BaseOdooService {
 
   @override
   Future<bool> deactivateDeviceToken({String? token, int? deviceId}) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final isGuest = prefs.getBool('is_guest_mode') ?? false;
+      if (isGuest) {
+        debugPrint(
+          '🛡️ [OdooApiService] Suppressing deactivateDeviceToken: Guest session active.',
+        );
+        return false;
+      }
+    } catch (_) {}
+
     bool success = false;
 
     // Preferred method: deactivate_token(fcmToken)
@@ -909,6 +961,21 @@ class OdooApiService implements BaseOdooService {
           (effectiveEmail != null && effectiveEmail.isNotEmpty);
 
       if (!isLoggedIn) {
+        return false;
+      }
+
+      // If the saved credentials belong to the guest service account or guest mode is flagged,
+      // purge the session on cold start so the app starts on splash -> onboarding / login screen.
+      final isGuest = prefs.getBool('is_guest_mode') ?? false;
+      final bool isGuestAccount = effectiveEmail != null &&
+          effectiveEmail.trim().toLowerCase() ==
+              AppConfig.instance.guestEmail.trim().toLowerCase();
+
+      if (isGuest || isGuestAccount) {
+        debugPrint(
+          '🛡️ [OdooApiService] Cold start detected with Guest session. Purging session to show onboarding/login.',
+        );
+        await _clearSession();
         return false;
       }
 
@@ -2698,6 +2765,25 @@ class OdooApiService implements BaseOdooService {
     String? previousToken,
   }) async {
     try {
+      // SAFEGUARD: Never register device tokens for guest sessions or unauthenticated users
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final isGuest = prefs.getBool('is_guest_mode') ?? false;
+        if (isGuest) {
+          debugPrint(
+            '🛡️ [OdooApiService] Suppressing registerDeviceToken: Active session is a guest session.',
+          );
+          return false;
+        }
+      } catch (_) {}
+
+      if (!isLoggedIn) {
+        debugPrint(
+          '🛡️ [OdooApiService] Suppressing registerDeviceToken: User is not authenticated.',
+        );
+        return false;
+      }
+
       final cleanPlatform = platform.toLowerCase() == 'ios' ? 'ios' : 'android';
       debugPrint(
         '🔵 [OdooApiService] Registering FCM Device Token (platform: $cleanPlatform, previousToken: $previousToken)...',

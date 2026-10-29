@@ -14,20 +14,16 @@ import 'package:intl/intl.dart';
 import 'package:timeless_detailing_customer_app/features/services/models/product_category_model.dart';
 import 'package:timeless_detailing_customer_app/features/services/views/services_list_screen.dart';
 import 'package:timeless_detailing_customer_app/features/services/views/interior_detailing_screen.dart';
-import 'package:timeless_detailing_customer_app/features/services/views/service_detail_screen.dart';
 import 'package:timeless_detailing_customer_app/features/services/views/service_interactive_detail_screen.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/controllers/bookings_controller.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/models/booking_model.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/views/upcoming_appointment_details_screen.dart';
 import 'package:timeless_detailing_customer_app/core/widgets/custom_shimmer_loading.dart';
-import 'package:timeless_detailing_customer_app/features/bookings/models/estimation_model.dart';
-import 'package:timeless_detailing_customer_app/features/bookings/views/estimation_screen.dart';
 import 'package:timeless_detailing_customer_app/features/notifications/views/notifications_screen.dart';
-import 'package:timeless_detailing_customer_app/features/tracking/models/project_model.dart';
-import 'package:timeless_detailing_customer_app/features/tracking/views/project_details_screen.dart';
 import 'package:timeless_detailing_customer_app/core/widgets/custom_loader.dart';
 import 'package:timeless_detailing_customer_app/core/utils/app_animations.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:timeless_detailing_customer_app/core/widgets/guest_sign_in_sheet.dart';
 
 class _AssetServiceImage extends StatefulWidget {
   final String assetPath;
@@ -105,13 +101,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _fetchLatestNotification();
+      final auth = Provider.of<AuthController>(context, listen: false);
+      if (!auth.isGuest) {
+        _fetchLatestNotification();
+      }
       if (mounted) {
         try {
           final servicesController = Provider.of<ServicesController>(context, listen: false);
           servicesController.initData();
-          final bookingsController = Provider.of<BookingsController>(context, listen: false);
-          bookingsController.loadBookings();
+          if (!auth.isGuest) {
+            final bookingsController = Provider.of<BookingsController>(context, listen: false);
+            bookingsController.loadBookings();
+          }
         } catch (e) {
           debugPrint('⚠️ Error initializing dashboard controllers on mount: $e');
         }
@@ -242,12 +243,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
               '🔄 Manual pull-to-refresh triggered on Home page! Fetching product categories & notifications...',
             );
             await servicesController.fetchProductCategories();
-            await _fetchLatestNotification();
-            if (context.mounted) {
-              await Provider.of<BookingsController>(
-                context,
-                listen: false,
-              ).loadBookings();
+            if (!auth.isGuest) {
+              await _fetchLatestNotification();
+              if (context.mounted) {
+                await Provider.of<BookingsController>(
+                  context,
+                  listen: false,
+                ).loadBookings();
+              }
             }
           },
           child: LayoutBuilder(
@@ -267,7 +270,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                     child: Consumer<BookingsController>(
                       builder: (context, bookingsController, child) {
-                        final upcoming = bookingsController.bookings;
+                        final upcoming = auth.isGuest ? [] : bookingsController.bookings;
                         final hasUpcoming = upcoming.isNotEmpty;
 
                         return Column(
@@ -303,9 +306,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                                   ),
                                                 ),
                                                 TextSpan(
-                                                  text: auth.userName.isNotEmpty
-                                                      ? auth.userName
-                                                      : 'John Doe',
+                                                  text: auth.isGuest
+                                                      ? 'Guest'
+                                                      : (auth.userName.isNotEmpty
+                                                          ? auth.userName
+                                                          : 'Customer'),
                                                   style: AppTypography.canela(
                                                     fontSize: 14,
                                                     fontWeight: FontWeight.w700,
@@ -327,6 +332,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                                   debugPrint(
                                                     '🔔 Notifications bell button tapped on Home page!',
                                                   );
+                                                  if (auth.isGuest) {
+                                                    showGuestSignInSheet(
+                                                      context,
+                                                      title: 'Sign In to View Notifications',
+                                                      message:
+                                                          'Sign in or register to receive updates on your vehicle service progress and booking reminders.',
+                                                    );
+                                                    return;
+                                                  }
                                                   Navigator.push(
                                                     context,
                                                     FadeSlidePageRoute(

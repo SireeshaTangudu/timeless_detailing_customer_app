@@ -85,15 +85,16 @@ class _SplashScreenState extends State<SplashScreen>
 
     final auth = Provider.of<AuthController>(context, listen: false);
 
-    // Check if user is logged in (either via auth status or saved session profile)
-    if (auth.isAuthenticated || auth.userProfile != null) {
+    // Only real registered users auto-login directly to MainNavigationScaffold.
+    // Guest sessions must not auto-login on cold start.
+    if (auth.isAuthenticated && !auth.isGuest) {
       debugPrint('🟢 [SplashScreen] User authenticated, navigating to MainNavigationScaffold');
       Navigator.pushReplacement(
         context,
         FadeSlidePageRoute(page: const MainNavigationScaffold()),
       );
     } else {
-      debugPrint('🔴 [SplashScreen] User unauthenticated, navigating to OnboardingScreen');
+      debugPrint('🔴 [SplashScreen] User unauthenticated/guest, navigating to OnboardingScreen');
       Navigator.pushReplacement(
         context,
         FadeSlidePageRoute(page: const OnboardingScreen()),

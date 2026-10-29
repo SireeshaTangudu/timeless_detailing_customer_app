@@ -6,6 +6,8 @@ import 'package:timeless_detailing_customer_app/core/network/odoo_client.dart';
 import 'package:timeless_detailing_customer_app/core/widgets/custom_app_bar.dart';
 import 'package:timeless_detailing_customer_app/core/widgets/custom_shimmer_loading.dart';
 import 'package:timeless_detailing_customer_app/features/notifications/views/notification_detail_screen.dart';
+import 'package:timeless_detailing_customer_app/features/auth/controllers/auth_controller.dart';
+import 'package:timeless_detailing_customer_app/core/widgets/guest_sign_in_sheet.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -21,7 +23,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   @override
   void initState() {
     super.initState();
-    _fetchNotifications();
+    final auth = Provider.of<AuthController>(context, listen: false);
+    if (!auth.isGuest) {
+      _fetchNotifications();
+    } else {
+      _isLoading = false;
+    }
   }
 
   Future<void> _fetchNotifications() async {
@@ -45,6 +52,26 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final auth = Provider.of<AuthController>(context);
+    if (auth.isGuest) {
+      return Scaffold(
+        backgroundColor: const Color(0xFFF9F7F4),
+        appBar: CustomAppBar(
+          title: 'Notifications',
+          showBackButton: true,
+          onBackPressed: () => Navigator.pop(context),
+        ),
+        body: const SafeArea(
+          child: GuestRestrictedTabPlaceholder(
+            title: 'No Notifications',
+            message:
+                'Sign in or register to receive updates on your vehicle service progress and booking reminders.',
+            icon: Icons.notifications_none_outlined,
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFFF9F7F4),
       appBar: CustomAppBar(

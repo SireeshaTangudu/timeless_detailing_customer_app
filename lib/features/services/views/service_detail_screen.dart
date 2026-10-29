@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:timeless_detailing_customer_app/core/theme/app_theme.dart';
-import 'package:timeless_detailing_customer_app/core/widgets/custom_button.dart';
 import 'package:timeless_detailing_customer_app/core/widgets/custom_footer.dart';
 import 'package:timeless_detailing_customer_app/features/services/models/service_model.dart';
 import 'package:timeless_detailing_customer_app/features/bookings/views/book_service_screen.dart';
@@ -9,6 +8,8 @@ import 'package:timeless_detailing_customer_app/features/bookings/views/book_ser
 import 'package:provider/provider.dart';
 import 'package:timeless_detailing_customer_app/features/services/controllers/services_controller.dart';
 import 'package:timeless_detailing_customer_app/core/services/currency_service.dart';
+import 'package:timeless_detailing_customer_app/features/auth/controllers/auth_controller.dart';
+import 'package:timeless_detailing_customer_app/core/widgets/guest_sign_in_sheet.dart';
 
 class ServiceDetailScreen extends StatefulWidget {
   final DetailService service;
@@ -239,6 +240,16 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
         subtitle: CurrencyService.instance.format(service.price),
         buttonText: 'BOOK THIS SERVICE',
         onPressed: () {
+          final auth = Provider.of<AuthController>(context, listen: false);
+          if (auth.isGuest) {
+            showGuestSignInSheet(
+              context,
+              title: 'Sign In to Book',
+              message:
+                  'Sign in or register to select an appointment slot and book this detailing service.',
+            );
+            return;
+          }
           final templateId = service.odooProductId ?? int.tryParse(service.id) ?? 4;
           final variants = controller.getVariantsForTemplate(templateId);
           final firstVar = variants.isNotEmpty ? variants.first : null;

@@ -1,6 +1,8 @@
 import 'dart:typed_data';
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:timeless_detailing_customer_app/core/config/app_config.dart';
 import 'package:timeless_detailing_customer_app/core/network/odoo_client.dart';
 import 'package:timeless_detailing_customer_app/core/services/firebase_notification_service.dart';
 
@@ -8,6 +10,7 @@ class AuthController extends ChangeNotifier {
   final BaseOdooService _odooService;
 
   bool _isAuthenticated = false;
+  bool _isGuest = false;
   bool _isLoading = false;
   Map<String, dynamic>? _userProfile;
   String? _errorMessage;
@@ -15,23 +18,27 @@ class AuthController extends ChangeNotifier {
   AuthController(this._odooService);
 
   bool get isAuthenticated => _isAuthenticated;
+  bool get isGuest => _isGuest;
   bool get isLoading => _isLoading;
   Map<String, dynamic>? get userProfile => _userProfile;
   String? get errorMessage => _errorMessage;
 
   String get userName {
+    if (_isGuest) return 'Guest Customer';
     final val = _userProfile?['name'];
     if (val is String && val.isNotEmpty && val != 'false') return val;
     return 'Guest Customer';
   }
 
   String get userEmail {
+    if (_isGuest) return '';
     final val = _userProfile?['email'];
     if (val is String && val.isNotEmpty && val != 'false') return val;
     return '';
   }
 
   String get userPhone {
+    if (_isGuest) return '';
     final val = _userProfile?['phone'];
     if (val is String && val.isNotEmpty && val != 'false') return val;
     return '';
@@ -60,6 +67,12 @@ class AuthController extends ChangeNotifier {
     try {
       final success = await _odooService.login(email, password);
       if (success) {
+        _isGuest = false;
+        try {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setBool('is_guest_mode', false);
+        } catch (_) {}
+
         // Fetch full profile info upon success
         final partnerIdStr = _odooService.currentPartnerId?.toString() ?? 'current';
         _userProfile = await _odooService.getCustomerProfile(partnerIdStr);
@@ -154,6 +167,74 @@ class AuthController extends ChangeNotifier {
     }
   }
 
+  /// Authenticates in the background using the configured guest service account.
+  /// This creates a valid Odoo session cookie so categories, services,
+  /// variants, and pricing can be freely browsed without SessionExpired errors.
+  Future<bool> loginAsGuest() async {
+    _isLoading = true;
+    _errorMessage = null;
+    _isGuest = true;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('is_guest_mode', true);
+    } catch (_) {}
+    notifyListeners();
+
+    try {
+      final config = AppConfig.instance;
+      debugPrint(
+        '🔵 [AuthController] Attempting background guest authentication: ${config.guestEmail}',
+      );
+
+      bool odooLoginSuccess = false;
+      try {
+        odooLoginSuccess = await _odooService.login(
+          config.guestEmail,
+          config.guestPassword,
+        );
+      } catch (e) {
+        debugPrint(
+          '⚠️ [AuthController] Background guest login network/credential warning: $e',
+        );
+        odooLoginSuccess = false;
+      }
+
+      _isGuest = true;
+      _isAuthenticated = true;
+      _userProfile = {
+        'name': 'Guest Customer',
+        'email': '',
+        'phone': '',
+        'is_guest': true,
+      };
+
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('is_guest_mode', true);
+      } catch (_) {}
+
+      debugPrint(
+        '🟢 [AuthController] Guest mode activated (sessionEstablished=$odooLoginSuccess)',
+      );
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      debugPrint('🔴 [AuthController] loginAsGuest fallback: $e');
+      _isGuest = true;
+      _isAuthenticated = true;
+      _userProfile = {
+        'name': 'Guest Customer',
+        'email': '',
+        'phone': '',
+        'is_guest': true,
+      };
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    }
+  }
+
   Future<void> logout() async {
     _isLoading = true;
     notifyListeners();
@@ -163,6 +244,11 @@ class AuthController extends ChangeNotifier {
       debugPrint('Logout service exception: $e');
     }
     FirebaseNotificationService.resetTokenState();
+    _isGuest = false;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('is_guest_mode', false);
+    } catch (_) {}
     _isAuthenticated = false;
     _userProfile = null;
     _errorMessage = null;
@@ -174,24 +260,48 @@ class AuthController extends ChangeNotifier {
     _isLoading = true;
     notifyListeners();
     try {
+      final prefs = await SharedPreferences.getInstance();
+      final isGuestSaved = prefs.getBool('is_guest_mode') ?? false;
+
+      // Guest session cold-start guard:
+      // If the user closed/killed the app while in Guest Mode, clear the temporary guest session.
+      // A cold restart must always direct the user to Splash -> Onboarding / Login.
+      if (isGuestSaved) {
+        debugPrint(
+          '🛡️ [AuthController] Cold start detected with previous Guest session. Clearing guest session to show onboarding/login.',
+        );
+        try {
+          await _odooService.logout();
+        } catch (_) {}
+        await prefs.remove('is_guest_mode');
+        await prefs.setBool('is_logged_in', false);
+        _isAuthenticated = false;
+        _isGuest = false;
+        _userProfile = null;
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
+
       final isLoggedIn = await _odooService.checkAuthStatus().timeout(
         const Duration(seconds: 5),
         onTimeout: () => false,
       );
 
       if (isLoggedIn) {
+        _isGuest = false;
         _isAuthenticated = true;
         _userProfile = _odooService.savedUserInfo;
-        notifyListeners(); // Instantly inform splash/UI that user IS logged in from local persistent storage
 
-        // Sync FCM token to Odoo post auto-login check
+        // Sync FCM token to Odoo post auto-login check for registered users only
         try {
-          FirebaseNotificationService.syncFcmTokenToOdoo(_odooService).catchError((e) {
+          FirebaseNotificationService.syncFcmTokenToOdoo(_odooService)
+              .catchError((e) {
             debugPrint('Error syncing FCM token on splash check: $e');
           });
         } catch (_) {}
 
-        // Fetch fresh profile in background without blocking splash transition or revoking auth on failure
+        // Fetch fresh profile in background
         try {
           final profile = await _odooService
               .getCustomerProfile('current')
@@ -204,6 +314,7 @@ class AuthController extends ChangeNotifier {
         }
       } else {
         _isAuthenticated = false;
+        _isGuest = false;
         _userProfile = null;
       }
 
@@ -212,14 +323,8 @@ class AuthController extends ChangeNotifier {
       return _isAuthenticated;
     } catch (e) {
       debugPrint('AuthController.checkAuthStatus error: $e');
-      if (_odooService.savedUserInfo != null) {
-        _isAuthenticated = true;
-        _userProfile = _odooService.savedUserInfo;
-        _isLoading = false;
-        notifyListeners();
-        return true;
-      }
       _isAuthenticated = false;
+      _isGuest = false;
       _userProfile = null;
       _isLoading = false;
       notifyListeners();

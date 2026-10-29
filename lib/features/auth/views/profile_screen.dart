@@ -14,6 +14,7 @@ import 'package:timeless_detailing_customer_app/features/warranties/views/warran
 import 'package:timeless_detailing_customer_app/features/subscriptions/views/subscriptions_screen.dart';
 import 'package:timeless_detailing_customer_app/core/widgets/custom_app_bar.dart';
 import 'package:timeless_detailing_customer_app/core/widgets/custom_loader.dart';
+import 'package:timeless_detailing_customer_app/core/widgets/guest_sign_in_sheet.dart';
 
 class ProfileScreen extends StatefulWidget {
   final TabController? tabController;
@@ -31,14 +32,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final auth = Provider.of<AuthController>(context, listen: false);
-      auth.refreshProfile();
-      final partnerId = auth.userProfile?['id'] is int
-          ? auth.userProfile!['id'] as int
-          : null;
-      Provider.of<BookingsController>(
-        context,
-        listen: false,
-      ).loadBookings(partnerId: partnerId);
+      if (!auth.isGuest) {
+        auth.refreshProfile();
+        final partnerId = auth.userProfile?['id'] is int
+            ? auth.userProfile!['id'] as int
+            : null;
+        Provider.of<BookingsController>(
+          context,
+          listen: false,
+        ).loadBookings(partnerId: partnerId);
+      }
     });
   }
 
@@ -518,6 +521,37 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final auth = Provider.of<AuthController>(context);
+    if (auth.isGuest) {
+      return Scaffold(
+        backgroundColor: Colors.white,
+        body: SafeArea(
+          child: Column(
+            children: [
+              CustomAppBar(
+                title: 'My Profile',
+                onBackPressed: () {
+                  if (Navigator.canPop(context)) {
+                    Navigator.pop(context);
+                  } else if (widget.tabController != null) {
+                    widget.tabController!.animateTo(0);
+                  } else if (widget.onMenuTap != null) {
+                    widget.onMenuTap!();
+                  }
+                },
+              ),
+              const Expanded(
+                child: GuestRestrictedTabPlaceholder(
+                  title: 'Welcome, Guest',
+                  message:
+                      'Sign in or create an account to manage your profile details, vehicle garage, bookings, and preferences.',
+                  icon: Icons.person_outline,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
 
     return Scaffold(
       backgroundColor: Colors.white,

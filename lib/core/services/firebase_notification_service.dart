@@ -143,11 +143,29 @@ class FirebaseNotificationService {
   }
 
   static Future<void> syncFcmTokenToOdoo(BaseOdooService odooService) async {
-    final token = await fetchFcmToken(forceRefresh: true);
-    if (token != null && token.isNotEmpty) {
-      final platform = defaultTargetPlatform == TargetPlatform.iOS ? 'ios' : 'android';
-      debugPrint('Syncing FCM token ($token) to Odoo device token ($platform)...');
-      await odooService.registerDeviceToken(token: token, platform: platform);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final isGuest = prefs.getBool('is_guest_mode') ?? false;
+      if (isGuest) {
+        debugPrint(
+          '🛡️ [FirebaseNotificationService] Skipping FCM sync to Odoo: User is in Guest Mode.',
+        );
+        return;
+      }
+      if (!odooService.isLoggedIn) {
+        debugPrint(
+          '🛡️ [FirebaseNotificationService] Skipping FCM sync to Odoo: User is not authenticated.',
+        );
+        return;
+      }
+      final token = await fetchFcmToken(forceRefresh: true);
+      if (token != null && token.isNotEmpty) {
+        final platform = defaultTargetPlatform == TargetPlatform.iOS ? 'ios' : 'android';
+        debugPrint('Syncing FCM token ($token) to Odoo device token ($platform)...');
+        await odooService.registerDeviceToken(token: token, platform: platform);
+      }
+    } catch (e) {
+      debugPrint('⚠️ Error in syncFcmTokenToOdoo: $e');
     }
   }
 
@@ -614,8 +632,18 @@ class FirebaseNotificationService {
       // Get FCM Token with retry handling
       final token = await fetchFcmToken();
       if (odooService != null && token != null) {
-        final platform = defaultTargetPlatform == TargetPlatform.iOS ? 'ios' : 'android';
-        await odooService.registerDeviceToken(token: token, platform: platform);
+        try {
+          final prefs = await SharedPreferences.getInstance();
+          final isGuest = prefs.getBool('is_guest_mode') ?? false;
+          if (!isGuest && odooService.isLoggedIn) {
+            final platform = defaultTargetPlatform == TargetPlatform.iOS ? 'ios' : 'android';
+            await odooService.registerDeviceToken(token: token, platform: platform);
+          } else {
+            debugPrint(
+              '🛡️ [FirebaseNotificationService] Skipping device token registration on init (isGuest=$isGuest, isLoggedIn=${odooService.isLoggedIn})',
+            );
+          }
+        } catch (_) {}
       }
 
       // Listen for token refreshes
@@ -630,12 +658,22 @@ class FirebaseNotificationService {
         fcmToken = newToken;
         debugPrint('🔥 FCM Token Refreshed: old=$oldToken -> new=$newToken');
         if (odooService != null) {
-          final platform = defaultTargetPlatform == TargetPlatform.iOS ? 'ios' : 'android';
-          await odooService.registerDeviceToken(
-            token: newToken,
-            platform: platform,
-            previousToken: (oldToken != null && oldToken != newToken) ? oldToken : null,
-          );
+          try {
+            final prefs = await SharedPreferences.getInstance();
+            final isGuest = prefs.getBool('is_guest_mode') ?? false;
+            if (!isGuest && odooService.isLoggedIn) {
+              final platform = defaultTargetPlatform == TargetPlatform.iOS ? 'ios' : 'android';
+              await odooService.registerDeviceToken(
+                token: newToken,
+                platform: platform,
+                previousToken: (oldToken != null && oldToken != newToken) ? oldToken : null,
+              );
+            } else {
+              debugPrint(
+                '🛡️ [FirebaseNotificationService] Skipping token refresh registration (isGuest=$isGuest, isLoggedIn=${odooService.isLoggedIn})',
+              );
+            }
+          } catch (_) {}
         }
       });
 

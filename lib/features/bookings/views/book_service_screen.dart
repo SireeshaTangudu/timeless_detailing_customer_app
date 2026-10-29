@@ -16,6 +16,8 @@ import 'package:timeless_detailing_customer_app/features/bookings/models/estimat
 import 'package:timeless_detailing_customer_app/features/bookings/views/estimation_screen.dart';
 import 'package:timeless_detailing_customer_app/features/services/controllers/services_controller.dart';
 import 'package:timeless_detailing_customer_app/core/widgets/custom_loader.dart';
+import 'package:timeless_detailing_customer_app/features/auth/controllers/auth_controller.dart';
+import 'package:timeless_detailing_customer_app/core/widgets/guest_sign_in_sheet.dart';
 
 class BookServiceScreen extends StatefulWidget {
   final DetailService initialService;
@@ -337,6 +339,17 @@ class _BookServiceScreenState extends State<BookServiceScreen> {
   }
 
   void _handleConfirmBooking() async {
+    final auth = Provider.of<AuthController>(context, listen: false);
+    if (auth.isGuest) {
+      showGuestSignInSheet(
+        context,
+        title: 'Sign In to Complete Booking',
+        message:
+            'Please sign in or create an account to finalize your appointment and receive booking confirmations.',
+      );
+      return;
+    }
+
     final vehicleMake = _vehicleMakeController.text.trim();
     final vehicleModel = _vehicleModelController.text.trim();
 

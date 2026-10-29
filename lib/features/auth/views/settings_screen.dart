@@ -1,12 +1,15 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:timeless_detailing_customer_app/core/theme/app_theme.dart';
 import 'package:timeless_detailing_customer_app/core/theme/app_typography.dart';
 import 'package:timeless_detailing_customer_app/core/widgets/custom_app_bar.dart';
+import 'package:timeless_detailing_customer_app/core/config/app_config.dart';
 import 'package:timeless_detailing_customer_app/features/auth/controllers/auth_controller.dart';
 import 'package:timeless_detailing_customer_app/features/auth/views/login_screen.dart';
 import 'package:timeless_detailing_customer_app/core/widgets/custom_loader.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -840,45 +843,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  void _showTermsDialog() {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          backgroundColor: const Color(0xFF16161A),
-          title: Text(
-            'Terms and Conditions',
-            style: AppTypography.canela(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: AppTheme.primary,
+  Future<void> _launchLegalUrl(String url) async {
+    try {
+      final Uri uri = Uri.parse(url);
+      if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Could not open external browser link.'),
+              backgroundColor: AppTheme.primary,
             ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Could not open link: $e'),
+            backgroundColor: AppTheme.error,
           ),
-          content: SingleChildScrollView(
-            child: Text(
-              'Welcome to Timeless Detailing. By utilizing our customer portal, you agree to comply with our service policies, reservation guidelines, and privacy regulations regarding vehicle care and maintenance.',
-              style: GoogleFonts.inter(
-                fontSize: 13,
-                color: const Color(0xFFD1D1D1),
-                height: 1.5,
-              ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(
-                'Close',
-                style: GoogleFonts.inter(
-                  color: AppTheme.primary,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ],
         );
-      },
-    );
+      }
+    }
   }
 
   Widget _buildSettingsTile({
@@ -886,37 +873,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
     required IconData icon,
     Color? color,
     required VoidCallback onTap,
+    bool isExternal = false,
   }) {
-    return GestureDetector(
+    return _BlurSettingsTile(
+      title: title,
+      icon: icon,
+      color: color,
       onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 16.0),
-        child: Row(
-          children: [
-            Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: (color ?? AppTheme.primary).withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(icon, size: 18, color: color ?? AppTheme.primary),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Text(
-                title,
-                style: GoogleFonts.inter(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: color ?? const Color(0xFF1C1C1E),
-                ),
-              ),
-            ),
-            const Icon(Icons.chevron_right, size: 20, color: Color(0xFF8E8E93)),
-          ],
-        ),
-      ),
+      isExternal: isExternal,
     );
   }
 
@@ -982,15 +946,161 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                   const SizedBox(height: 4),
                   _buildSettingsTile(
-                    title: 'Terms and Conditions',
-                    icon: Icons.article_outlined,
-                    onTap: _showTermsDialog,
+                    title: 'Privacy Policy',
+                    icon: Icons.privacy_tip_outlined,
+                    isExternal: true,
+                    onTap: () =>
+                        _launchLegalUrl(AppConfig.instance.privacyPolicyUrl),
                   ),
                   const Divider(color: Color(0xFFF0EDE6), height: 1),
+                  _buildSettingsTile(
+                    title: 'Terms and Conditions',
+                    icon: Icons.article_outlined,
+                    isExternal: true,
+                    onTap: () => _launchLegalUrl(AppConfig.instance.termsUrl),
+                  ),
+                  // const Divider(color: Color(0xFFF0EDE6), height: 1),
+                  // _buildSettingsTile(
+                  //   title: 'POPIA Compliance',
+                  //   icon: Icons.verified_user_outlined,
+                  //   isExternal: true,
+                  //   onTap: () => _launchLegalUrl(AppConfig.instance.popiaUrl),
+                  // ),
+                  // const Divider(color: Color(0xFFF0EDE6), height: 1),
+                  const SizedBox(height: 16),
                 ],
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _BlurSettingsTile extends StatefulWidget {
+  final String title;
+  final IconData icon;
+  final Color? color;
+  final VoidCallback onTap;
+  final bool isExternal;
+
+  const _BlurSettingsTile({
+    required this.title,
+    required this.icon,
+    this.color,
+    required this.onTap,
+    this.isExternal = false,
+  });
+
+  @override
+  State<_BlurSettingsTile> createState() => _BlurSettingsTileState();
+}
+
+class _BlurSettingsTileState extends State<_BlurSettingsTile> {
+  bool _isPressed = false;
+
+  void _onTapDown(TapDownDetails details) {
+    setState(() => _isPressed = true);
+  }
+
+  void _onTapUp(TapUpDetails details) async {
+    // Keep frosted blur tactile action visible briefly before invoking onTap
+    await Future.delayed(const Duration(milliseconds: 140));
+    if (mounted) {
+      setState(() => _isPressed = false);
+    }
+    widget.onTap();
+  }
+
+  void _onTapCancel() {
+    if (mounted) {
+      setState(() => _isPressed = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tileColor = widget.color ?? const Color(0xFF1C1C1E);
+    final accentColor = widget.color ?? AppTheme.primary;
+
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTapDown: _onTapDown,
+      onTapUp: _onTapUp,
+      onTapCancel: _onTapCancel,
+      child: AnimatedScale(
+        scale: _isPressed ? 0.98 : 1.0,
+        duration: const Duration(milliseconds: 120),
+        curve: Curves.easeOutCubic,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(10),
+          child: Stack(
+            children: [
+              if (_isPressed)
+                Positioned.fill(
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: accentColor.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: accentColor.withValues(alpha: 0.35),
+                          width: 1,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: accentColor.withValues(alpha: 0.15),
+                            blurRadius: 8,
+                            spreadRadius: 1,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  vertical: 16.0,
+                  horizontal: 6.0,
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: accentColor.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(widget.icon, size: 18, color: accentColor),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Text(
+                        widget.title,
+                        style: GoogleFonts.inter(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: tileColor,
+                        ),
+                      ),
+                    ),
+                    Icon(
+                      widget.isExternal
+                          ? Icons.open_in_new_rounded
+                          : Icons.chevron_right,
+                      size: widget.isExternal ? 18 : 20,
+                      color: widget.isExternal
+                          ? AppTheme.primary
+                          : const Color(0xFF8E8E93),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
