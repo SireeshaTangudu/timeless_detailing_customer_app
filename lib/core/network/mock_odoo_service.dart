@@ -1072,6 +1072,11 @@ class MockOdooService implements BaseOdooService {
   }
 
   @override
+  Future<String?> getInvoicePreviewUrl(int invoiceId) async {
+    return '/my/invoices/$invoiceId?access_token=a85a56fe-5ed5-4b56-a2eb-9a06b6567355';
+  }
+
+  @override
   Future<List<Map<String, dynamic>>> getUserInvoices({int? partnerId}) async {
     return [
       {

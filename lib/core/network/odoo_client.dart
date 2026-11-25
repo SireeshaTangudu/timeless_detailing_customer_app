@@ -111,6 +111,7 @@ abstract class BaseOdooService {
   Future<List<Map<String, dynamic>>> getUserNotifications({int? partnerId});
   Future<Map<String, dynamic>?> getNotificationDetail(int notificationId);
   Future<Map<String, dynamic>?> getInvoiceDetails(int invoiceId);
+  Future<String?> getInvoicePreviewUrl(int invoiceId);
   Future<List<Map<String, dynamic>>> getUserInvoices({int? partnerId});
   Future<List<Map<String, dynamic>>> getWarranties({int? partnerId});
   Future<List<Map<String, dynamic>>> getSubscriptions({int? partnerId});
@@ -4297,13 +4298,214 @@ class OdooApiService implements BaseOdooService {
         debugPrint(
           '🟢 [OdooApiService] getInvoiceDetails success for invoiceId=$invoiceId',
         );
-        return Map<String, dynamic>.from(res[0]);
+        final invMap = Map<String, dynamic>.from(res[0]);
+        String token = (invMap['access_token'] ?? '').toString().trim();
+        if (token == 'false' || token == 'null') token = '';
+
+        // If access_token is empty or false in Odoo's DB, ensure token via get_portal_url / _portal_ensure_token
+        if (token.isEmpty) {
+          debugPrint(
+            '🔵 [OdooApiService] Invoice $invoiceId has empty access_token. Ensuring portal token...',
+          );
+          try {
+            final portalUrl = await _callKw(
+              model: 'account.move',
+              method: 'get_portal_url',
+              args: [
+                [invoiceId],
+              ],
+              kwargs: {},
+            );
+            if (portalUrl is String && portalUrl.isNotEmpty) {
+              invMap['access_url'] = portalUrl;
+              final match =
+                  RegExp(r'access_token=([^&]+)').firstMatch(portalUrl);
+              if (match != null && match.group(1) != 'false') {
+                invMap['access_token'] = match.group(1);
+                token = match.group(1)!;
+                debugPrint(
+                  '🟢 [OdooApiService] Generated and retrieved access_token from get_portal_url: $token',
+                );
+              }
+            }
+          } catch (e) {
+            debugPrint(
+              '⚠️ [OdooApiService] get_portal_url on account.move failed: $e',
+            );
+          }
+
+          if (token.isEmpty) {
+            try {
+              final ensureToken = await _callKw(
+                model: 'account.move',
+                method: '_portal_ensure_token',
+                args: [
+                  [invoiceId],
+                ],
+                kwargs: {},
+              );
+              if (ensureToken is String &&
+                  ensureToken.isNotEmpty &&
+                  ensureToken != 'false') {
+                invMap['access_token'] = ensureToken;
+                token = ensureToken;
+                debugPrint(
+                  '🟢 [OdooApiService] Retrieved token via _portal_ensure_token: $token',
+                );
+              }
+            } catch (_) {}
+          }
+        }
+
+        return invMap;
       }
       return null;
     } catch (e) {
       debugPrint('🔴 [OdooApiService] getInvoiceDetails error: $e');
       return null;
     }
+  }
+
+  /// Open/Get invoice preview URL via account.move -> preview_invoice (guaranteeing ?access_token=...)
+  @override
+  Future<String?> getInvoicePreviewUrl(int invoiceId) async {
+    debugPrint(
+      '🔵 [OdooApiService] getInvoicePreviewUrl called for invoiceId=$invoiceId',
+    );
+    try {
+      await _ensureInitialized();
+
+      String? resolvedUrl;
+      String? extractedToken;
+
+      // 1. Primary Strategy: Call account.move -> preview_invoice
+      try {
+        final action = await _callKw(
+          model: 'account.move',
+          method: 'preview_invoice',
+          args: [
+            [invoiceId],
+          ],
+          kwargs: {},
+        );
+
+        debugPrint('🟢 [OdooApiService] preview_invoice action returned: $action');
+        if (action is Map && action['url'] != null) {
+          final rawUrl = action['url'].toString().trim();
+          if (rawUrl.isNotEmpty && rawUrl != 'false' && rawUrl != 'null') {
+            resolvedUrl = rawUrl;
+            if (rawUrl.contains('access_token=')) {
+              final match = RegExp(r'access_token=([^&]+)').firstMatch(rawUrl);
+              if (match != null && match.group(1) != 'false') {
+                extractedToken = match.group(1);
+              }
+            }
+          }
+        }
+      } catch (previewErr) {
+        debugPrint(
+          '⚠️ [OdooApiService] preview_invoice call failed: $previewErr. Trying fallback approaches...',
+        );
+      }
+
+      // 2. Direct Fallback: Call account.move -> get_portal_url
+      if (extractedToken == null || extractedToken.isEmpty) {
+        try {
+          final portalUrl = await _callKw(
+            model: 'account.move',
+            method: 'get_portal_url',
+            args: [
+              [invoiceId],
+            ],
+            kwargs: {},
+          );
+
+          if (portalUrl is String && portalUrl.isNotEmpty && portalUrl != 'false') {
+            debugPrint('🟢 [OdooApiService] get_portal_url returned: $portalUrl');
+            resolvedUrl ??= portalUrl;
+            if (portalUrl.contains('access_token=')) {
+              final match = RegExp(r'access_token=([^&]+)').firstMatch(portalUrl);
+              if (match != null && match.group(1) != 'false') {
+                extractedToken = match.group(1);
+              }
+            }
+          }
+        } catch (portalErr) {
+          debugPrint('⚠️ [OdooApiService] get_portal_url failed: $portalErr');
+        }
+      }
+
+      // 3. Ensure token directly via _portal_ensure_token
+      if (extractedToken == null || extractedToken.isEmpty) {
+        try {
+          final tokenRes = await _callKw(
+            model: 'account.move',
+            method: '_portal_ensure_token',
+            args: [
+              [invoiceId],
+            ],
+            kwargs: {},
+          );
+          if (tokenRes is String && tokenRes.isNotEmpty && tokenRes != 'false') {
+            extractedToken = tokenRes.trim();
+            debugPrint(
+              '🟢 [OdooApiService] Retrieved access_token via _portal_ensure_token: $extractedToken',
+            );
+          }
+        } catch (_) {}
+      }
+
+      // 4. Read access_token and access_url from account.move record
+      if (extractedToken == null || extractedToken.isEmpty) {
+        try {
+          final readRes = await _callKw(
+            model: 'account.move',
+            method: 'read',
+            args: [
+              [invoiceId],
+              ['access_token', 'access_url'],
+            ],
+            kwargs: {},
+          );
+          if (readRes is List && readRes.isNotEmpty && readRes[0] is Map) {
+            final map = readRes[0] as Map;
+            final t = map['access_token']?.toString() ?? '';
+            if (t.isNotEmpty && t != 'false' && t != 'null') {
+              extractedToken = t.trim();
+            }
+            final u = map['access_url']?.toString() ?? '';
+            if (u.isNotEmpty && u != 'false' && u != 'null') {
+              resolvedUrl ??= u;
+              if (extractedToken == null && u.contains('access_token=')) {
+                final match = RegExp(r'access_token=([^&]+)').firstMatch(u);
+                if (match != null && match.group(1) != 'false') {
+                  extractedToken = match.group(1);
+                }
+              }
+            }
+          }
+        } catch (_) {}
+      }
+
+      // 5. Construct the final URL guaranteeing ?access_token= is present
+      String finalUrl = (resolvedUrl != null && resolvedUrl.isNotEmpty)
+          ? resolvedUrl
+          : '/my/invoices/$invoiceId';
+
+      if (extractedToken != null &&
+          extractedToken.isNotEmpty &&
+          !finalUrl.contains('access_token=')) {
+        finalUrl += finalUrl.contains('?')
+            ? '&access_token=$extractedToken'
+            : '?access_token=$extractedToken';
+      }
+
+      debugPrint('🟢 [OdooApiService] Final getInvoicePreviewUrl: $finalUrl');
+      return finalUrl;
+    } catch (e) {
+      debugPrint('🔴 [OdooApiService] getInvoicePreviewUrl error: $e');
+    }
+    return null;
   }
 
   /// STEP 18: Get User Invoices (`account.move/web_search_read`)
@@ -4338,6 +4540,8 @@ class OdooApiService implements BaseOdooService {
             'amount_residual': {},
             'payment_state': {},
             'timeless_is_down_payment_invoice': {},
+            'access_url': {},
+            'access_token': {},
           },
           'order': 'invoice_date desc, id desc',
         },

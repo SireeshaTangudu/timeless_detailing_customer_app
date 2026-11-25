@@ -122,15 +122,55 @@ class _UpcomingAppointmentDetailsScreenState
     } catch (_) {}
 
     int? invId = b.invoiceId;
+    invId ??= int.tryParse(b.id.replaceAll(RegExp(r'[^\d]'), ''));
+
+    // Extract access token if present on booking model
     String accToken = (b.invoiceAccessToken ?? '').trim();
     if (accToken == 'false' || accToken == 'null') accToken = '';
-    String? accessUrl = b.invoiceAccessUrl;
+    if (accToken.isEmpty &&
+        b.invoiceAccessUrl != null &&
+        b.invoiceAccessUrl!.contains('access_token=')) {
+      final match =
+          RegExp(r'access_token=([^&]+)').firstMatch(b.invoiceAccessUrl!);
+      if (match != null && match.group(1) != 'false') {
+        accToken = match.group(1)!;
+      }
+    }
 
-    // Fetch fresh access_token & access_url if missing/invalid
-    if ((accToken.isEmpty || accessUrl == null || accessUrl.isEmpty) &&
-        invId != null &&
-        odooService != null) {
+    String? payUrl;
+
+    // 1. Primary Strategy: Request preview_invoice directly from account.move (guaranteeing ?access_token=...)
+    if (invId != null && odooService != null) {
       try {
+        debugPrint(
+          '🔵 [Payment] Fetching account.move -> preview_invoice URL for invoiceId=$invId...',
+        );
+        final previewUrl = await odooService.getInvoicePreviewUrl(invId);
+        if (previewUrl != null && previewUrl.isNotEmpty) {
+          payUrl = previewUrl.startsWith('http')
+              ? previewUrl
+              : '$baseUrl$previewUrl';
+          debugPrint(
+            '🟢 [Payment] Successfully retrieved preview_invoice URL: $payUrl',
+          );
+          if (payUrl.contains('access_token=')) {
+            final match = RegExp(r'access_token=([^&]+)').firstMatch(payUrl);
+            if (match != null && match.group(1) != 'false') {
+              accToken = match.group(1)!;
+            }
+          }
+        }
+      } catch (e) {
+        debugPrint('⚠️ [Payment] preview_invoice failed: $e');
+      }
+    }
+
+    // 2. Fallback: Fetch invoice details if accToken or payUrl is still missing
+    if (accToken.isEmpty && invId != null && odooService != null) {
+      try {
+        debugPrint(
+          '🔵 [Payment] Fetching invoice details to retrieve access_token for invoiceId=$invId...',
+        );
         final invDetails = await odooService.getInvoiceDetails(invId);
         if (invDetails != null) {
           final rawToken = invDetails['access_token']?.toString() ?? '';
@@ -140,48 +180,36 @@ class _UpcomingAppointmentDetailsScreenState
             accToken = rawToken;
           }
           final rawUrl = invDetails['access_url']?.toString() ?? '';
-          if (rawUrl.isNotEmpty && rawUrl != 'false' && rawUrl != 'null') {
-            accessUrl = rawUrl;
+          if (accToken.isEmpty && rawUrl.contains('access_token=')) {
+            final match = RegExp(r'access_token=([^&]+)').firstMatch(rawUrl);
+            if (match != null && match.group(1) != 'false') {
+              accToken = match.group(1)!;
+            }
+          }
+          if (payUrl == null && rawUrl.isNotEmpty && rawUrl != 'false') {
+            payUrl = rawUrl.startsWith('http') ? rawUrl : '$baseUrl$rawUrl';
           }
         }
       } catch (e) {
-        debugPrint('Error fetching invoice details for payment webview: $e');
+        debugPrint('⚠️ [Payment] getInvoiceDetails failed: $e');
       }
     }
 
-    // Extract access_token from accessUrl if access_token field was empty
-    if (accToken.isEmpty &&
-        accessUrl != null &&
-        accessUrl.contains('access_token=')) {
-      final match = RegExp(r'access_token=([^&]+)').firstMatch(accessUrl);
-      if (match != null && match.group(1) != 'false') {
-        accToken = match.group(1)!;
-      }
-    }
-
-    // Fallback invId if null
-    invId ??= int.tryParse(b.id.replaceAll(RegExp(r'[^\d]'), ''));
-
-    String payUrl;
-    if (accessUrl != null &&
-        accessUrl.isNotEmpty &&
-        accessUrl.startsWith('/my/invoices/')) {
-      payUrl = accessUrl.startsWith('http') ? accessUrl : '$baseUrl$accessUrl';
-      if (accToken.isNotEmpty &&
-          accToken != 'false' &&
-          !payUrl.contains('access_token=')) {
-        payUrl += payUrl.contains('?')
-            ? '&access_token=$accToken'
-            : '?access_token=$accToken';
-      }
-    } else {
+    // 3. Ensure base payUrl is formed
+    if (payUrl == null || payUrl.isEmpty) {
       payUrl = '$baseUrl/my/invoices/$invId';
-      if (accToken.isNotEmpty && accToken != 'false') {
-        payUrl += '?access_token=$accToken';
-      }
     }
 
-    debugPrint('🌐 [Payment] Launching payment webview URL: $payUrl');
+    // 4. Crucial: ALWAYS attach access_token to payUrl if present and not already in URL
+    if (accToken.isNotEmpty && !payUrl.contains('access_token=')) {
+      payUrl += payUrl.contains('?')
+          ? '&access_token=$accToken'
+          : '?access_token=$accToken';
+    }
+
+    final String targetPayUrl = payUrl;
+
+    debugPrint('🌐 [Payment] Launching payment webview URL: $targetPayUrl');
 
     if (!context.mounted) return;
 
@@ -189,7 +217,8 @@ class _UpcomingAppointmentDetailsScreenState
       context,
       MaterialPageRoute(
         builder: (ctx) => OdooPaymentWebviewScreen(
-          url: payUrl,
+          url: targetPayUrl,
+          token: accToken,
           title: b.notes.isNotEmpty
               ? 'Invoice (${b.notes})'
               : 'Invoice Payment',
@@ -206,6 +235,17 @@ class _UpcomingAppointmentDetailsScreenState
         ),
       ),
     );
+
+    // Refresh bookings & invoices regardless to ensure state is synchronized with server
+    if (context.mounted) {
+      try {
+        final controller = Provider.of<BookingsController>(
+          context,
+          listen: false,
+        );
+        controller.loadBookings();
+      } catch (_) {}
+    }
 
     if (paymentDone == true && context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
