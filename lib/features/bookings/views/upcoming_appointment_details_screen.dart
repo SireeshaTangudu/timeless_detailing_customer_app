@@ -23,12 +23,14 @@ import 'package:url_launcher/url_launcher.dart';
 class UpcomingAppointmentDetailsScreen extends StatefulWidget {
   final Booking booking;
   final bool isDownPaymentInvoice;
+  final bool isInvoice;
   final String? title;
 
   const UpcomingAppointmentDetailsScreen({
     super.key,
     required this.booking,
     this.isDownPaymentInvoice = false,
+    this.isInvoice = false,
     this.title,
   });
 
@@ -51,8 +53,13 @@ class _UpcomingAppointmentDetailsScreenState
   Future<void> _fetchInvoiceDetailsIfNeeded() async {
     final b = widget.booking;
     final int? invId = b.invoiceId ?? int.tryParse(b.id);
-    if (invId != null &&
-        (widget.isDownPaymentInvoice || b.isDownPaymentInvoice)) {
+    final bool isAnInvoice = widget.isInvoice ||
+        widget.isDownPaymentInvoice ||
+        widget.title?.toLowerCase().contains('invoice') == true ||
+        b.isDownPaymentInvoice ||
+        b.invoiceId != null;
+
+    if (invId != null && isAnInvoice) {
       setState(() => _isLoadingInvoiceDetails = true);
       try {
         final odooService = Provider.of<BaseOdooService>(
@@ -415,8 +422,11 @@ class _UpcomingAppointmentDetailsScreenState
     ).format(b.bookingDateTime);
     final String slotTimeStr = DateFormat('hh:mm a').format(b.bookingDateTime);
 
-    final bool showInvoiceView =
-        widget.isDownPaymentInvoice || b.isDownPaymentInvoice;
+    final bool showInvoiceView = widget.isInvoice ||
+        widget.isDownPaymentInvoice ||
+        widget.title?.toLowerCase().contains('invoice') == true ||
+        b.isDownPaymentInvoice ||
+        b.invoiceId != null;
     final String appBarTitle =
         widget.title ??
         (showInvoiceView ? 'Invoice Details' : 'Appointment Details');
@@ -906,20 +916,22 @@ class _UpcomingAppointmentDetailsScreenState
     final DateTime? dueDate = b.invoiceDueDate;
 
     // Payment button wording & Overdue/Fully Paid status evaluation:
-    final bool isDownPayment = b.isDownPaymentInvoice;
+    final bool isDownPayment =
+        widget.isDownPaymentInvoice || b.isDownPaymentInvoice;
     final String paymentState = (b.invoicePaymentState ?? '').toLowerCase();
-    final bool isPaid = paymentState == 'paid' || paymentState == 'in_payment';
-    final bool isResidualZero = b.pendingAmount <= 0.0;
-
-    // Fully paid when payment state is paid AND remaining/pending amount is 0
-    final bool isFullyPaid = isPaid && isResidualZero;
+    final double residual = b.invoiceResidual ??
+        ((b.thisInvoiceAmount > 0 &&
+                (paymentState == 'paid' || paymentState == 'in_payment'))
+            ? 0.0
+            : b.thisInvoiceAmount);
+    final bool isPaid = paymentState == 'paid' ||
+        paymentState == 'in_payment' ||
+        (b.thisInvoiceAmount > 0 && residual <= 0.0);
+    final bool isFullyPaid = isPaid;
 
     // Overdue if unpaid & due date strictly before today
     final bool isOverdue =
-        !isPaid &&
-        !isResidualZero &&
-        dueDate != null &&
-        dueDate.isBefore(today);
+        !isFullyPaid && dueDate != null && dueDate.isBefore(today);
 
     String actionButtonText;
     Color buttonColor;
@@ -927,7 +939,7 @@ class _UpcomingAppointmentDetailsScreenState
     Widget buttonIcon;
 
     if (isFullyPaid) {
-      actionButtonText = 'Payment Done';
+      actionButtonText = isDownPayment ? 'Deposit Paid' : 'Payment Done';
       buttonColor = const Color(0xFF2E7D32);
       buttonIcon = const Icon(
         Icons.check_circle_outline,
@@ -936,9 +948,13 @@ class _UpcomingAppointmentDetailsScreenState
       );
       buttonAction = () {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Payment for this invoice is complete.'),
-            backgroundColor: Color(0xFF2E7D32),
+          SnackBar(
+            content: Text(
+              isDownPayment
+                  ? 'Down payment for this appointment is complete.'
+                  : 'Payment for this invoice is complete.',
+            ),
+            backgroundColor: const Color(0xFF2E7D32),
           ),
         );
       };
@@ -951,13 +967,13 @@ class _UpcomingAppointmentDetailsScreenState
         color: Colors.white,
       );
       buttonAction = () => _openGarageContact(context);
-    } else if (!isDownPayment || isPaid) {
-      actionButtonText = 'Pay Balance';
+    } else if (isDownPayment) {
+      actionButtonText = 'Accept and Pay Deposit';
       buttonColor = const Color(0xFFC4913F);
       buttonIcon = const SizedBox.shrink();
       buttonAction = () => _openInvoicePaymentWebview(context, b);
     } else {
-      actionButtonText = 'Accept and Pay Amount';
+      actionButtonText = 'Pay Balance';
       buttonColor = const Color(0xFFC4913F);
       buttonIcon = const SizedBox.shrink();
       buttonAction = () => _openInvoicePaymentWebview(context, b);

@@ -58,6 +58,7 @@ class Booking {
   final String? invoiceAccessUrl;
   final String? invoiceAccessToken;
   final String? invoicePaymentState;
+  final double? invoiceResidual;
   final String? warrantyLabel;
   final DateTime? invoiceDueDate;
 
@@ -121,6 +122,7 @@ class Booking {
     this.invoiceAccessUrl,
     this.invoiceAccessToken,
     this.invoicePaymentState,
+    this.invoiceResidual,
     this.warrantyLabel,
     this.invoiceDueDate,
     this.estimator,
@@ -742,6 +744,7 @@ class Booking {
       invoiceAccessUrl: accUrl.isNotEmpty ? accUrl : null,
       invoiceAccessToken: accToken.isNotEmpty ? accToken : null,
       invoicePaymentState: payState,
+      invoiceResidual: thisInvResidual,
       warrantyLabel: warrantyLabel,
       invoiceDueDate: DateTime.tryParse(dueDateStr),
       estimator: estimatorVal,
@@ -811,6 +814,7 @@ class Booking {
     String? invoiceAccessUrl,
     String? invoiceAccessToken,
     String? invoicePaymentState,
+    double? invoiceResidual,
     String? warrantyLabel,
     DateTime? invoiceDueDate,
   }) {
@@ -852,6 +856,7 @@ class Booking {
       invoiceAccessUrl: invoiceAccessUrl ?? this.invoiceAccessUrl,
       invoiceAccessToken: invoiceAccessToken ?? this.invoiceAccessToken,
       invoicePaymentState: invoicePaymentState ?? this.invoicePaymentState,
+      invoiceResidual: invoiceResidual ?? this.invoiceResidual,
       warrantyLabel: warrantyLabel ?? this.warrantyLabel,
       invoiceDueDate: invoiceDueDate ?? this.invoiceDueDate,
       estimator: estimator ?? this.estimator,

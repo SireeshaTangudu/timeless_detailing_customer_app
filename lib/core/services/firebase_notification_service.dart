@@ -392,7 +392,11 @@ class FirebaseNotificationService {
               context,
               UpcomingAppointmentDetailsScreen(
                 booking: booking,
-                isDownPaymentInvoice: true,
+                isInvoice: true,
+                isDownPaymentInvoice: booking.isDownPaymentInvoice,
+                title: booking.isDownPaymentInvoice
+                    ? 'Down Payment Invoice'
+                    : 'Invoice Details',
               ),
               resetToHome: resetToHome,
             );

@@ -663,7 +663,38 @@ class _DashboardScreenState extends State<DashboardScreen> {
     Booking booking,
   ) async {
     final odooService = Provider.of<BaseOdooService>(context, listen: false);
+    final bookingsCtrl = Provider.of<BookingsController>(
+      context,
+      listen: false,
+    );
     final notif = _latestNotification;
+
+    // 1. If there's an active unpaid invoice in userInvoices, prioritize paying it
+    if (bookingsCtrl.userInvoices.isNotEmpty) {
+      for (final inv in bookingsCtrl.userInvoices) {
+        final ps = (inv['payment_state'] ?? '').toString().toLowerCase();
+        final residual = (inv['amount_residual'] as num?)?.toDouble() ?? 0.0;
+        final total = (inv['amount_total'] as num?)?.toDouble() ?? 0.0;
+        if (ps != 'paid' && ps != 'in_payment' && (residual > 0 || total > 0)) {
+          final isDp = inv['timeless_is_down_payment_invoice'] == true;
+          final invBooking = Booking.fromInvoiceJson(inv);
+          if (context.mounted) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => UpcomingAppointmentDetailsScreen(
+                  booking: invBooking,
+                  isInvoice: true,
+                  isDownPaymentInvoice: isDp,
+                  title: isDp ? 'Down Payment Invoice' : 'Invoice Details',
+                ),
+              ),
+            );
+          }
+          return;
+        }
+      }
+    }
 
     if (notif != null) {
       await FirebaseNotificationService.handleNotificationMapNavigation(
@@ -687,6 +718,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _buildUpcomingAppointmentCard(BuildContext context, Booking booking) {
     final notif = _latestNotification;
+    final bookingsCtrl = Provider.of<BookingsController>(
+      context,
+      listen: false,
+    );
+
+    // Identify active unpaid invoice and latest invoice from user's invoices
+    Map<String, dynamic>? activeUnpaidInvoice;
+    Map<String, dynamic>? latestInvoice;
+    if (bookingsCtrl.userInvoices.isNotEmpty) {
+      latestInvoice = bookingsCtrl.userInvoices.first;
+      for (final inv in bookingsCtrl.userInvoices) {
+        final ps = (inv['payment_state'] ?? '').toString().toLowerCase();
+        final residual = (inv['amount_residual'] as num?)?.toDouble() ?? 0.0;
+        final total = (inv['amount_total'] as num?)?.toDouble() ?? 0.0;
+        if (ps != 'paid' && ps != 'in_payment' && (residual > 0 || total > 0)) {
+          activeUnpaidInvoice = inv;
+          break;
+        }
+      }
+    }
 
     final dateDayStr = DateFormat('d MMMM').format(booking.bookingDateTime);
     final timeStr = DateFormat('hh:mm a').format(booking.bookingDateTime);
@@ -749,14 +800,69 @@ class _DashboardScreenState extends State<DashboardScreen> {
           rawTitle.toLowerCase().contains('quote') ||
           rawTitle.toLowerCase().contains('estimate');
 
+      // Check whether this invoice is already paid
+      bool isNotifInvoicePaid = false;
+      bool isDownPayment = false;
+      if (isInvoice || activeUnpaidInvoice != null) {
+        final rawResId = notif['res_id'];
+        final int? notifInvId = rawResId is int
+            ? rawResId
+            : int.tryParse(rawResId?.toString() ?? '');
+
+        // Match invoice: prioritize active unpaid invoice, or matching notification invoice
+        Map<String, dynamic> targetInv = {};
+        if (activeUnpaidInvoice != null) {
+          targetInv = activeUnpaidInvoice;
+        } else if (notifInvId != null && bookingsCtrl.userInvoices.isNotEmpty) {
+          targetInv = bookingsCtrl.userInvoices.firstWhere(
+            (inv) => inv['id'] == notifInvId,
+            orElse: () => <String, dynamic>{},
+          );
+        }
+
+        if (targetInv.isNotEmpty) {
+          isDownPayment = targetInv['timeless_is_down_payment_invoice'] == true;
+          final ps = (targetInv['payment_state'] ?? '').toString().toLowerCase();
+          final residual = (targetInv['amount_residual'] as num?)?.toDouble() ?? 0.0;
+          final total = (targetInv['amount_total'] as num?)?.toDouble() ?? 0.0;
+          isNotifInvoicePaid = (ps == 'paid' || ps == 'in_payment' || (total > 0 && residual <= 0.0));
+        } else {
+          isDownPayment = notifType.contains('down') ||
+              rawTitle.toLowerCase().contains('down payment') ||
+              rawTitle.toLowerCase().contains('deposit');
+          if (booking.invoiceId == notifInvId && booking.invoicePaymentState != null) {
+            final ps = booking.invoicePaymentState!.toLowerCase();
+            isNotifInvoicePaid = (ps == 'paid' || ps == 'in_payment');
+          } else {
+            isNotifInvoicePaid = false;
+          }
+        }
+      }
+
       if (isProjectOrTask) {
         buttonText = 'Track Progress';
         badgeText = 'LIVE TRACKING';
         badgeColor = const Color(0xFF2196F3);
-      } else if (isInvoice) {
-        buttonText = 'Pay Balance';
-        badgeText = 'INVOICE READY';
-        badgeColor = const Color(0xFFC4913F);
+      } else if (activeUnpaidInvoice != null || isInvoice) {
+        if (isNotifInvoicePaid) {
+          stageTitle = isDownPayment ? 'Down Payment Paid' : 'Payment Complete';
+          stageSubtitle = isDownPayment
+              ? 'Your down payment has been received. Appointment confirmed for $dateDayStr at $timeStr.'
+              : 'Your invoice has been fully paid. Detailing service confirmed.';
+          buttonText = 'View Details';
+          badgeText = 'PAID';
+          badgeColor = const Color(0xFF2E7D32);
+        } else {
+          stageTitle = isDownPayment
+              ? 'Down Payment Invoice Received'
+              : 'Invoice Ready for Payment';
+          stageSubtitle = isDownPayment
+              ? 'Down payment invoice generated for ${booking.service.name}. Tap to view breakdown and pay deposit.'
+              : 'Invoice generated for ${booking.service.name}. Tap to view breakdown and pay balance.';
+          buttonText = isDownPayment ? 'Pay Deposit' : 'Pay Balance';
+          badgeText = 'INVOICE READY';
+          badgeColor = const Color(0xFFC4913F);
+        }
       } else if (isQuote) {
         buttonText = 'Review & Accept';
         badgeText = 'ACTION REQUIRED';
@@ -767,10 +873,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
         badgeColor = const Color(0xFF2E7D32);
       }
     } else {
-      final bookingsCtrl = Provider.of<BookingsController>(
-        context,
-        listen: false,
-      );
       final bool isAccepted = bookingsCtrl.isQuotationAccepted(booking);
 
       final bool isTrackingOrProject =
@@ -782,10 +884,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
           booking.notes.toLowerCase().contains('coating') ||
           booking.notes.toLowerCase().contains('polishing');
 
-      final bool isDownPaymentInvoice =
-          booking.isDownPaymentInvoice ||
-          booking.notes.toLowerCase().contains('invoice') ||
-          booking.notes.toLowerCase().contains('down payment');
+      final bool hasUnpaidInv = activeUnpaidInvoice != null;
+      final bool isDownPayment = hasUnpaidInv
+          ? (activeUnpaidInvoice['timeless_is_down_payment_invoice'] == true)
+          : (latestInvoice?['timeless_is_down_payment_invoice'] == true ||
+              booking.isDownPaymentInvoice);
+
+      final bool hasAnyInvoice = activeUnpaidInvoice != null || latestInvoice != null || booking.invoiceId != null;
+
+      // Check whether invoice has already been paid
+      bool isBookingInvoicePaid = false;
+      if (hasUnpaidInv) {
+        isBookingInvoicePaid = false;
+      } else if (latestInvoice != null) {
+        final ps = (latestInvoice['payment_state'] ?? '').toString().toLowerCase();
+        final residual = (latestInvoice['amount_residual'] as num?)?.toDouble() ?? 0.0;
+        final total = (latestInvoice['amount_total'] as num?)?.toDouble() ?? 0.0;
+        isBookingInvoicePaid = (ps == 'paid' || ps == 'in_payment' || (total > 0 && residual <= 0.0));
+      } else if (booking.invoicePaymentState != null) {
+        final bPaymentState = booking.invoicePaymentState!.toLowerCase();
+        isBookingInvoicePaid = bPaymentState == 'paid' || bPaymentState == 'in_payment';
+      }
 
       final bool isQuoteReceived =
           !isAccepted &&
@@ -818,13 +937,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
         buttonText = 'Track Progress';
         badgeText = 'LIVE TRACKING';
         badgeColor = const Color(0xFF2196F3);
-      } else if (isDownPaymentInvoice) {
-        stageTitle = 'Down Payment Invoice Received';
-        stageSubtitle =
-            'Down payment invoice generated for ${booking.service.name}. Tap to view breakdown and pay balance.';
-        buttonText = 'Pay Balance';
+      } else if (hasUnpaidInv) {
+        stageTitle = isDownPayment
+            ? 'Down Payment Invoice Received'
+            : 'Invoice Ready for Payment';
+        stageSubtitle = isDownPayment
+            ? 'Down payment invoice generated for ${booking.service.name}. Tap to view breakdown and pay deposit.'
+            : 'Invoice generated for ${booking.service.name}. Tap to view breakdown and pay balance.';
+        buttonText = isDownPayment ? 'Pay Deposit' : 'Pay Balance';
         badgeText = 'INVOICE READY';
         badgeColor = const Color(0xFFC4913F);
+      } else if (hasAnyInvoice && isBookingInvoicePaid) {
+        stageTitle = isDownPayment ? 'Down Payment Paid' : 'Payment Complete';
+        stageSubtitle = isDownPayment
+            ? 'Your down payment has been received. Appointment confirmed for $dateDayStr at $timeStr.'
+            : 'Your invoice has been fully paid. Detailing service confirmed.';
+        buttonText = 'View Details';
+        badgeText = 'PAID';
+        badgeColor = const Color(0xFF2E7D32);
       } else if (isAccepted) {
         stageTitle = 'Quotation Accepted & Signed';
         stageSubtitle =

@@ -204,7 +204,9 @@ class _InvoicesScreenState extends State<InvoicesScreen> {
           MaterialPageRoute(
             builder: (context) => UpcomingAppointmentDetailsScreen(
               booking: bookingObj,
-              isDownPaymentInvoice: true,
+              isInvoice: true,
+              isDownPaymentInvoice: isDownPayment,
+              title: isDownPayment ? 'Down Payment Invoice' : 'Invoice Details',
             ),
           ),
         );
